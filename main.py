@@ -1,5 +1,6 @@
 import sys
 import time
+import matplotlib
 
 from argparser import argparser
 
@@ -31,4 +32,5 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
+    matplotlib.use("agg")
     main(sys.argv[1:])
