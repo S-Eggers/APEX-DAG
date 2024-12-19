@@ -1,5 +1,6 @@
 import ast
 import networkx as nx
+from tqdm import tqdm
 from typing import List
 from copy import deepcopy
 from abc import ABC, abstractmethod
@@ -236,7 +237,7 @@ class ASTGraph(ABC):
         # there are no terminal to terminal paths in a tree
         G = self._G.to_undirected()
         leaf_to_leaf_paths = []
-        for leaf_node in self._leaf_nodes:
+        for leaf_node in tqdm(self._leaf_nodes, desc="Processing leaf nodes"):
             for other_leaf_node in self._leaf_nodes:
                 if leaf_node != other_leaf_node:
                     simple_paths = nx.all_simple_paths(G, leaf_node, other_leaf_node, cutoff=max_depth)
