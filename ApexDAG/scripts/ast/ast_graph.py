@@ -4,7 +4,7 @@ from tqdm import tqdm
 from typing import List
 from copy import deepcopy
 from abc import ABC, abstractmethod
-from scripts.notebook import Notebook
+from ApexDAG.scripts.notebook import Notebook
 
 
 

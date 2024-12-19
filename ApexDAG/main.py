@@ -2,14 +2,14 @@ import sys
 import time
 import matplotlib
 
-from argparser import argparser
+from ApexDAG.argparser import argparser
 
-from scripts.experiments.analyze_dataset import analyze_kaggle_dataset
-from scripts.experiments.dataflow_graph import data_flow_graph_test
-from scripts.experiments.ast_graph_test import ast_graph_test
-from scripts.experiments.watch import watch
-from scripts.experiments.mine_dataflows import mine_dataflows_on_kaggle_dataset
-from scripts.util.logging import setup_logging
+from ApexDAG.scripts.experiments.analyze_dataset import analyze_kaggle_dataset
+from ApexDAG.scripts.experiments.dataflow_graph import data_flow_graph_test
+from ApexDAG.scripts.experiments.ast_graph_test import ast_graph_test
+from ApexDAG.scripts.experiments.watch import watch
+from ApexDAG.scripts.experiments.mine_dataflows import mine_dataflows_on_kaggle_dataset
+from ApexDAG.scripts.util.logging import setup_logging
 
 
 def main(argv=None):

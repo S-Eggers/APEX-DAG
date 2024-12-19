@@ -2,7 +2,7 @@ import re
 import nbformat
 import networkx as nx
 
-from scripts.util.logging import setup_logging
+from ApexDAG.scripts.util.logging import setup_logging
 
 
 class Notebook:

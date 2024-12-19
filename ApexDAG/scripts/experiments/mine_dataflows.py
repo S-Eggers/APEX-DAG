@@ -4,9 +4,9 @@ import time
 import traceback
 import pandas as pd
 
-from scripts.notebook import Notebook
-from scripts.ast.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
-from scripts.util.kaggle_dataset_iterator import KaggleDatasetIterator
+from ApexDAG.scripts.notebook import Notebook
+from ApexDAG.scripts.ast.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
+from ApexDAG.scripts.util.kaggle_dataset_iterator import KaggleDatasetIterator
 
 
 def mine_dataflows_on_kaggle_dataset(args, logger):

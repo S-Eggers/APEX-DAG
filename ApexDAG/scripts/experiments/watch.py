@@ -3,8 +3,8 @@ import time
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from scripts.notebook import Notebook
-from scripts.ast.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
+from ApexDAG.scripts.notebook import Notebook
+from ApexDAG.scripts.ast.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 
 
 class NotebookHandler(FileSystemEventHandler):

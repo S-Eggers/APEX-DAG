@@ -2,9 +2,9 @@ import os
 import sys
 import pandas as pd
 
-from scripts.notebook import Notebook
-from scripts.util.notebook_stat_miner import NotebookStatMiner
-from scripts.util.kaggle_dataset_iterator import KaggleDatasetIterator
+from ApexDAG.scripts.notebook import Notebook
+from ApexDAG.scripts.util.notebook_stat_miner import NotebookStatMiner
+from ApexDAG.scripts.util.kaggle_dataset_iterator import KaggleDatasetIterator
 
 
 def analyze_kaggle_dataset(args, logger):
