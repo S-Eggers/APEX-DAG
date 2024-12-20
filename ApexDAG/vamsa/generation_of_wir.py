@@ -243,12 +243,11 @@ def construct_bipartite_graph(PRs):
 
 # Example usage
 if __name__ == "__main__":
-    file_path = 'C:/Users/ismyn/UNI/TUB/pipeline-extraction/data/raw/test_vamsa.py'
+    file_path = 'data/raw/test_vamsa.py'
     location_related_attributes = ['lineno', 'col_offset', 'end_lineno', 'end_col_offset']
 
     with open(file_path, 'r') as file:
         file_content = file.read()
-        
     file_lines = file_content.split('\n')
         
     parsed_ast = ast.parse(file_content)
