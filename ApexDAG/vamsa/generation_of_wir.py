@@ -10,6 +10,8 @@ def extract_from_node(node, field): # main function, not defined in the paper
     """Extracts information from a node."""
     if node is None:
         return None
+    
+    # TODO: find a berrter way to identify operations than a random ID, maybe a hash???
 
     match node.__class__.__name__:
         case "Assign":
@@ -21,7 +23,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 return node.targets
         case "Call":
             if field == "operation":
-                return node.func # return node.__class__.__name__ # very much unsure about this
+                return node.func
             elif field == "input":
                 return node.args
             elif field == "caller":
@@ -37,10 +39,10 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 pass 
         case "Name":
             if field == "output":
-                return node.id # object (ctx) / name
+                return node.id 
         case "Constant":
             if field == "output":
-                return node.value  # object / name
+                return node.value
         case 'Import':
             if field == "operation":
                 return node.__class__.__name__ + ':id' + str(random.randint(0, 250))
@@ -73,18 +75,14 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 return node.slice
             elif field == "output":
                 return 'Temp_Subscript' + ':id' + str(random.randint(0, 250))
-        case 'Tuple':
+        case 'Tuple': # this omits the modelling of tuple...
             if field == "output":
-                return 'Tuple' + ':id' + str(random.randint(0, 250)) # consult
-            elif field == "input":
                 return node.elts
-            elif field == "operation":
-                return node.__class__.__name__ # each data type needs to be handles with an operation
         case 'Slice':
-            if field == "input":
-                return node.lower, node.upper, node.step
-            elif field == "operation":
-                return node.__class__.__name__
+            if field == "operation":
+                return node.__class__.__name__ # fix
+            elif field == "input":
+                return [value for value in (node.lower, node.upper, node.step) if value is not None]
         case 'List':
             if field == "output":
                 return 'Temp_List' + ':id' + str(random.randint(0, 250)) # consult
@@ -105,12 +103,17 @@ def extract_from_node(node, field): # main function, not defined in the paper
         
 
 def get_relevant_code(node):
-    # check if has __dict__ attr - for constants
+    '''
+    Utility, returns code pertaining to a node
+    '''
     if hasattr(node, '__dict__'):
         if 'lineno' in vars(node) and 'col_offset' in vars(node) and 'end_col_offset' in vars(node):
             return file_lines[node.lineno-1][node.col_offset:node.end_col_offset]
 
 def print_relevant_code(element):
+    '''
+    Utility, prints code pertaining to a node
+    '''
     if isinstance(element, list):
         for el in element:
             print_relevant_code(el)
@@ -119,9 +122,7 @@ def print_relevant_code(element):
     elif element is not None:
         get_relevant_code(element)
     else:
-        print("None")
-              
-            
+        print("None")           
             
 def GenPR(v, PRs):
     """
@@ -144,7 +145,8 @@ def GenPR(v, PRs):
     
     c = None
 
-    if isinstance(v, str):
+    if isinstance(v, (str, int, float, bool, type(None))):
+        PRs.add((None, None, None, v))
         return v, PRs
     
     p, PRs = GenPR(extract_from_node(v, 'operation'), PRs)
@@ -197,7 +199,7 @@ def construct_bipartite_graph(PRs):
     :param PRs: Set of PRs.
     :return: Bipartite graph G.
     """
-    G = nx.Graph()
+    G = nx.DiGraph()
     input_nodes = set()
     operation_nodes = set()
     caller_nodes = set()
@@ -224,8 +226,8 @@ def construct_bipartite_graph(PRs):
     
     labels = {node: str(node).split(':')[0] for node in G.nodes()}
     
-    plt.figure(figsize=(12, 8))
-    pos = nx.spring_layout(G)
+    plt.figure(figsize=(20, 8))
+    pos = nx.spring_layout(G, k=1.0, iterations=200, scale=2.0) 
 
     nx.draw_networkx_nodes(G, pos, nodelist=input_nodes) 
     nx.draw_networkx_nodes(G, pos, nodelist=caller_nodes)
@@ -234,7 +236,7 @@ def construct_bipartite_graph(PRs):
 
     edges = G.edges(data=True)
     edge_colors = [d['color'] for (u, v, d) in edges]
-    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=edge_colors, arrows=True)
+    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=edge_colors, arrows=True) # todo: find better way to visualize
     
     nx.draw_networkx_labels(G, pos, labels=labels)
     
