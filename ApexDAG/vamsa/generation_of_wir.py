@@ -43,7 +43,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 return node.value  # object / name
         case 'Import':
             if field == "operation":
-                return node.__class__.__name__ + ':id' + str(random.randint(0, 25))
+                return node.__class__.__name__ + ':id' + str(random.randint(0, 250))
             elif field == "output":
                 return node.names
         case 'Module':
@@ -66,7 +66,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
             pass # TODO
         case 'Subscript':
             if field == "operation":
-                return 'Slice' + ':id' + str(random.randint(0, 250))
+                return node.__class__.__name__ + ':id' + str(random.randint(0, 250))
             elif field == "caller":
                 return node.value
             elif field == "input":
@@ -81,7 +81,10 @@ def extract_from_node(node, field): # main function, not defined in the paper
             elif field == "operation":
                 return node.__class__.__name__ # each data type needs to be handles with an operation
         case 'Slice':
-            pass
+            if field == "input":
+                return node.lower, node.upper, node.step
+            elif field == "operation":
+                return node.__class__.__name__
         case 'List':
             if field == "output":
                 return 'Temp_List' + ':id' + str(random.randint(0, 250)) # consult
