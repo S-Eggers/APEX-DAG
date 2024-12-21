@@ -2,9 +2,11 @@ import ast
 import networkx as nx
 import itertools
 import matplotlib.pyplot as plt
-import random
+from ApexDAG.vamsa.utils import add_id, remove_id, is_empty_or_none_list, flatten
 
+from networkx.drawing.nx_agraph import graphviz_layout
 from ast import iter_child_nodes
+
 
 def extract_from_node(node, field): # main function, not defined in the paper
     """Extracts information from a node."""
@@ -16,7 +18,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
     match node.__class__.__name__:
         case "Assign":
             if field == "operation":
-                return  node.__class__.__name__ + ':id' + str(random.randint(0,250))
+                return  node.__class__.__name__ + add_id()
             elif field == "input":
                 return node.value 
             elif field == "output":
@@ -26,26 +28,22 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 return node.func
             elif field == "input":
                 return node.args
-            elif field == "caller":
-                pass
-            elif field == "output":
-                pass 
         case "Attribute":
             if field == "caller":
                 return node.value
             elif field == "operation":
                 return node.attr 
             elif field == "output":
-                pass 
+                return node.attr + add_id() # also needs id attribute
         case "Name":
             if field == "output":
-                return node.id 
+                return node.id # + add_id() # also needs id attribute
         case "Constant":
             if field == "output":
-                return node.value
+                return f"{node.value}{add_id()}" # also needs id attribute
         case 'Import':
             if field == "operation":
-                return node.__class__.__name__ + ':id' + str(random.randint(0, 250))
+                return node.__class__.__name__ + add_id()
             elif field == "output":
                 return node.names
         case 'Module':
@@ -56,10 +54,10 @@ def extract_from_node(node, field): # main function, not defined in the paper
             elif field == "caller":
                 return node.name
             if field == "operation":
-                return node.__class__.__name__ + ':id' + str(random.randint(0, 250))
+                return node.__class__.__name__ + add_id()
         case 'ImportFrom':
             if field == "operation":
-                return node.__class__.__name__ + ':id' + str(random.randint(0, 250))
+                return node.__class__.__name__ + add_id()
             elif field == "output":
                 return node.names
             elif field == "caller":
@@ -68,62 +66,37 @@ def extract_from_node(node, field): # main function, not defined in the paper
             pass # TODO
         case 'Subscript':
             if field == "operation":
-                return node.__class__.__name__ + ':id' + str(random.randint(0, 250))
-            elif field == "caller":
-                return node.value
+                return node.__class__.__name__  + add_id()
             elif field == "input":
                 return node.slice
+            elif field == "caller":
+                return node.value
             elif field == "output":
-                return 'Temp_Subscript' + ':id' + str(random.randint(0, 250))
+                return node.__class__.__name__  + add_id()
         case 'Tuple': # this omits the modelling of tuple...
             if field == "output":
                 return node.elts
         case 'Slice':
             if field == "operation":
-                return node.__class__.__name__ # fix
+                return node.__class__.__name__  + add_id()
             elif field == "input":
-                return [value for value in (node.lower, node.upper, node.step) if value is not None]
+                return [value if value is not None else '' + add_id() for value in (node.lower, node.upper, node.step)]
         case 'List':
-            if field == "output":
-                return 'Temp_List' + ':id' + str(random.randint(0, 250)) # consult
-            elif field == "input":
+            if field == "input":
                 return node.elts
             elif field == "operation":
-                return node.__class__.__name__
+                return node.__class__.__name__ + add_id() 
         case 'keyword':
             if field == "output":
                 return node.arg
             elif field == "input":
                 return node.value
-        case 'Expr':
+        case 'Expr': # TODO
             if field == 'output':
                 return node.value
-    # print('No case matched for', node.__class__.__name__, field)
     return None
-        
 
-def get_relevant_code(node):
-    '''
-    Utility, returns code pertaining to a node
-    '''
-    if hasattr(node, '__dict__'):
-        if 'lineno' in vars(node) and 'col_offset' in vars(node) and 'end_col_offset' in vars(node):
-            return file_lines[node.lineno-1][node.col_offset:node.end_col_offset]
 
-def print_relevant_code(element):
-    '''
-    Utility, prints code pertaining to a node
-    '''
-    if isinstance(element, list):
-        for el in element:
-            print_relevant_code(el)
-    elif isinstance(element, str):
-        print(element)
-    elif element is not None:
-        get_relevant_code(element)
-    else:
-        print("None")           
-            
 def GenPR(v, PRs):
     """
     Processes a single AST node to generate WIR variables and update PRs.
@@ -140,14 +113,14 @@ def GenPR(v, PRs):
         for node in v:
             o, PRs = GenPR(node, PRs)
             os.append(o)
-        os = list(itertools.chain.from_iterable(os))
+        os = list(flatten(os))
         return os, PRs
     
     c = None
 
-    if isinstance(v, (str, int, float, bool, type(None))):
+    if isinstance(v, (str, int, float, bool, type(None))): 
         PRs.add((None, None, None, v))
-        return v, PRs
+        return v,  PRs # no id, implicid because of tree traversal
     
     p, PRs = GenPR(extract_from_node(v, 'operation'), PRs)
     I, PRs = GenPR(extract_from_node(v, 'input'), PRs)
@@ -155,7 +128,14 @@ def GenPR(v, PRs):
     O, PRs = GenPR(extract_from_node(v, 'output'), PRs)
     
     if O is None:
-        O = p
+        # this logic prevents loops - for some methods we cannot assign the id... (since we git objects)
+        if is_empty_or_none_list(I) and c is None:# if we got only caller object and no other proveance, just return caller, do not add an id
+            O = p
+        elif isinstance(p, list):
+            O = [op + add_id() for op in p]
+        else:
+            O = p + add_id()
+        
         
     I = I if isinstance(I, list) else [I]
     O = O if isinstance(O, list) else [O]
@@ -179,17 +159,10 @@ def GenWIR(root):
     for child in iter_child_nodes(root):
         _, PRs_prime = GenPR(child, PRs)
         PRs = PRs.union(PRs_prime)
-
-    # print("PRs")
-    # for pr in PRs:
-    #     print(pr)
         
     PRs = {pr for pr in PRs if pr[2] is not None}
     G = construct_bipartite_graph(PRs)
     
-    # print("PRs")
-    # for pr in PRs:
-    #     print(pr)
     return G
 
 def construct_bipartite_graph(PRs):
@@ -204,7 +177,7 @@ def construct_bipartite_graph(PRs):
     operation_nodes = set()
     caller_nodes = set()
     output_nodes = set()
-
+        
     for (I, c, p, O) in PRs:
         input_nodes.update([e for e in (I, ) if e is not None])
         operation_nodes.add(p)
@@ -224,10 +197,10 @@ def construct_bipartite_graph(PRs):
     nx.set_node_attributes(G, {node: 2 for node in operation_nodes}, 'bipartite')
     nx.set_node_attributes(G, {node: 3 for node in output_nodes}, 'bipartite')
     
-    labels = {node: str(node).split(':')[0] for node in G.nodes()}
+    labels = {node: remove_id(node) for node in G.nodes()} # ids are needed since some nodes share names :)
     
-    plt.figure(figsize=(20, 8))
-    pos = nx.spring_layout(G, k=1.0, iterations=200, scale=2.0) 
+    plt.figure(figsize=(20, 20))
+    pos = graphviz_layout(G, prog='dot')
 
     nx.draw_networkx_nodes(G, pos, nodelist=input_nodes) 
     nx.draw_networkx_nodes(G, pos, nodelist=caller_nodes)
@@ -236,8 +209,8 @@ def construct_bipartite_graph(PRs):
 
     edges = G.edges(data=True)
     edge_colors = [d['color'] for (u, v, d) in edges]
-    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=edge_colors, arrows=True) # todo: find better way to visualize
     
+    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=edge_colors, arrows=True) # todo: find better way to visualize
     nx.draw_networkx_labels(G, pos, labels=labels)
     
     plt.legend()
