@@ -2,7 +2,7 @@ import ast
 import networkx as nx
 import itertools
 import matplotlib.pyplot as plt
-from ApexDAG.vamsa.utils import add_id, remove_id, is_empty_or_none_list, flatten
+from ApexDAG.vamsa.utils import add_id, remove_id, is_empty_or_none_list, flatten, get_relevant_code
 
 from networkx.drawing.nx_agraph import graphviz_layout
 from ast import iter_child_nodes
@@ -13,8 +13,6 @@ def extract_from_node(node, field): # main function, not defined in the paper
     if node is None:
         return None
     
-    # TODO: find a berrter way to identify operations than a random ID, maybe a hash???
-
     match node.__class__.__name__:
         case "Assign":
             if field == "operation":
@@ -50,9 +48,9 @@ def extract_from_node(node, field): # main function, not defined in the paper
             pass
         case 'alias':
             if field == "output":
-                return node.asname if node.asname is not None else node.name 
+                return node.asname if node.asname is not None else node.name # also needs id attribute
             elif field == "caller":
-                return node.name
+                return node.name if node.asname is not None else node.name + add_id() 
             if field == "operation":
                 return node.__class__.__name__ + add_id()
         case 'ImportFrom':
@@ -161,9 +159,49 @@ def GenWIR(root):
         PRs = PRs.union(PRs_prime)
         
     PRs = {pr for pr in PRs if pr[2] is not None}
-    G = construct_bipartite_graph(PRs)
+    
+    for pr in PRs:
+        print("Unfiltered pr: ", pr)
+    PRs_filtered = filter_PRs(PRs)
+    
+    for pr in PRs:
+        print("Filtered pr: ", pr)
+    G = construct_bipartite_graph(PRs_filtered)
     
     return G
+
+def filter_PRs(PRs):
+    """
+    Optimizes the graph by getting rid of double operation nodes.
+    Where the nodes are  Some Caller -> (Operator A + some id) -> (Output A + some other id) and
+    
+    :param PRs: Set of PRs.
+    :return: Filtered set of PRs.
+    """
+    filtered_PRs = set()
+    problematic_operations = dict()
+    operations = set([ o for (I, c, o, O) in PRs])
+    
+    for (I, c, p, O) in PRs:
+        if c is not None and p in operations and O in operations and remove_id(p) == remove_id(O): 
+            if O not in problematic_operations:
+                problematic_operations[O] = c
+            elif problematic_operations[O] != c: # may be a multiinput operation!
+                raise ValueError("Multiple problematic operations caused same outputs: %s" % O)
+    
+    for (I, c, p, O) in PRs:
+        # p is an output of a problematic operation node...
+        if p in problematic_operations and c is None:
+            # add original caller 
+            original_caller = problematic_operations[p]
+            filtered_PRs.add((I, original_caller, p, O))
+        elif O in operations and p in operations:
+            if I is not None:
+                raise ValueError("Input should be None, but is %s" % I)
+        else:
+            filtered_PRs.add((I,c,p,O))
+    return filtered_PRs
+            
 
 def construct_bipartite_graph(PRs):
     """
@@ -183,7 +221,8 @@ def construct_bipartite_graph(PRs):
         operation_nodes.add(p)
         if c is not None:
             caller_nodes.add(c)
-        output_nodes.add(O)
+        if O is not None: # redundant
+            output_nodes.add(O)
         
         for input_node in [e for e in (I, ) if e is not None]:
             G.add_edge(input_node, p, edge_type='input_to_operation', color='blue')
@@ -197,20 +236,20 @@ def construct_bipartite_graph(PRs):
     nx.set_node_attributes(G, {node: 2 for node in operation_nodes}, 'bipartite')
     nx.set_node_attributes(G, {node: 3 for node in output_nodes}, 'bipartite')
     
-    labels = {node: remove_id(node) for node in G.nodes()} # ids are needed since some nodes share names :)
+    labels = {node: remove_id(node) for node in G.nodes()}
     
     plt.figure(figsize=(20, 20))
     pos = graphviz_layout(G, prog='dot')
 
-    nx.draw_networkx_nodes(G, pos, nodelist=input_nodes) 
-    nx.draw_networkx_nodes(G, pos, nodelist=caller_nodes)
-    nx.draw_networkx_nodes(G, pos, nodelist=operation_nodes) 
-    nx.draw_networkx_nodes(G, pos, nodelist=output_nodes)
+    nx.draw_networkx_nodes(G, pos, nodelist=input_nodes, node_shape='o') 
+    nx.draw_networkx_nodes(G, pos, nodelist=caller_nodes, node_shape='o')
+    nx.draw_networkx_nodes(G, pos, nodelist=operation_nodes, node_shape='s') 
+    nx.draw_networkx_nodes(G, pos, nodelist=output_nodes, node_shape='o')
 
     edges = G.edges(data=True)
     edge_colors = [d['color'] for (u, v, d) in edges]
     
-    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=edge_colors, arrows=True) # todo: find better way to visualize
+    nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=edge_colors, arrows=True)
     nx.draw_networkx_labels(G, pos, labels=labels)
     
     plt.legend()

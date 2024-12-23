@@ -2,7 +2,7 @@ import random
 
 
 def add_id():
-    return ':id' + str(random.randint(0, 250))
+    return ':id' + str(random.randint(0, 2500))
 
 def remove_id(node_name: str):
     return node_name.split(':')[0]
@@ -23,7 +23,7 @@ def flatten(lst):
         else:
             yield item
             
-            
+
 def get_relevant_code(node, file_lines):
     '''
     Utility, returns code pertaining to a node
