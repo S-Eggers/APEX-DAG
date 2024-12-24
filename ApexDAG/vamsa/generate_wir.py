@@ -1,12 +1,18 @@
 import ast
 import networkx as nx
 import itertools
-import matplotlib.pyplot as plt
+# import matplotlib
+# matplotlib.use("TkAgg")
+from matplotlib import pyplot as plt
 from ApexDAG.vamsa.utils import add_id, remove_id, is_empty_or_none_list, flatten, get_relevant_code
 
 from networkx.drawing.nx_agraph import graphviz_layout
 from ast import iter_child_nodes
+import logging  # Import logging module
 
+# Set up logging configuration
+logging.basicConfig(level=logging.WARNING)  # Default to INFO level; can change to DEBUG for detailed logs
+logger = logging.getLogger(__name__)  # Get a logger for this module
 
 def extract_from_node(node, field): # main function, not defined in the paper
     """Extracts information from a node."""
@@ -20,12 +26,12 @@ def extract_from_node(node, field): # main function, not defined in the paper
             elif field == "input":
                 return node.value 
             elif field == "output":
-                return node.targets
+                return node.targets # also needs id attribute
         case "Call":
             if field == "operation":
                 return node.func
             elif field == "input":
-                return node.args
+                return node.args + node.keywords
         case "Attribute":
             if field == "caller":
                 return node.value
@@ -35,7 +41,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 return node.attr + add_id() # also needs id attribute
         case "Name":
             if field == "output":
-                return node.id # + add_id() # also needs id attribute
+                return node.id # + add_id() # also needs id attribute, does not work sadly...
         case "Constant":
             if field == "output":
                 return f"{node.value}{add_id()}" # also needs id attribute
@@ -45,7 +51,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
             elif field == "output":
                 return node.names
         case 'Module':
-            pass
+            return None
         case 'alias':
             if field == "output":
                 return node.asname if node.asname is not None else node.name # also needs id attribute
@@ -84,14 +90,109 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 return node.elts
             elif field == "operation":
                 return node.__class__.__name__ + add_id() 
-        case 'keyword':
-            if field == "output":
-                return node.arg
-            elif field == "input":
-                return node.value
         case 'Expr': # TODO
             if field == 'output':
                 return node.value
+        case 'For': # target, iter, body, orelse
+            if field == "input":
+                return node.iter
+            elif field == "operation":
+                return node.__class__.__name__ + add_id()
+            elif field == "output":
+                return node.target # not too sure about this
+        case 'Compare': # left, ops, comparators
+            if field == "input":
+                return [node.left] + node.comparators
+            elif field == "output":
+                return node.ops
+            elif field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'BinOp':
+            if field == "input":
+                return [node.left, node.right]
+            elif field == "operation":
+                return node.op
+        case 'Lambda': #
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+            # elif field == "input":
+            #     return node.args
+            # elif field == "output":
+            #     return node.body
+            pass
+       
+        case 'FunctionDef': #
+            pass
+        case 'keyword':
+            if field == "input":
+                return node.value
+            elif field == "output":
+                return node.arg
+            elif field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Add':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Sub':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Mult':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Div':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Eq':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Lt':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Gt':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'GtE':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'LtE':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'BitAnd':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'Mod':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+        case 'ListComp':
+            if field == "operation":
+                return node.elt
+            elif field == "input":
+                return node.generators
+        case 'UnaryOp':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+            elif field == "input":
+                return node.operand
+        case 'comprehension': # must be rechecked!
+            if field == "input":
+                return node.iter
+            elif field == "output":
+                return node.target
+            elif field == "operation":
+                return node.__class__.__name__ + add_id()     
+        case 'IfExp':
+            if field == "operation":
+                return node.__class__.__name__ + add_id()
+            if field == "input":
+                return [node.test,node.test, node.orelse]
+        case 'Dict':
+            if field == "input":
+                return [ast.Tuple([key,value]) for key, value in zip(node.keys, node.values)]
+            elif field == "operation":
+                return node.__class__.__name__ + add_id()
+        case _:
+            logger.warning(f"Field {field} not found in node {node.__class__.__name__}")  
+    logger.info(f"Field {field} not found in node {node.__class__.__name__}")  
     return None
 
 
@@ -117,6 +218,8 @@ def GenPR(v, PRs):
     c = None
 
     if isinstance(v, (str, int, float, bool, type(None))): 
+        if isinstance(v, str):
+            v = v.replace('\n', '') # problematic later on (from_string in Agraph)
         PRs.add((None, None, None, v))
         return v,  PRs # no id, implicid because of tree traversal
     
@@ -160,13 +263,16 @@ def GenWIR(root, output_filename='output/wir.png'):
         
     PRs = {pr for pr in PRs if pr[2] is not None}
     
+    logger.info("Unfiltered PRs:")
     for pr in PRs:
-        print("Unfiltered pr: ", pr)
+        logger.info(f"Unfiltered pr: {pr}")
         
     PRs_filtered = filter_PRs(PRs)
     
-    for pr in PRs:
-        print("Filtered pr: ", pr)
+    # Log the filtered PRs
+    logger.info("Filtered PRs:")
+    for pr in PRs_filtered:
+        logger.info(f"Filtered pr: {pr}")
         
     G = construct_bipartite_graph(PRs_filtered, output_filename=output_filename)
     
@@ -188,8 +294,9 @@ def filter_PRs(PRs):
         if c is not None and p in operations and O in operations and remove_id(p) == remove_id(O): 
             if O not in problematic_operations:
                 problematic_operations[O] = c
-            elif problematic_operations[O] != c: # may be a multiinput operation!
-                raise ValueError("Multiple problematic operations caused same outputs: %s" % O)
+            # elif problematic_operations[O] != c: # may be a multiinput operation!
+                
+            #     raise ValueError("Multiple problematic operations caused same outputs: %s" % O) # isdue to variable overwriting!
     
     for (I, c, p, O) in PRs:
         # p is an output of a problematic operation node...
@@ -241,8 +348,8 @@ def construct_bipartite_graph(PRs, output_filename):
     nx.set_node_attributes(G, {node: 3 for node in output_nodes}, 'bipartite')   
     
     labels = {node: remove_id(node) for node in G.nodes()}
-    print("Nodes in the graph:", G.nodes())
-    plt.figure(figsize=(20, 20))
+    
+    plt.figure(figsize=(200, 40))
     pos = graphviz_layout(G, prog='dot')
 
     nx.draw_networkx_nodes(G, pos, nodelist=input_nodes, node_shape='o') 
@@ -264,7 +371,7 @@ def construct_bipartite_graph(PRs, output_filename):
 
 # Example usage
 if __name__ == "__main__":
-    file_path = 'data/raw/test_vamsa.py'
+    file_path = 'data/titanic_mvp_wir/introduction-to-ensembling-stacking-in-python/script.py'
     location_related_attributes = ['lineno', 'col_offset', 'end_lineno', 'end_col_offset']
 
     with open(file_path, 'r') as file:
@@ -272,5 +379,5 @@ if __name__ == "__main__":
     file_lines = file_content.split('\n')
         
     parsed_ast = ast.parse(file_content)
-    wir = GenWIR(parsed_ast, output_filename='output/wir.png')
+    wir = GenWIR(parsed_ast, output_filename='output/wir-titanic.png')
     print("Generated WIR:", wir)
