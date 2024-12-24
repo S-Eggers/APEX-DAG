@@ -47,3 +47,10 @@ def print_relevant_code(element):
     else:
         print("None")           
             
+def remove_comment_lines(code_string: str):
+    '''
+    Removes comments and pure print statements...
+    '''
+    code_lines = [line for line in code_string.splitlines() if not line.strip().startswith('#')]
+    code_lines = [line for line in code_lines if not line.startswith('print')]
+    return '\n'.join(code_lines)
