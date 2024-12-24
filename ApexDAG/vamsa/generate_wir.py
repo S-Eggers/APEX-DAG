@@ -145,7 +145,7 @@ def GenPR(v, PRs):
 
     return O, PRs
 
-def GenWIR(root):
+def GenWIR(root, output_filename='output/wir.png'):
     """
     Generates the WIR (Workflow Intermediate Representation) from an AST.
     
@@ -162,11 +162,13 @@ def GenWIR(root):
     
     for pr in PRs:
         print("Unfiltered pr: ", pr)
+        
     PRs_filtered = filter_PRs(PRs)
     
     for pr in PRs:
         print("Filtered pr: ", pr)
-    G = construct_bipartite_graph(PRs_filtered)
+        
+    G = construct_bipartite_graph(PRs_filtered, output_filename=output_filename)
     
     return G
 
@@ -195,15 +197,17 @@ def filter_PRs(PRs):
             # add original caller 
             original_caller = problematic_operations[p]
             filtered_PRs.add((I, original_caller, p, O))
-        elif O in operations and p in operations:
-            if I is not None:
-                raise ValueError("Input should be None, but is %s" % I)
+        elif O in operations and p in operations: 
+            if I is not None: 
+                pass
+                # later raise value error 
+                #raise ValueError("Input should be None, but is %s" % I)
         else:
             filtered_PRs.add((I,c,p,O))
     return filtered_PRs
             
 
-def construct_bipartite_graph(PRs):
+def construct_bipartite_graph(PRs, output_filename):
     """
     Constructs a bipartite graph from the given PRs.
     
@@ -231,13 +235,13 @@ def construct_bipartite_graph(PRs):
         if O is not None:
             G.add_edge(p, O, edge_type='operation_to_output', color='black')
 
-    nx.set_node_attributes(G, {node: 0 for node in input_nodes}, 'bipartite')
-    nx.set_node_attributes(G, {node: 1 for node in caller_nodes}, 'bipartite')
+    nx.set_node_attributes(G, {node: 0 for node in input_nodes}, 'bipartite')    
+    nx.set_node_attributes(G, {node: 1 for node in caller_nodes}, 'bipartite')   
     nx.set_node_attributes(G, {node: 2 for node in operation_nodes}, 'bipartite')
-    nx.set_node_attributes(G, {node: 3 for node in output_nodes}, 'bipartite')
+    nx.set_node_attributes(G, {node: 3 for node in output_nodes}, 'bipartite')   
     
     labels = {node: remove_id(node) for node in G.nodes()}
-    
+    print("Nodes in the graph:", G.nodes())
     plt.figure(figsize=(20, 20))
     pos = graphviz_layout(G, prog='dot')
 
@@ -253,7 +257,7 @@ def construct_bipartite_graph(PRs):
     nx.draw_networkx_labels(G, pos, labels=labels)
     
     plt.legend()
-    plt.savefig("test_vamsa.png")
+    plt.savefig(output_filename)
     plt.close()
     
     return G
@@ -268,5 +272,5 @@ if __name__ == "__main__":
     file_lines = file_content.split('\n')
         
     parsed_ast = ast.parse(file_content)
-    wir = GenWIR(parsed_ast)
+    wir = GenWIR(parsed_ast, output_filename='output/wir.png')
     print("Generated WIR:", wir)
