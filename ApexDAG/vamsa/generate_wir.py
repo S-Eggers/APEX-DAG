@@ -1,20 +1,34 @@
-import ast
-import networkx as nx
 import itertools
-# import matplotlib
-# matplotlib.use("TkAgg")
-from matplotlib import pyplot as plt
-from ApexDAG.vamsa.utils import add_id, remove_id, is_empty_or_none_list, flatten, get_relevant_code
+import ast
+import logging
+import numpy as np 
+import random 
 
-from networkx.drawing.nx_agraph import graphviz_layout
 from ast import iter_child_nodes
-import logging  # Import logging module
+from matplotlib import pyplot as plt
+from typing import Union, List, Set, Tuple, Optional
 
-# Set up logging configuration
-logging.basicConfig(level=logging.WARNING)  # Default to INFO level; can change to DEBUG for detailed logs
+import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
+
+from ApexDAG.vamsa.utils import (
+    add_id,
+    remove_id,
+    is_empty_or_none_list,
+    flatten,
+    get_relevant_code,
+    check_bipartie,
+    WIRNodeType,
+    PRType
+)
+
+random.seed(42)
+np.random.seed(42)
+
+logging.basicConfig(level=logging.WARNING)  # Adjust for debugging
 logger = logging.getLogger(__name__)  # Get a logger for this module
 
-def extract_from_node(node, field): # main function, not defined in the paper
+def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not defined in the paper
     """Extracts information from a node."""
     if node is None:
         return None
@@ -103,10 +117,10 @@ def extract_from_node(node, field): # main function, not defined in the paper
         case 'Compare': # left, ops, comparators
             if field == "input":
                 return [node.left] + node.comparators
-            elif field == "output":
-                return node.ops
             elif field == "operation":
-                return node.__class__.__name__ + add_id()
+                return node.ops
+            # elif field == "operation":
+            #     return node.__class__.__name__ + add_id()
         case 'BinOp':
             if field == "input":
                 return [node.left, node.right]
@@ -115,19 +129,13 @@ def extract_from_node(node, field): # main function, not defined in the paper
         case 'Lambda': #
             if field == "operation":
                 return node.__class__.__name__ + add_id()
-            # elif field == "input":
-            #     return node.args
-            # elif field == "output":
-            #     return node.body
-            pass
-       
         case 'FunctionDef': #
             pass
         case 'keyword':
             if field == "input":
                 return node.value
             elif field == "output":
-                return node.arg
+                return node.arg + add_id()
             elif field == "operation":
                 return node.__class__.__name__ + add_id()
         case 'Add':
@@ -173,7 +181,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
                 return node.__class__.__name__ + add_id()
             elif field == "input":
                 return node.operand
-        case 'comprehension': # must be rechecked!
+        case 'comprehension': 
             if field == "input":
                 return node.iter
             elif field == "output":
@@ -196,7 +204,7 @@ def extract_from_node(node, field): # main function, not defined in the paper
     return None
 
 
-def GenPR(v, PRs):
+def GenPR(v: WIRNodeType, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
     """
     Processes a single AST node to generate WIR variables and update PRs.
     
@@ -207,7 +215,7 @@ def GenPR(v, PRs):
     if v is None:
         return None, PRs
     
-    if isinstance(v, list): # hanfles input/ output lists
+    if isinstance(v, list): # handles input/ output lists
         os = []
         for node in v:
             o, PRs = GenPR(node, PRs)
@@ -248,7 +256,7 @@ def GenPR(v, PRs):
 
     return O, PRs
 
-def GenWIR(root, output_filename='output/wir.png'):
+def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
     """
     Generates the WIR (Workflow Intermediate Representation) from an AST.
     
@@ -269,16 +277,23 @@ def GenWIR(root, output_filename='output/wir.png'):
         
     PRs_filtered = filter_PRs(PRs)
     
+    logger.warning(f"Graph is bipartie: {check_bipartie(PRs_filtered)}")
+    
     # Log the filtered PRs
     logger.info("Filtered PRs:")
     for pr in PRs_filtered:
         logger.info(f"Filtered pr: {pr}")
         
+    # save prs
+    with open(output_filename.replace('.png', '.txt'), 'w') as f:
+        for pr in PRs_filtered:
+            f.write(f"{pr}\n")
+        
     G = construct_bipartite_graph(PRs_filtered, output_filename=output_filename)
     
     return G
 
-def filter_PRs(PRs):
+def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     """
     Optimizes the graph by getting rid of double operation nodes.
     Where the nodes are  Some Caller -> (Operator A + some id) -> (Output A + some other id) and
@@ -288,14 +303,14 @@ def filter_PRs(PRs):
     """
     filtered_PRs = set()
     problematic_operations = dict()
-    operations = set([ o for (I, c, o, O) in PRs])
+    operations = set([ o for (_, _, o, _) in PRs])
     
     for (I, c, p, O) in PRs:
         if c is not None and p in operations and O in operations and remove_id(p) == remove_id(O): 
             if O not in problematic_operations:
                 problematic_operations[O] = c
             # elif problematic_operations[O] != c: # may be a multiinput operation!
-                
+            # TODO: Should raise error, but overwriting variables do not allow for that...
             #     raise ValueError("Multiple problematic operations caused same outputs: %s" % O) # isdue to variable overwriting!
     
     for (I, c, p, O) in PRs:
@@ -306,15 +321,13 @@ def filter_PRs(PRs):
             filtered_PRs.add((I, original_caller, p, O))
         elif O in operations and p in operations: 
             if I is not None: 
-                pass
-                # later raise value error 
-                #raise ValueError("Input should be None, but is %s" % I)
+                filtered_PRs.add((I,c,O, None))
         else:
             filtered_PRs.add((I,c,p,O))
     return filtered_PRs
             
 
-def construct_bipartite_graph(PRs, output_filename):
+def construct_bipartite_graph(PRs: Set[PRType], output_filename: str) -> nx.DiGraph:
     """
     Constructs a bipartite graph from the given PRs.
     
@@ -371,7 +384,8 @@ def construct_bipartite_graph(PRs, output_filename):
 
 # Example usage
 if __name__ == "__main__":
-    file_path = 'data/titanic_mvp_wir/introduction-to-ensembling-stacking-in-python/script.py'
+    name = 'a-data-science-framework-to-achieve-99-accuracy'
+    file_path = f'data/titanic_mvp_wir/{name}/script.py'
     location_related_attributes = ['lineno', 'col_offset', 'end_lineno', 'end_col_offset']
 
     with open(file_path, 'r') as file:
@@ -379,5 +393,5 @@ if __name__ == "__main__":
     file_lines = file_content.split('\n')
         
     parsed_ast = ast.parse(file_content)
-    wir = GenWIR(parsed_ast, output_filename='output/wir-titanic.png')
+    wir = GenWIR(parsed_ast, output_filename=f'output/wir-{name}.png')
     print("Generated WIR:", wir)
