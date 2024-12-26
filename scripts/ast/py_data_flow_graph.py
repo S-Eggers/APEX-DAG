@@ -17,8 +17,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         super().__init__()
         self._setup("module")
         
-        self.imported_modules = {}
+        self.custom_names = {}
         self.import_from_modules = {}
+        self.classes = {}
         self.functions = {}
         self._state = {}
         self._logger = setup_logging("py_data_flow_graph", VERBOSE)
@@ -28,13 +29,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def visit_Import(self, node: ast.Import):
         # Track imported modules
         for alias in node.names:
-            self.imported_modules[alias.asname or alias.name] = alias.name
+            self.custom_names[alias.asname or alias.name] = alias.name
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
         # Track imported modules from 'import from' statements
         module = node.module
         for alias in node.names:
-            self.imported_modules[alias.asname or alias.name] = module
+            self.custom_names[alias.asname or alias.name] = module
             self.import_from_modules[alias.asname or alias.name] = module
 
     def visit_Assign(self, node: ast.Assign):
@@ -44,7 +45,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         # Get the versioned name of the target variable using the line number
         target_names = self._get_names(target)
         if not target_names:
-            self._logger.debug(f"Could not get target names for {ast.get_source_segment(self.code, target)}")
+            self._logger.error(f"Could not get target names for {ast.get_source_segment(self.code, target)}")
             target_names = []
             
         for target_name in target_names:
@@ -69,8 +70,17 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             
             self.variable_versions[target_name].append(self.current_variable)
             
-            if previous_version and not self._G.has_edge(previous_version, self.current_variable):
-                self._add_edge(previous_version, self.current_variable, "reassign", EDGE_TYPES["OMITTED"])
+            if previous_version and not self._has_edge(previous_version, self.current_variable):
+                self._add_edge(
+                    previous_version, 
+                    self.current_variable, 
+                    "reassign", 
+                    EDGE_TYPES["OMITTED"], 
+                    node.lineno, 
+                    node.col_offset, 
+                    node.end_lineno, 
+                    node.end_col_offset
+                )
 
         self._set_current_variable(None)
         self._set_current_target(None)
@@ -89,7 +99,16 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         base_name = self._get_base_name(target)
         current_target = self._get_versioned_name(base_name, node.lineno)
         self._add_node(current_target, NODE_TYPES["VARIABLE"])
-        self._add_edge(self._get_last_variable_version(base_name), current_target, operator, EDGE_TYPES["CALLER"])
+        self._add_edge(
+            self._get_last_variable_version(base_name), 
+            current_target, 
+            operator, 
+            EDGE_TYPES["CALLER"],
+            node.lineno, 
+            node.col_offset, 
+            node.end_lineno, 
+            node.end_col_offset
+        )
                     
         node.targets = [target]      
         self.visit_Assign(node)
@@ -100,7 +119,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         is_call = isinstance(node.value, ast.Call)
         is_first_order = is_call and isinstance(node.value.func, ast.Name)
         is_self_defined = base_name in self.functions
-        is_imported = base_name in self.import_from_modules or base_name in self.imported_modules
+        is_imported = base_name in self.import_from_modules or base_name in self.custom_names
         
         if base_name and (not is_first_order or is_self_defined or is_imported):
             self._set_current_variable(self._get_versioned_name(base_name, node.lineno))
@@ -206,7 +225,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         # we are calling a method of an imported module, e.g. pd.read_csv() or an 
         # imported first order method, e.g. read_csv()
-        if caller_object_name in self.imported_modules or caller_object_name in self.import_from_modules: 
+        if caller_object_name in self.custom_names or caller_object_name in self.import_from_modules: 
             self._process_library_call(node, caller_object_name, function_name)
         # we are calling a user defined function, e.g. a lambda function stored in a variable
         elif function_name in self.functions:
@@ -241,10 +260,28 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if self.current_variable and operator:        
             if left_var:
                 left_version = self._get_last_variable_version(left_var)
-                self._add_edge(left_version, self.current_variable, operator, EDGE_TYPES["CALLER"])
+                self._add_edge(
+                    left_version, 
+                    self.current_variable, 
+                    operator, 
+                    EDGE_TYPES["CALLER"],
+                    node.lineno, 
+                    node.col_offset, 
+                    node.end_lineno, 
+                    node.end_col_offset
+                )
             if right_var:
                 right_version = self._get_last_variable_version(right_var)
-                self._add_edge(right_version, self.current_variable, operator, EDGE_TYPES["CALLER"])
+                self._add_edge(
+                    right_version, 
+                    self.current_variable, 
+                    operator, 
+                    EDGE_TYPES["CALLER"],
+                    node.lineno, 
+                    node.col_offset, 
+                    node.end_lineno, 
+                    node.end_col_offset
+                )
                 
     def visit_Compare(self, node: ast.Compare):
         # ToDo: not correctly implemented yet
@@ -264,17 +301,35 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if self.current_variable and operator:
             if left_var:
                 left_version = self._get_last_variable_version(left_var)
-                self._add_edge(left_version, self.current_variable, operator, EDGE_TYPES["CALLER"])
+                self._add_edge(
+                    left_version, 
+                    self.current_variable, 
+                    operator, 
+                    EDGE_TYPES["CALLER"],
+                    node.lineno, 
+                    node.col_offset, 
+                    node.end_lineno, 
+                    node.end_col_offset
+                )
             if right_var:
                 right_version = self._get_last_variable_version(right_var)
-                self._add_edge(right_version, self.current_variable, operator, EDGE_TYPES["CALLER"])
+                self._add_edge(
+                    right_version, 
+                    self.current_variable, 
+                    operator, 
+                    EDGE_TYPES["CALLER"],
+                    node.lineno, 
+                    node.col_offset, 
+                    node.end_lineno, 
+                    node.end_col_offset
+                )
     
     def visit_Name(self, node: ast.Name):        
         if not isinstance(node.ctx, ast.Load):
             return
 
         var_name = node.id
-        if var_name in self.imported_modules or var_name in self.import_from_modules:
+        if var_name in self.custom_names or var_name in self.import_from_modules:
             self._logger.debug(f"Processing library attribute {var_name}")
             self._process_library_attr(node, var_name)
         else:
@@ -289,7 +344,16 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             code_segment = self._tokenize_method(code_segment)
 
             if self.current_variable:
-                self._add_edge(var_version, self.current_variable, code_segment, edge_type)
+                self._add_edge(
+                    var_version, 
+                    self.current_variable, 
+                    code_segment, 
+                    edge_type,
+                    node.lineno, 
+                    node.col_offset, 
+                    node.end_lineno, 
+                    node.end_col_offset
+                )
                 self._set_last_variable(var_version)
             
     def visit_Attribute(self, node: ast.Attribute):
@@ -301,10 +365,28 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if self.last_variable:
             var_name = self.last_variable
         
-        self._add_edge(var_name, self.current_variable, self._tokenize_method(node.attr), EDGE_TYPES["CALLER"])
+        self._add_edge(
+            var_name, 
+            self.current_variable, 
+            self._tokenize_method(node.attr), 
+            EDGE_TYPES["CALLER"],
+            node.lineno, 
+            node.col_offset, 
+            node.end_lineno, 
+            node.end_col_offset
+        )
         
     def visit_IfExp(self, node: ast.IfExp):        
-        self._add_edge(self._get_last_variable_version(self.current_target), self.current_variable, "if", EDGE_TYPES["CALLER"])
+        self._add_edge(
+            self._get_last_variable_version(self.current_target), 
+            self.current_variable, 
+            "if", 
+            EDGE_TYPES["CALLER"],
+            node.lineno, 
+            node.col_offset, 
+            node.end_lineno, 
+            node.end_col_offset
+        )
         # visit if expression
         # ToDo: 'Name' object has no attribute 'parent'? 
         self.visit(node.body)
@@ -393,7 +475,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._store_state(else_context)
         
         self._merge_state(parent_context, (for_context, "loop", EDGE_TYPES["LOOP"]), (else_context, "else", EDGE_TYPES["BRANCH"]))
-
+    
+    def visit_ClassDef(self, node: ast.ClassDef):
+        self.custom_names[node.name] = node.name
+    
     def visit_Delete(self, node: ast.Delete):
         pass 
     
@@ -405,32 +490,26 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             child.parent = node
 
         super().generic_visit(node)
-        
-    def draw_all_subgraphs(self):
-        for variable in self.variable_versions:
-            self.draw(variable, variable)
-        # draw the full graph
-        self.draw()
     
     def optimize(self):
         edges_to_remove = []
         nodes_to_remove = []
         edges_to_add = []
 
-        for node_x in self._G.nodes:
-            if self._G.out_degree(node_x) == 0 and self._G.in_degree(node_x) == 0:
+        for node_x in self._node_iterator():
+            node_degrees = self._node_degree(node_x)
+            if node_degrees["in"] == 0 and node_degrees["out"] == 0:
                 self._logger.debug(f"Removing node {node_x} as it has no edges.")
                 nodes_to_remove.append(node_x)
 
-            node_type_x = self._G.nodes[node_x].get("node_type")
+            node_type_x = self._get_node(node_x).get("node_type")
             # reconnect and remove end_if nodes
             if node_type_x == NODE_TYPES["IF"]:
                 optimize = True
-                new_edges = []
-                for next_node in self._G.successors(node_x):
-                    for prev_node in self._G.predecessors(node_x):
-                        edges = self._G.get_edge_data(node_x, next_node)                        
-                        for _, attributes in edges.items():
+                new_edges = []        
+                for next_node in self._successor_node_iterator(node_x):
+                    for prev_node in self._predecessor_node_iterator(node_x):                       
+                        for _, attributes in self._get_edge_iterator(node_x, next_node):
                             if attributes["edge_type"] in [EDGE_TYPES["LOOP"], EDGE_TYPES["BRANCH"]]:
                                 optimize = False
                             new_edges.append((prev_node, next_node, attributes["code"], attributes["edge_type"]))
@@ -441,8 +520,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 # continue to the next node as we already did the optimization for this node and its edges
                 continue
 
-            for node_y in self._G[node_x]:
-                edges_between_nodes = list(self._G.get_edge_data(node_x, node_y).items())
+            for node_y in self._adjacent_node_iterator(node_x):
+                edges_between_nodes = list(self._get_edge_iterator(node_x, node_y))
                 
                 if len(edges_between_nodes) > 1:
                     for key, edge_data in edges_between_nodes:
@@ -451,28 +530,41 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                             edges_to_remove.append((node_x, node_y, key))
         # remove nodes and edges
         for node in nodes_to_remove:
-            self._G.remove_node(node)
+            self._remove_node(node)
         
         for node_x, node_y, key in edges_to_remove:
-            self._G.remove_edge(node_x, node_y, key)
+            self._remove_edge(node_x, node_y, key)
         
         # add new edges
         for node_x, node_y, code, edge_type in edges_to_add:           
             self._add_edge(node_x, node_y, code, edge_type)
 
+    #-----------------------------------------------------------------------------------------------------------------------------------#
+    #                                        Draw functions                                                                             #
+    #                                        ToDo: speedup process of drawing graph image for live demo                                 #
+    #-----------------------------------------------------------------------------------------------------------------------------------#
+    def draw_all_subgraphs(self):
+        for variable in self.variable_versions:
+            self.draw(variable, variable)
+        # draw the full graph
+        self.draw()
+
     def draw(self, save_path: str=None, start_node: str=None):
         draw = Draw(NODE_TYPES, EDGE_TYPES)
         
         if start_node:
-            G_copy = self._G.copy()
-            self._G = get_subgraph(self._G, self.variable_versions, start_node)
+            G_copy = self._copy_graph()
+            self._G = self._set_graph(get_subgraph(self._G, self.variable_versions, start_node))
             G = convert_multidigraph_to_digraph(self._G, NODE_TYPES)
             draw.dfg(G, save_path)
-            self._G = G_copy
+            self._G = self._set_graph(G_copy)
         else:
             G = convert_multidigraph_to_digraph(self._G, NODE_TYPES)
             draw.dfg(G, save_path)
         
+    #-----------------------------------------------------------------------------------------------------------------------------------#
+    #                                           abstract syntax tree helper functions                                                   #
+    #-----------------------------------------------------------------------------------------------------------------------------------#
     def _check_resursion(self, node: ast.FunctionDef):
         function_name = node.name
         for sub_node in ast.walk(node):
@@ -492,7 +584,254 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             arguments["defaults"].append(default)
             
         return arguments    
+        
+    def _visit_if_body(self, body: list[ast.AST], context: str, parent_context: str):
+        self._setup(context, parent_context)
+        for stmt in body:
+            stmt.parent = context
+            self.visit(stmt)
+        self._store_state(context)
+            
+    def _process_method_call(self, node: ast.Call, caller_object_name: str, tokens: Optional[str]):
+        previous_version = self._get_last_variable_version(caller_object_name)
+        previous_version = previous_version if previous_version else self.last_variable 
+        self._add_edge(
+            previous_version, 
+            self.current_variable, 
+            tokens, 
+            EDGE_TYPES["CALLER"],
+            node.lineno, 
+            node.col_offset, 
+            node.end_lineno, 
+            node.end_col_offset
+        )
+
+        for arg in node.args:
+            if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
+                arg_name = self._get_names(arg)
+                arg_name = arg_name[0] if arg_name else None              
+                
+                if arg_name:
+                    arg_version = self._get_last_variable_version(arg_name)
+                    code_segment = self._tokenize_method(arg_name)
+                    self._add_edge(
+                        arg_version, 
+                        self.current_variable, 
+                        code_segment, 
+                        EDGE_TYPES["INPUT"],
+                        node.lineno, 
+                        node.col_offset, 
+                        node.end_lineno, 
+                        node.end_col_offset
+                    )
+        
+    def _process_library_call(self, node: ast.Call, caller_object_name: str, tokens: str=None):
+        # Add the import node and connect it                    
+        import_node = self.custom_names[caller_object_name]
+        self._add_node(import_node, NODE_TYPES["IMPORT"])
+        tokens = tokens if tokens else self._tokenize_method(ast.get_source_segment(self.code, node.func))
+        self._add_edge(
+            import_node, 
+            self.current_variable, 
+            tokens, 
+            EDGE_TYPES["CALLER"],
+            node.lineno, 
+            node.col_offset, 
+            node.end_lineno, 
+            node.end_col_offset
+        )
+        
+        for arg in node.args:
+            if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
+                arg_name = self._get_names(arg)
+                arg_name = arg_name[0] if arg_name else None
+
+                if arg_name:
+                    arg_version = self._get_last_variable_version(arg_name)
+                    code_segment = self._tokenize_method(arg_name)
+                    self._add_edge(
+                        arg_version, 
+                        self.current_variable, 
+                        code_segment, 
+                        EDGE_TYPES["INPUT"],
+                        node.lineno, 
+                        node.col_offset, 
+                        node.end_lineno, 
+                        node.end_col_offset
+                    )
+        
+        self._set_last_variable(import_node)
+        
+    def _process_function_call(self, node: ast.Call, tokens: str=None):
+        function_name = tokens
+        function_context = self.functions[function_name]["context"]
+        function_name_tokens = self._tokenize_method(function_name)
+
+        mapping = dict()
+        for index, arg in enumerate(node.args):
+            mapping[self._get_base_name(arg)] = index
+                    
+        if not self.functions[function_name]["is_recursive"]:
+            mapping = {k: self.functions[function_name]["args"]["args"][v] for k, v in mapping.items()}
+            
+            for keyword in node.keywords:
+                mapping[self._get_base_name(keyword.value)] = keyword.arg
+            
+            inverse_mapping = {v: k for k, v in mapping.items()}
+            current_context = self.context
+            self._store_state(current_context)
+            self._restore_state(function_context)
+            
+            for key, value in inverse_mapping.items():
+                if key in self.variable_versions:
+                    self.variable_versions[value] = self.variable_versions[key]
+                    del self.variable_versions[key]
+                        
+            self._merge_state(current_context, (function_context, function_name_tokens, EDGE_TYPES["FUNCTION_CALL"]))
+                    
+    def _process_library_attr(self, node: ast.Attribute, caller_object_name: str):
+        # Add the import node and connect it
+        import_node = self.custom_names[caller_object_name]
+        self._add_node(import_node, NODE_TYPES["IMPORT"])        
+        tokens = self._tokenize_method(ast.get_source_segment(self.code, node))
+        self._add_edge(
+            import_node, 
+            self.current_variable, 
+            tokens, 
+            EDGE_TYPES["CALLER"],
+            node.lineno, 
+            node.col_offset, 
+            node.end_lineno, 
+            node.end_col_offset
+        )
+        self._set_last_variable(import_node)
+ 
+    def _process_subscript(self, node: ast.AST) -> tuple[str, int]:
+        if isinstance(node.parent.slice, ast.Compare):
+            code_segment = "filter"
+            edge_type = EDGE_TYPES["CALLER"]
+        elif isinstance(node.parent.slice, ast.Index):
+            code_segment = "index"
+            edge_type = EDGE_TYPES["CALLER"]
+        elif isinstance(node.parent.slice, ast.Slice):
+            code_segment = "slice"
+            edge_type = EDGE_TYPES["CALLER"]
+        elif isinstance(node.parent.slice, (ast.List, ast.Constant)):
+            code_segment = "select"
+            edge_type = EDGE_TYPES["CALLER"]
+        else:
+            self._logger.debug(f"Could not process subscript {ast.get_source_segment(self.code, node)}")
+            self._logger.debug(ast.dump(node))
+            code_segment = ast.get_source_segment(self.code, node.parent)
+            edge_type = EDGE_TYPES["INPUT"]
+        
+        return code_segment, edge_type
     
+    def _get_caller_object(self, value: ast.AST) -> str:
+        names = self._get_names(value)
+
+        if names and (
+            names[0] in self.custom_names or 
+            names[0] in self.import_from_modules or 
+            names[0] in self.variable_versions
+        ):
+            return names[0]
+        
+        return self.current_target 
+    
+    def _get_versioned_name(self, var_name: str, lineno: int) -> str:
+        return f"{var_name}_{lineno}"
+    
+    def _get_base_name(self, node: ast.AST):
+        if isinstance(node, ast.Name):
+            return node.id
+        elif isinstance(node, (ast.Attribute, ast.Subscript)):
+            return self._get_base_name(node.value)
+        elif isinstance(node, ast.Call):
+            return self._get_base_name(node.func)
+
+        return None
+
+    def _get_names(self, node: ast.AST) -> Optional[list[str]]:            
+        match node:
+            case ast.Name():
+                return [node.id]
+            case ast.Attribute():
+                name = self._get_names(node.value)
+                return [name[0], node.attr] if name else [node.attr]
+            case (ast.Tuple() | ast.List() | ast.Set()):
+                names = [self._get_names(elt) for elt in node.elts if self._get_names(elt)]
+                return [name[0] for name in names if name]
+            case ast.FunctionDef():
+                return [node.name]
+            case ast.Subscript():
+                return self._get_names(node.value)
+            case (ast.If() | ast.IfExp()):
+                return ["If"]
+            case (ast.While() | ast.For()):
+                return ["Loop"]
+            case ast.Lambda():
+                return ["Lambda"]
+            case _:
+                self._logger.debug(f"Could not get names for {ast.get_source_segment(self.code, node)}")
+                self._logger.debug(ast.dump(node))
+                return None
+    
+    def _tokenize_method(self, method: str) -> str:  
+        split_by_period = method.split(".")
+        
+        # remove library alias as we dont want to learn from it
+        for library_alias in self.custom_names.keys():
+            if library_alias in split_by_period and library_alias not in self.import_from_modules:
+                split_by_period.remove(library_alias)
+        
+        # split by underscore 
+        split_by_underscore = []
+        for item in split_by_period:
+            split_by_underscore += item.split("_")
+            
+        split_by_camelcase = []
+        for item in split_by_underscore:
+            split_by_camelcase += re.sub('([a-z])([A-Z])', r'\1 \2', item).split()
+        
+        return " ".join(split_by_camelcase).lower()
+    
+    def _get_last_variable_version(self, variable: str, max_depth: int = 99) -> Optional[str]:
+        if variable in self.variable_versions:
+            return self.variable_versions.get(variable)[-1]
+
+        elif self.parent_context and max_depth > 0:
+            self._store_state(self.context)
+            current_context = self.context
+            self._restore_parent_state()
+            variable_version = self._get_last_variable_version(variable, max_depth=max_depth - 1)
+            self._restore_state(current_context)
+            
+            return variable_version
+        else:
+            return None
+    
+    def _get_lr_values(self, left: ast.AST, right: ast.AST) -> tuple[Optional[str], Optional[str]]:
+        left_var = self._get_names(left)
+        left_var = left_var[0] if left_var else None
+        right_var = self._get_names(right)
+        right_var = right_var[0] if right_var else None
+        
+        return left_var, right_var
+    
+    #-----------------------------------------------------------------------------------------------------------------------------------#
+    #                                        state management functions                                                                 #
+    #                                        ToDo: fix bug, e.g., in hms2024/hms-two-model-ensemble.ipynb                               #
+    #-----------------------------------------------------------------------------------------------------------------------------------#    
+    def _set_current_variable(self, value: str):
+        self.current_variable = value
+        
+    def _set_current_target(self, value: str):
+        self.current_target = value
+        
+    def _set_last_variable(self, value: str):
+        self.last_variable = value
+        
     def _setup(self, context: str = None, parent_context: str = None):
         self.variable_versions = {}
         # variable name + variable version/line number
@@ -605,218 +944,100 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def _store_state(self, context: str = None):
         current_state = self._get_current_state()
         self._state[context] = current_state
-        
-    def _visit_if_body(self, body: list[ast.AST], context: str, parent_context: str):
-        self._setup(context, parent_context)
-        for stmt in body:
-            stmt.parent = context
-            self.visit(stmt)
-        self._store_state(context)
+    
+    #-----------------------------------------------------------------------------------------------------------------------------------#
+    #                                            wrap networkx graph functions                                                          #
+    #                                            possible extension: free choice of graph backend                                       #
+    #-----------------------------------------------------------------------------------------------------------------------------------#
+    def _copy_graph(self):
+        return self._G.copy()
+    
+    def _set_graph(self, G):
+        self._G = G
+
+    def _get_node(self, node_identifier: str):
+        return self._G.nodes[node_identifier]
+    
+    def _remove_node(self, node_identifier: str):
+        self._G.remove_node(node_identifier)
+    
+    def _node_iterator(self):
+        for node in self._G.nodes:
+            yield node
             
-    def _process_method_call(self, node: ast.Call, caller_object_name: str, tokens: Optional[str]):
-        previous_version = self._get_last_variable_version(caller_object_name)
-        previous_version = previous_version if previous_version else self.last_variable 
-        self._add_edge(previous_version, self.current_variable, tokens, EDGE_TYPES["CALLER"])
-
-        for arg in node.args:
-            if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_name = self._get_names(arg)
-                arg_name = arg_name[0] if arg_name else None              
-                
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._add_edge(arg_version, self.current_variable, code_segment, EDGE_TYPES["INPUT"])
-        
-    def _process_library_call(self, node: ast.Call, caller_object_name: str, tokens: str=None):
-        # Add the import node and connect it                    
-        import_node = self.imported_modules[caller_object_name]
-        self._add_node(import_node, NODE_TYPES["IMPORT"])
-        tokens = tokens if tokens else self._tokenize_method(ast.get_source_segment(self.code, node.func))
-        self._add_edge(import_node, self.current_variable, tokens, EDGE_TYPES["CALLER"])
-        
-        for arg in node.args:
-            if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_name = self._get_names(arg)
-                arg_name = arg_name[0] if arg_name else None
-
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._add_edge(arg_version, self.current_variable, code_segment, EDGE_TYPES["INPUT"])
-        
-        self._set_last_variable(import_node)
-        
-    def _process_function_call(self, node: ast.Call, tokens: str=None):
-        function_name = tokens
-        function_context = self.functions[function_name]["context"]
-        function_name_tokens = self._tokenize_method(function_name)
-
-        mapping = dict()
-        for index, arg in enumerate(node.args):
-            mapping[self._get_base_name(arg)] = index
-                    
-        if not self.functions[function_name]["is_recursive"]:
-            mapping = {k: self.functions[function_name]["args"]["args"][v] for k, v in mapping.items()}
-            
-            for keyword in node.keywords:
-                mapping[self._get_base_name(keyword.value)] = keyword.arg
-            
-            inverse_mapping = {v: k for k, v in mapping.items()}
-            current_context = self.context
-            self._store_state(current_context)
-            self._restore_state(function_context)
-            
-            for key, value in inverse_mapping.items():
-                if key in self.variable_versions:
-                    self.variable_versions[value] = self.variable_versions[key]
-                    del self.variable_versions[key]
-                        
-            self._merge_state(current_context, (function_context, function_name_tokens, EDGE_TYPES["FUNCTION_CALL"]))
-                    
-    def _process_library_attr(self, node: ast.Attribute, caller_object_name: str):
-        # Add the import node and connect it
-        import_node = self.imported_modules[caller_object_name]
-        self._add_node(import_node, NODE_TYPES["IMPORT"])        
-        tokens = self._tokenize_method(ast.get_source_segment(self.code, node))
-        self._add_edge(import_node, self.current_variable, tokens, EDGE_TYPES["CALLER"])
-        self._set_last_variable(import_node)
- 
-    def _process_subscript(self, node: ast.AST) -> tuple[str, int]:
-        if isinstance(node.parent.slice, ast.Compare):
-            code_segment = "filter"
-            edge_type = EDGE_TYPES["CALLER"]
-        elif isinstance(node.parent.slice, ast.Index):
-            code_segment = "index"
-            edge_type = EDGE_TYPES["CALLER"]
-        elif isinstance(node.parent.slice, ast.Slice):
-            code_segment = "slice"
-            edge_type = EDGE_TYPES["CALLER"]
-        elif isinstance(node.parent.slice, (ast.List, ast.Constant)):
-            code_segment = "select"
-            edge_type = EDGE_TYPES["CALLER"]
-        else:
-            self._logger.debug(f"Could not process subscript {ast.get_source_segment(self.code, node)}")
-            self._logger.debug(ast.dump(node))
-            code_segment = ast.get_source_segment(self.code, node.parent)
-            edge_type = EDGE_TYPES["INPUT"]
-        
-        return code_segment, edge_type
+    def _adjacent_node_iterator(self, node_identifier: str):
+        for node in self._G[node_identifier]:
+            yield node
     
-    def _get_caller_object(self, value: ast.AST) -> str:
-        names = self._get_names(value)
-
-        if names and (
-            names[0] in self.imported_modules or 
-            names[0] in self.import_from_modules or 
-            names[0] in self.variable_versions
-        ):
-            return names[0]
-        
-        return self.current_target 
-    
-    def _get_versioned_name(self, var_name: str, lineno: int) -> str:
-        return f"{var_name}_{lineno}"
-    
-    def _get_base_name(self, node: ast.AST):
-        if isinstance(node, ast.Name):
-            return node.id
-        elif isinstance(node, (ast.Attribute, ast.Subscript)):
-            return self._get_base_name(node.value)
-        elif isinstance(node, ast.Call):
-            return self._get_base_name(node.func)
-
-        return None
-
-    def _get_names(self, node: ast.AST) -> Optional[list[str]]:            
-        match node:
-            case ast.Name():
-                return [node.id]
-            case ast.Attribute():
-                name = self._get_names(node.value)
-                return [name[0], node.attr] if name else [node.attr]
-            case (ast.Tuple() | ast.List() | ast.Set()):
-                names = [self._get_names(elt) for elt in node.elts if self._get_names(elt)]
-                return [name[0] for name in names if name]
-            case ast.FunctionDef():
-                return [node.name]
-            case ast.Subscript():
-                return self._get_names(node.value)
-            case (ast.If() | ast.IfExp()):
-                return ["If"]
-            case (ast.While() | ast.For()):
-                return ["Loop"]
-            case ast.Lambda():
-                return ["Lambda"]
-            case _:
-                self._logger.debug(f"Could not get names for {ast.get_source_segment(self.code, node)}")
-                self._logger.debug(ast.dump(node))
-                return None
-    
-    def _tokenize_method(self, method: str) -> str:  
-        split_by_period = method.split(".")
-        
-        # remove library alias as we dont want to learn from it
-        for library_alias in self.imported_modules.keys():
-            if library_alias in split_by_period and library_alias not in self.import_from_modules:
-                split_by_period.remove(library_alias)
-        
-        # split by underscore 
-        split_by_underscore = []
-        for item in split_by_period:
-            split_by_underscore += item.split("_")
-            
-        split_by_camelcase = []
-        for item in split_by_underscore:
-            split_by_camelcase += re.sub('([a-z])([A-Z])', r'\1 \2', item).split()
-        
-        return " ".join(split_by_camelcase).lower()
-    
-    def _get_last_variable_version(self, variable: str, max_depth: int = 99) -> Optional[str]:
-        if variable in self.variable_versions:
-            return self.variable_versions.get(variable)[-1]
-
-        elif self.parent_context and max_depth > 0:
-            self._store_state(self.context)
-            current_context = self.context
-            self._restore_parent_state()
-            variable_version = self._get_last_variable_version(variable, max_depth=max_depth - 1)
-            self._restore_state(current_context)
-            
-            return variable_version
-        else:
-            return None
-    
-    def _get_lr_values(self, left: ast.AST, right: ast.AST) -> tuple[Optional[str], Optional[str]]:
-        left_var = self._get_names(left)
-        left_var = left_var[0] if left_var else None
-        right_var = self._get_names(right)
-        right_var = right_var[0] if right_var else None
-        
-        return left_var, right_var
-    
-    def _add_node(self, node: str, node_type: int):
+    def _add_node(
+        self, 
+        node: str, 
+        node_type: int
+     ):
         if node not in self._G:
             self._G.add_node(node, label=node, node_type=node_type)
         else:
             self._logger.debug(f"Node {node} already exists in the graph")
+            
+    def _node_degree(self, node_identifier: str):
+        return {
+            "in": self._G.out_degree(node_identifier),
+            "out": self._G.in_degree(node_identifier),
+        }
+        
+    def _predecessor_node_iterator(self, node_identifier: str):
+        for node in self._G.predecessors(node_identifier):
+            yield node
+
+    def _successor_node_iterator(self, node_identifier: str):
+        for node in self._G.successors(node_identifier):
+            yield node
+            
+    def _has_edge(self, source: str, target: str, key: Optional[str]=None):
+        if key:
+            return self._G.has_edge(source, target, key=key)
+        else:
+            return self._G.has_edge(source, target)
+        
+    def _get_edge_iterator(self, source: str, target: str):
+        edges = self._G.get_edge_data(source, target)                
+        for key, attributes in edges.items():
+            yield key, attributes
+            
+    def _set_edge_data(self, source: str, target: str, edge_key: str, **kwargs):
+        for key, value in kwargs.items():
+            self._G[source][target][edge_key][key] = value
+            
+    def _remove_edge(self, node_x: str, node_y: str, key: str):
+        self._G.remove_edge(node_x, node_y, key)
     
-    def _add_edge(self, source: str, target: str, code: str, edge_type: int):
+    def _get_edge_data(self, source: str, target: str, edge_key: str, key: str):
+        return self._G[source][target][edge_key][key]
+    
+    def _add_edge(
+        self, 
+        source: str, 
+        target: str, 
+        code: str, 
+        edge_type: int,
+        lineno: Optional[int]=None, 
+        col_offset: Optional[int]=None, 
+        end_lineno: Optional[int]=None, 
+        end_col_offset: Optional[int]=None
+    ):
         if source and target and source != target and len(code) > 0:
             key = f"{source}_{target}_{code}"
 
-            if self._G.has_edge(source, target, key=key):
-                self._G[source][target][key]["count"] += 1
+            if self._has_edge(source, target, key=key):
+                edge_count = self._get_edge_data(source, target, key, "count")
+                self._set_edge_data(source, target, key, count=edge_count + 1)
             else:
-                self._G.add_edge(source, target, code=code, key=key, edge_type=edge_type, count=1)
+                position = {
+                    "lineno": lineno,
+                    "col_offset": col_offset,
+                    "end_lineno": end_lineno,
+                    "end_col_offset": end_col_offset,
+                }
+                self._G.add_edge(source, target, code=code, key=key, edge_type=edge_type, count=1, **position)
         else:
             self._logger.debug(f"Ignoring edge {source} -> {target} with code {code}")
-            
-    def _set_current_variable(self, value: str):
-        self.current_variable = value
-        
-    def _set_current_target(self, value: str):
-        self.current_target = value
-        
-    def _set_last_variable(self, value: str):
-        self.last_variable = value
