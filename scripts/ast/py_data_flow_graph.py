@@ -179,10 +179,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     
     def visit_FunctionDef(self, node: ast.FunctionDef):
         function_name = self._get_names(node)[0]
-        context_name = self._get_versioned_name(function_name, node.lineno)
+        context_name = self._get_versioned_name(function_name, node.lineno)    
         self.functions[function_name] = {"node": context_name, "context": context_name, "is_recursive": self._check_resursion(node)}
         self.functions[function_name]["args"] = self._process_arguments(node.args)
         
+        parent_context = self.context
         self._store_state(self.context)
         self._setup(context_name, self.context)
 
@@ -196,8 +197,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self.visit(stmt)
 
         self._store_state(context_name)
-        self._restore_state(self.parent_context)
-        
+        self._restore_state(parent_context)
+ 
     def visit_Call(self, node: ast.Call):
         # we are calling a second order function, e.g. dataframe.dropna()
         if isinstance(node.func, ast.Attribute):         
@@ -444,15 +445,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             stmt.parent = node
             self.visit(stmt)
         self._store_state(while_context)
+        contexts = [(while_context, "loop", EDGE_TYPES["LOOP"])]
         
-        else_context = f"{var_version}_else"
-        self._setup(else_context, parent_context)
-        for stmt in node.orelse:
-            stmt.parent = node
-            self.visit(stmt)
-        self._store_state(else_context)
+        if node.orelse and len(node.orelse) > 0:
+            else_context = f"{var_version}_else"
+            self._setup(else_context, parent_context)
+            for stmt in node.orelse:
+                stmt.parent = node
+                self.visit(stmt)
+            self._store_state(else_context)
+            contexts.append((else_context, "else", EDGE_TYPES["BRANCH"]))
         
-        self._merge_state(parent_context, (while_context, "loop", EDGE_TYPES["LOOP"]), (else_context, "else", EDGE_TYPES["BRANCH"]))
+        self._merge_state(parent_context, *contexts)
 
     def visit_For(self, node: ast.For):
         node_name = self._get_names(node)[0]
@@ -466,15 +470,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             stmt.parent = node
             self.visit(stmt)
         self._store_state(for_context)
+        contexts = [(for_context, "loop", EDGE_TYPES["LOOP"])]
         
-        else_context = f"{var_version}_else"
-        self._setup(else_context, parent_context)
-        for stmt in node.orelse:
-            stmt.parent = node
-            self.visit(stmt)
-        self._store_state(else_context)
-        
-        self._merge_state(parent_context, (for_context, "loop", EDGE_TYPES["LOOP"]), (else_context, "else", EDGE_TYPES["BRANCH"]))
+        if node.orelse and len(node.orelse) > 0:
+            else_context = f"{var_version}_else"
+            self._setup(else_context, parent_context)
+            for stmt in node.orelse:
+                stmt.parent = node
+                self.visit(stmt)
+            self._store_state(else_context)
+            contexts.append((else_context, "else", EDGE_TYPES["BRANCH"]))
+            
+        self._merge_state(parent_context, *contexts)
     
     def visit_ClassDef(self, node: ast.ClassDef):
         self.custom_names[node.name] = node.name
@@ -483,6 +490,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         pass 
     
     def visit_Return(self, node: ast.Return):
+        pass
+    
+    def visit_Dict(self, node: ast.Dict):
+        pass
+    
+    def visit_List(self, node: ast.List):
+        pass
+    
+    def visit_Tuple(self, node: ast.Tuple):
+        pass
+    
+    def visit_Set(self, node: ast.Set):
         pass
 
     def generic_visit(self, node: ast.AST):
@@ -865,7 +884,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     
     def _merge_state(self, base_context: str, *args: tuple[str]):
         if base_context not in self._state:
-            self._logger.debug(f"No state found for base context {base_context}")
+            self._logger.error(f"No state found for base context {base_context}")
             return
         
         base_state = self._state[base_context]
