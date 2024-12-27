@@ -17,7 +17,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         super().__init__()
         self._setup("module")
         
-        self.custom_names = {}
+        self.imported_names = {}
         self.import_from_modules = {}
         self.classes = {}
         self.functions = {}
@@ -29,13 +29,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def visit_Import(self, node: ast.Import):
         # Track imported modules
         for alias in node.names:
-            self.custom_names[alias.asname or alias.name] = alias.name
+            self.imported_names[alias.asname or alias.name] = alias.name
 
     def visit_ImportFrom(self, node: ast.ImportFrom):
         # Track imported modules from 'import from' statements
         module = node.module
         for alias in node.names:
-            self.custom_names[alias.asname or alias.name] = module
+            self.imported_names[alias.asname or alias.name] = module
             self.import_from_modules[alias.asname or alias.name] = module
 
     def visit_Assign(self, node: ast.Assign):
@@ -119,7 +119,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         is_call = isinstance(node.value, ast.Call)
         is_first_order = is_call and isinstance(node.value.func, ast.Name)
         is_self_defined = base_name in self.functions
-        is_imported = base_name in self.import_from_modules or base_name in self.custom_names
+        is_imported = base_name in self.import_from_modules or base_name in self.imported_names
         
         if base_name and (not is_first_order or is_self_defined or is_imported):
             self._set_current_variable(self._get_versioned_name(base_name, node.lineno))
@@ -139,10 +139,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._set_current_target(None)
         self._set_last_variable(None)
         self.edge_for_current_target = {}
-        
-    def visit_ClassDef(self, node: ast.ClassDef):
-        # ignore class definitions
-        return None
         
     def visit_Lambda(self, node: ast.Lambda):
         if hasattr(node, "parent") and isinstance(node.parent, ast.Assign):            
@@ -203,7 +199,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         # we are calling a second order function, e.g. dataframe.dropna()
         if isinstance(node.func, ast.Attribute):         
             caller_object_name = self._get_caller_object(node.func.value)
-            function_name = self._tokenize_method(node.func.attr)
+            function_name = node.func.attr
             # we are calling a chained method, e.g. dataframe.dropna().dropna()
             # if isinstance(node.func.value, (ast.Call, ast.Attribute, ast.Name)):
             if hasattr(node.func, "value"):
@@ -214,7 +210,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         # or a function from a module that was imported, e.g. read_csv()
         elif isinstance(node.func, ast.Name):
             caller_object_name = self._get_caller_object(node.func)
-            function_name = self._tokenize_method(node.func.id)
+            function_name = node.func.id
         
         elif isinstance(node.func, (ast.Call, ast.Subscript)):
             caller_object_name = self._get_caller_object(node.func)
@@ -223,11 +219,14 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         # we dont support other types of function calls like lambda functions yet
         else:
             raise NotImplementedError(f"Unsupported function call {ast.get_source_segment(self.code, node)} with node {ast.dump(node)}")
-
+        
         # we are calling a method of an imported module, e.g. pd.read_csv() or an 
         # imported first order method, e.g. read_csv()
-        if caller_object_name in self.custom_names or caller_object_name in self.import_from_modules: 
+        if caller_object_name in self.imported_names or caller_object_name in self.import_from_modules: 
             self._process_library_call(node, caller_object_name, function_name)
+        # we are calling a user defined class, e.g. dataframe = DataFrame(), ToDo: currently only working for Constructors
+        elif caller_object_name in self.classes or function_name in self.classes:
+            self._process_class_call(node, caller_object_name, function_name)
         # we are calling a user defined function, e.g. a lambda function stored in a variable
         elif function_name in self.functions:
             self._process_function_call(node, function_name)
@@ -330,7 +329,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             return
 
         var_name = node.id
-        if var_name in self.custom_names or var_name in self.import_from_modules:
+        if var_name in self.imported_names or var_name in self.import_from_modules:
             self._logger.debug(f"Processing library attribute {var_name}")
             self._process_library_attr(node, var_name)
         else:
@@ -484,7 +483,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._merge_state(parent_context, *contexts)
     
     def visit_ClassDef(self, node: ast.ClassDef):
-        self.custom_names[node.name] = node.name
+        name = node.name
+        self.classes[name] = [name]      
+        for stmt in node.body:
+            if isinstance(stmt, ast.FunctionDef):
+                self.classes[name].append(stmt.name)
+            elif isinstance(stmt, ast.Assign):
+                for target in stmt.targets:
+                    if isinstance(target, ast.Name):
+                        self.classes[name].append(target.id)
+                        
+                    elif isinstance(target, ast.Attribute):
+                        self.classes[name].append(target.attr)
     
     def visit_Delete(self, node: ast.Delete):
         pass 
@@ -613,7 +623,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             
     def _process_method_call(self, node: ast.Call, caller_object_name: str, tokens: Optional[str]):
         previous_version = self._get_last_variable_version(caller_object_name)
-        previous_version = previous_version if previous_version else self.last_variable 
+        previous_version = previous_version if previous_version else self.last_variable
+        tokens = self._tokenize_method(tokens)
         self._add_edge(
             previous_version, 
             self.current_variable, 
@@ -646,9 +657,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         
     def _process_library_call(self, node: ast.Call, caller_object_name: str, tokens: str=None):
         # Add the import node and connect it                    
-        import_node = self.custom_names[caller_object_name]
+        import_node = self.imported_names[caller_object_name]
         self._add_node(import_node, NODE_TYPES["IMPORT"])
-        tokens = tokens if tokens else self._tokenize_method(ast.get_source_segment(self.code, node.func))
+        tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
+        tokens = self._tokenize_method(tokens)
         self._add_edge(
             import_node, 
             self.current_variable, 
@@ -681,6 +693,44 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         
         self._set_last_variable(import_node)
         
+    def _process_class_call(self, node: ast.Call, caller_object_name: str, tokens: str=None):
+        # Add the import node and connect it                    
+        class_node = self.classes[tokens][0]
+        self._add_node(class_node, NODE_TYPES["CLASS"])
+        tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
+        tokens = self._tokenize_method(tokens)
+        self._add_edge(
+            class_node, 
+            self.current_variable, 
+            tokens, 
+            EDGE_TYPES["CALLER"],
+            node.lineno, 
+            node.col_offset, 
+            node.end_lineno, 
+            node.end_col_offset
+        )
+        
+        for arg in node.args:
+            if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
+                arg_name = self._get_names(arg)
+                arg_name = arg_name[0] if arg_name else None
+
+                if arg_name:
+                    arg_version = self._get_last_variable_version(arg_name)
+                    code_segment = self._tokenize_method(arg_name)
+                    self._add_edge(
+                        arg_version, 
+                        self.current_variable, 
+                        code_segment, 
+                        EDGE_TYPES["INPUT"],
+                        node.lineno, 
+                        node.col_offset, 
+                        node.end_lineno, 
+                        node.end_col_offset
+                    )
+        
+        self._set_last_variable(class_node)
+        
     def _process_function_call(self, node: ast.Call, tokens: str=None):
         function_name = tokens
         function_context = self.functions[function_name]["context"]
@@ -710,7 +760,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     
     def _process_library_attr(self, node: ast.Attribute, caller_object_name: str):
         # Add the import node and connect it
-        import_node = self.custom_names[caller_object_name]
+        import_node = self.imported_names[caller_object_name]
         self._add_node(import_node, NODE_TYPES["IMPORT"])        
         tokens = self._tokenize_method(ast.get_source_segment(self.code, node))
         self._add_edge(
@@ -750,7 +800,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         names = self._get_names(value)
 
         if names and (
-            names[0] in self.custom_names or 
+            names[0] in self.imported_names or 
             names[0] in self.import_from_modules or 
             names[0] in self.variable_versions
         ):
@@ -800,7 +850,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         split_by_period = method.split(".")
         
         # remove library alias as we dont want to learn from it
-        for library_alias in self.custom_names.keys():
+        for library_alias in self.imported_names.keys():
             if library_alias in split_by_period and library_alias not in self.import_from_modules:
                 split_by_period.remove(library_alias)
         
@@ -840,7 +890,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     
     #-----------------------------------------------------------------------------------------------------------------------------------#
     #                                        state management functions                                                                 #
-    #                                        ToDo: fix bug, e.g., in hms2024/hms-two-model-ensemble.ipynb                               #
     #-----------------------------------------------------------------------------------------------------------------------------------#    
     def _set_current_variable(self, value: str):
         self.current_variable = value
