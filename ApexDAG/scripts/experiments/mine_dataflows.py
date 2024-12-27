@@ -43,6 +43,7 @@ def mine_dataflows_on_kaggle_dataset(args, logger):
                 notebook_path = f"{notebook_path}"
                 tb = traceback.format_exc()
                 kaggle_iterator.print(tb)
+                kaggle_iterator.print(f"Error in notebook {notebook_path}")
                 stats["dfg_extract_time"].append(-float("inf"))
                 
                 folder = os.path.join("output", name, "stacktraces")

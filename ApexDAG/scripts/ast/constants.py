@@ -6,6 +6,7 @@ NODE_TYPES = {
     "INTERMEDIATE": 4,
     "IF": 5,
     "LOOP": 6,
+    "CLASS": 7,
 }
 
 EDGE_TYPES = {
