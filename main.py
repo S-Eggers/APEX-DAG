@@ -4,12 +4,12 @@ import matplotlib
 
 from ApexDAG.argparser import argparser
 
-from ApexDAG.scripts.experiments.analyze_dataset import analyze_kaggle_dataset
-from ApexDAG.scripts.experiments.dataflow_graph import data_flow_graph_test
-from ApexDAG.scripts.experiments.ast_graph_test import ast_graph_test
-from ApexDAG.scripts.experiments.watch import watch
-from ApexDAG.scripts.experiments.mine_dataflows import mine_dataflows_on_kaggle_dataset
-from ApexDAG.scripts.util.logging import setup_logging
+from ApexDAG.experiments.analyze_dataset import analyze_kaggle_dataset
+from ApexDAG.experiments.dataflow_graph import data_flow_graph_test
+from ApexDAG.experiments.ast_graph_test import ast_graph_test
+from ApexDAG.experiments.watch import watch
+from ApexDAG.experiments.mine_dataflows import mine_dataflows_on_kaggle_dataset
+from ApexDAG.util.logging import setup_logging
 
 
 def main(argv=None):

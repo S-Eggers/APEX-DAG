@@ -1,7 +1,7 @@
 import os
 import networkx as nx
-from ApexDAG.scripts.util.draw import Draw
-from ApexDAG.scripts.util.logging import setup_logging
+from ApexDAG.util.draw import Draw
+from ApexDAG.util.logging import setup_logging
 
 
 def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbose=False) -> nx.DiGraph:

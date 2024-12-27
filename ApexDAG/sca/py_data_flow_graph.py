@@ -4,12 +4,12 @@ import astpretty
 import networkx as nx
 from typing import Optional
 
-from ApexDAG.scripts.util.draw import Draw
-from ApexDAG.scripts.ast.ast_graph import ASTGraph
-from ApexDAG.scripts.util.logging import setup_logging
-from ApexDAG.scripts.ast.py_util import get_operator_description
-from ApexDAG.scripts.ast.graph_utils import convert_multidigraph_to_digraph, get_subgraph
-from ApexDAG.scripts.ast.constants import NODE_TYPES, EDGE_TYPES, VERBOSE
+from ApexDAG.util.draw import Draw
+from ApexDAG.sca.ast_graph import ASTGraph
+from ApexDAG.util.logging import setup_logging
+from ApexDAG.sca.py_util import get_operator_description
+from ApexDAG.sca.graph_utils import convert_multidigraph_to_digraph, get_subgraph
+from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES, VERBOSE
 
 
 class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
