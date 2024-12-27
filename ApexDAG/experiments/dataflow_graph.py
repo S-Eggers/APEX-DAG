@@ -1,10 +1,10 @@
 import os
 import time
 
-from scripts.notebook import Notebook
-from scripts.ast.constants import NODE_TYPES, EDGE_TYPES
-from scripts.ast.graph_utils import debug_graph
-from scripts.ast.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
+from ApexDAG.notebook import Notebook
+from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES
+from ApexDAG.sca.graph_utils import debug_graph
+from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 
 
 def data_flow_graph_test(args, logger):

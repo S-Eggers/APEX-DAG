@@ -1,7 +1,7 @@
 import os
 
-from scripts.notebook import Notebook
-from scripts.ast.py_ast_graph import PythonASTGraph as ASTGraph
+from ApexDAG.notebook import Notebook
+from ApexDAG.sca.py_ast_graph import PythonASTGraph as ASTGraph
 
 
 def ast_graph_test(args, logger):

@@ -1,9 +1,9 @@
 import ast
 from typing import List
-from scripts.notebook import Notebook
+from ApexDAG.notebook import Notebook
 
-from scripts.ast.ast_graph import ASTGraph
-from scripts.util.draw import Draw
+from ApexDAG.sca.ast_graph import ASTGraph
+from ApexDAG.util.draw import Draw
 
 
 class PythonASTGraph(ASTGraph, ast.NodeVisitor):        

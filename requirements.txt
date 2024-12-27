@@ -8,3 +8,6 @@ torch_geometric==2.6.1
 tqdm==4.66.4
 transformers==4.41.2
 watchdog==6.0.0
+astpretty==3.0.0
+ipykernel==6.29.5 # for notebook visualisation
+seaborn==0.13.2   # for notebook visualisation
