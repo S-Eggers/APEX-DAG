@@ -4,7 +4,7 @@ import random
 
 from typing import List, Union, Set, Tuple
 
-WIRNodeType = Union[str, List[str], ast.AST, List[ast.AST]]
+WIRNodeType = Tuple[Union[str, List[str], ast.AST, List[ast.AST]], bool]
 PRType = Tuple[str, str, str, str]
 
 logging.basicConfig(level=logging.WARNING)  # Adjust for debugging
@@ -16,11 +16,11 @@ def check_bipartie(PRs: Set[PRType]) -> bool:
     Checks if the PRs are bipartite
     '''
     operations = set([pr[2] for pr in PRs])
-    other = set(flatten([(pr[0],pr[1],pr[3]) for pr in PRs]))
+    other = set(flatten([[pr[0],pr[1],pr[3]] for pr in PRs]))
     intersections = operations.intersection(other)
     # log 
     if len(intersections) > 0:
-        logger.warning("Intersections: ", intersections)
+        logger.warning(f"Intersections: {intersections}")
     return len(intersections) == 0
 
 def add_id():

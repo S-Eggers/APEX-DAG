@@ -46,6 +46,8 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
                 return node.func
             elif field == "input":
                 return node.args + node.keywords
+            elif node.func and hasattr(node.func, 'id') and isinstance(node.func.id, str) and field == "output":
+                return node.func.id + add_id()
         case "Attribute":
             if field == "caller":
                 return node.value
@@ -72,7 +74,7 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
             elif field == "caller":
                 return node.name if node.asname is not None else node.name + add_id() 
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return "ImportAs" + add_id() # node.__class__.__name__ + add_id() # name change to make it same an in paper
         case 'ImportFrom':
             if field == "operation":
                 return node.__class__.__name__ + add_id()
@@ -89,8 +91,6 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
                 return node.slice
             elif field == "caller":
                 return node.value
-            elif field == "output":
-                return node.__class__.__name__  + add_id()
         case 'Tuple': # this omits the modelling of tuple...
             if field == "output":
                 return node.elts
@@ -119,8 +119,6 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
                 return [node.left] + node.comparators
             elif field == "operation":
                 return node.ops
-            # elif field == "operation":
-            #     return node.__class__.__name__ + add_id()
         case 'BinOp':
             if field == "input":
                 return [node.left, node.right]
@@ -135,7 +133,8 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
             if field == "input":
                 return node.value
             elif field == "output":
-                return node.arg + add_id()
+                if node.arg is not None:
+                    return node.arg + add_id() 
             elif field == "operation":
                 return node.__class__.__name__ + add_id()
         case 'Add':
@@ -173,9 +172,9 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
                 return node.__class__.__name__ + add_id()
         case 'ListComp':
             if field == "operation":
-                return node.elt
+                return node.__class__.__name__ + add_id()
             elif field == "input":
-                return node.generators
+                return node.generators + [node.elt]
         case 'UnaryOp':
             if field == "operation":
                 return node.__class__.__name__ + add_id()
@@ -212,6 +211,7 @@ def GenPR(v: WIRNodeType, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
     :param PRs: Set of PRs generated so far.
     :return: Tuple containing a set of WIR variables and updated PRs.
     """
+    v, isAttribute = v
     if v is None:
         return None, PRs
     
@@ -227,8 +227,9 @@ def GenPR(v: WIRNodeType, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
 
     if isinstance(v, (str, int, float, bool, type(None))): 
         if isinstance(v, str):
-            v = v.replace('\n', '') # problematic later on (from_string in Agraph)
-        PRs.add((None, None, None, v))
+            # todo: progarate if this is from function (attribute) or normal name
+            v = v.replace('\n', '') + ':variable' # problematic later on (from_string in Agraph) # add variable tag!
+        # PRs.add((None, None, None, v))
         return v,  PRs # no id, implicid because of tree traversal
     
     p, PRs = GenPR(extract_from_node(v, 'operation'), PRs)
@@ -253,7 +254,6 @@ def GenPR(v: WIRNodeType, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
 
     for i, caller, operation, o in itertools.product(I, c, p, O):
         PRs.add((i, caller, operation, o))
-
     return O, PRs
 
 def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
@@ -277,7 +277,8 @@ def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
         
     PRs_filtered = filter_PRs(PRs)
     
-    logger.warning(f"Graph is bipartie: {check_bipartie(PRs_filtered)}")
+    bipartie_check = check_bipartie(PRs_filtered)
+    logger.warning(f"Graph is bipartie: {bipartie_check}")
     
     # Log the filtered PRs
     logger.info("Filtered PRs:")
@@ -314,7 +315,6 @@ def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
             #     raise ValueError("Multiple problematic operations caused same outputs: %s" % O) # isdue to variable overwriting!
     
     for (I, c, p, O) in PRs:
-        # p is an output of a problematic operation node...
         if p in problematic_operations and c is None:
             # add original caller 
             original_caller = problematic_operations[p]
@@ -371,7 +371,7 @@ def construct_bipartite_graph(PRs: Set[PRType], output_filename: str) -> nx.DiGr
     nx.draw_networkx_nodes(G, pos, nodelist=output_nodes, node_shape='o')
 
     edges = G.edges(data=True)
-    edge_colors = [d['color'] for (u, v, d) in edges]
+    edge_colors = [d['color'] for (_, _, d) in edges]
     
     nx.draw_networkx_edges(G, pos, edgelist=edges, edge_color=edge_colors, arrows=True)
     nx.draw_networkx_labels(G, pos, labels=labels)
@@ -382,9 +382,9 @@ def construct_bipartite_graph(PRs: Set[PRType], output_filename: str) -> nx.DiGr
     
     return G
 
-# Example usage
+
 if __name__ == "__main__":
-    name = 'a-data-science-framework-to-achieve-99-accuracy'
+    name = 'titanic-advanced-feature-engineering-tutorial'
     file_path = f'data/titanic_mvp_wir/{name}/script.py'
     location_related_attributes = ['lineno', 'col_offset', 'end_lineno', 'end_col_offset']
 
