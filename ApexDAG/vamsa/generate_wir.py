@@ -19,7 +19,8 @@ from ApexDAG.vamsa.utils import (
     get_relevant_code,
     check_bipartie,
     WIRNodeType,
-    PRType
+    PRType,
+    WIRNode
 )
 
 random.seed(42)
@@ -30,180 +31,181 @@ logger = logging.getLogger(__name__)  # Get a logger for this module
 
 def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not defined in the paper
     """Extracts information from a node."""
+    node = node.node
     if node is None:
-        return None
+        return WIRNode(None)
     
     match node.__class__.__name__:
         case "Assign":
             if field == "operation":
-                return  node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
             elif field == "input":
-                return node.value 
+                return WIRNode(node.value)
             elif field == "output":
-                return node.targets # also needs id attribute
+                return WIRNode(node.targets) # also needs id attribute
         case "Call":
             if field == "operation":
-                return node.func
+                return WIRNode(node.func, True)
             elif field == "input":
-                return node.args + node.keywords
+                return WIRNode(node.args + node.keywords)
             elif node.func and hasattr(node.func, 'id') and isinstance(node.func.id, str) and field == "output":
-                return node.func.id + add_id()
+                return WIRNode(node.func.id + add_id())
         case "Attribute":
             if field == "caller":
-                return node.value
+                return WIRNode(node.value)
             elif field == "operation":
-                return node.attr 
+                return WIRNode(node.attr, True)
             elif field == "output":
-                return node.attr + add_id() # also needs id attribute
+                return WIRNode(node.attr + add_id()) # also needs id attribute
         case "Name":
             if field == "output":
-                return node.id # + add_id() # also needs id attribute, does not work sadly...
+                return WIRNode(node.id) # + add_id() # also needs id attribute, does not work sadly...
         case "Constant":
             if field == "output":
-                return f"{node.value}{add_id()}" # also needs id attribute
+                return WIRNode(f"{node.value}{add_id()}") # also needs id attribute
         case 'Import':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
             elif field == "output":
-                return node.names
+                return WIRNode(node.names)
         case 'Module':
-            return None
+            return WIRNode(None)
         case 'alias':
             if field == "output":
-                return node.asname if node.asname is not None else node.name # also needs id attribute
+                return WIRNode(node.asname if node.asname is not None else node.name) # also needs id attribute
             elif field == "caller":
-                return node.name if node.asname is not None else node.name + add_id() 
+                return WIRNode(node.name if node.asname is not None else node.name + add_id())
             if field == "operation":
-                return "ImportAs" + add_id() # node.__class__.__name__ + add_id() # name change to make it same an in paper
+                return WIRNode("ImportAs" + add_id()) # node.__class__.__name__ + add_id() # name change to make it same an in paper
         case 'ImportFrom':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
             elif field == "output":
-                return node.names
+                return WIRNode(node.names)
             elif field == "caller":
-                return node.module
+                return WIRNode(node.module)
         case 'Store':
             pass # TODO
         case 'Subscript':
             if field == "operation":
-                return node.__class__.__name__  + add_id()
+                return WIRNode(node.__class__.__name__  + add_id())
             elif field == "input":
-                return node.slice
+                return WIRNode(node.slice)
             elif field == "caller":
-                return node.value
+                return WIRNode(node.value)
         case 'Tuple': # this omits the modelling of tuple...
             if field == "output":
-                return node.elts
+                return WIRNode(node.elts)
         case 'Slice':
             if field == "operation":
-                return node.__class__.__name__  + add_id()
+                return WIRNode(node.__class__.__name__  + add_id())
             elif field == "input":
-                return [value if value is not None else '' + add_id() for value in (node.lower, node.upper, node.step)]
+                return WIRNode([value if value is not None else '' + add_id() for value in (node.lower, node.upper, node.step)])
         case 'List':
             if field == "input":
-                return node.elts
+                return WIRNode(node.elts)
             elif field == "operation":
-                return node.__class__.__name__ + add_id() 
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Expr': # TODO
             if field == 'output':
-                return node.value
+                return WIRNode(node.value)
         case 'For': # target, iter, body, orelse
             if field == "input":
-                return node.iter
+                return WIRNode(node.iter)
             elif field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
             elif field == "output":
-                return node.target # not too sure about this
+                return WIRNode(node.target) # not too sure about this
         case 'Compare': # left, ops, comparators
             if field == "input":
-                return [node.left] + node.comparators
+                return WIRNode([node.left] + node.comparators)
             elif field == "operation":
-                return node.ops
+                return WIRNode(node.ops)
         case 'BinOp':
             if field == "input":
-                return [node.left, node.right]
+                return WIRNode([node.left, node.right])
             elif field == "operation":
-                return node.op
+                return WIRNode(node.op)
         case 'Lambda': #
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'FunctionDef': #
             pass
         case 'keyword':
             if field == "input":
-                return node.value
+                return WIRNode(node.value)
             elif field == "output":
                 if node.arg is not None:
-                    return node.arg + add_id() 
+                    return WIRNode(node.arg + add_id())
             elif field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Add':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Sub':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Mult':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Div':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Eq':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Lt':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Gt':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'GtE':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'LtE':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'BitAnd':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'Mod':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'ListComp':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
             elif field == "input":
-                return node.generators + [node.elt]
+                return WIRNode(node.generators + [node.elt])
         case 'UnaryOp':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
             elif field == "input":
-                return node.operand
+                return WIRNode(node.operand)
         case 'comprehension': 
             if field == "input":
-                return node.iter
+                return WIRNode(node.iter)
             elif field == "output":
-                return node.target
+                return WIRNode(node.target)
             elif field == "operation":
-                return node.__class__.__name__ + add_id()     
+                return WIRNode(node.__class__.__name__ + add_id())
         case 'IfExp':
             if field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
             if field == "input":
-                return [node.test,node.test, node.orelse]
+                return WIRNode([node.test,node.test, node.orelse])
         case 'Dict':
             if field == "input":
-                return [ast.Tuple([key,value]) for key, value in zip(node.keys, node.values)]
+                return WIRNode([ast.Tuple([key,value]) for key, value in zip(node.keys, node.values)])
             elif field == "operation":
-                return node.__class__.__name__ + add_id()
+                return WIRNode(node.__class__.__name__ + add_id())
         case _:
             logger.warning(f"Field {field} not found in node {node.__class__.__name__}")  
     logger.info(f"Field {field} not found in node {node.__class__.__name__}")  
-    return None
+    return WIRNode(None)
 
 
-def GenPR(v: WIRNodeType, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
+def GenPR(v: WIRNode, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
     """
     Processes a single AST node to generate WIR variables and update PRs.
     
@@ -211,25 +213,29 @@ def GenPR(v: WIRNodeType, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
     :param PRs: Set of PRs generated so far.
     :return: Tuple containing a set of WIR variables and updated PRs.
     """
-    v, isAttribute = v
-    if v is None:
-        return None, PRs
     
-    if isinstance(v, list): # handles input/ output lists
+    isAttribute = v.isAttribute
+    
+    if v is None:
+        return WIRNode(None), PRs
+    
+    if isinstance(v.node, list): # handles input/ output lists
         os = []
-        for node in v:
-            o, PRs = GenPR(node, PRs)
-            os.append(o)
-        os = list(flatten(os))
+        for node in v.node:
+            o, PRs = GenPR(WIRNode(node), PRs)
+            os.append(o.node)
+        os = WIRNode(list(flatten(os)))
         return os, PRs
     
     c = None
 
-    if isinstance(v, (str, int, float, bool, type(None))): 
-        if isinstance(v, str):
+    if isinstance(v.node, (str, int, float, bool, type(None))): 
+        if isinstance(v.node, str):
             # todo: progarate if this is from function (attribute) or normal name
-            v = v.replace('\n', '') + ':variable' # problematic later on (from_string in Agraph) # add variable tag!
-        # PRs.add((None, None, None, v))
+            return_name = v.node.replace('\n', '')
+            if isAttribute:
+                return_name = return_name + ':meth'
+            v = WIRNode(return_name) # problematic later on (from_string in Agraph) # add variable tag!
         return v,  PRs # no id, implicid because of tree traversal
     
     p, PRs = GenPR(extract_from_node(v, 'operation'), PRs)
@@ -237,23 +243,23 @@ def GenPR(v: WIRNodeType, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
     c, PRs = GenPR(extract_from_node(v, 'caller'), PRs)
     O, PRs = GenPR(extract_from_node(v, 'output'), PRs)
     
-    if O is None:
+    if O.node is None:
         # this logic prevents loops - for some methods we cannot assign the id... (since we git objects)
-        if is_empty_or_none_list(I) and c is None:# if we got only caller object and no other proveance, just return caller, do not add an id
+        if is_empty_or_none_list(I.node) and c.node is None:# if we got only caller object and no other proveance, just return caller, do not add an id
             O = p
-        elif isinstance(p, list):
-            O = [op + add_id() for op in p]
+        elif isinstance(p.node, list):
+            O = WIRNode([(op + add_id()) for op in p.node])
         else:
-            O = p + add_id()
+            O = WIRNode(p.node + add_id())
         
         
-    I = I if isinstance(I, list) else [I]
-    O = O if isinstance(O, list) else [O]
-    c = c if isinstance(c, list) else [c]
-    p = p if isinstance(p, list) else [p]
+    input = I.node if isinstance(I.node, list) else [I.node]
+    output  = O.node if isinstance(O.node, list) else [O.node]
+    caller = c.node if isinstance(c.node, list) else [c.node]
+    operation = p.node if isinstance(p.node, list) else [p.node]
 
-    for i, caller, operation, o in itertools.product(I, c, p, O):
-        PRs.add((i, caller, operation, o))
+    for _i, _c, _p, _o in itertools.product(input, caller, operation, output):
+        PRs.add((_i, _c, _p, _o))
     return O, PRs
 
 def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
@@ -266,24 +272,15 @@ def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
     PRs = set()
     
     for child in iter_child_nodes(root):
-        _, PRs_prime = GenPR(child, PRs)
+        _, PRs_prime = GenPR(WIRNode(child), PRs)
         PRs = PRs.union(PRs_prime)
         
     PRs = {pr for pr in PRs if pr[2] is not None}
     
-    logger.info("Unfiltered PRs:")
-    for pr in PRs:
-        logger.info(f"Unfiltered pr: {pr}")
-        
-    PRs_filtered = filter_PRs(PRs)
+    PRs_filtered = filter_PRs(PRs) # filter PRs (problematic operations)
     
     bipartie_check = check_bipartie(PRs_filtered)
     logger.warning(f"Graph is bipartie: {bipartie_check}")
-    
-    # Log the filtered PRs
-    logger.info("Filtered PRs:")
-    for pr in PRs_filtered:
-        logger.info(f"Filtered pr: {pr}")
         
     # save prs
     with open(output_filename.replace('.png', '.txt'), 'w') as f:
@@ -297,7 +294,7 @@ def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
 def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     """
     Optimizes the graph by getting rid of double operation nodes.
-    Where the nodes are  Some Caller -> (Operator A + some id) -> (Output A + some other id) and
+    Where the nodes are  Some Caller -> (Operator A + some id) -> (Output A + some other id).
     
     :param PRs: Set of PRs.
     :return: Filtered set of PRs.
@@ -306,18 +303,16 @@ def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     problematic_operations = dict()
     operations = set([ o for (_, _, o, _) in PRs])
     
+    # get double operations
     for (I, c, p, O) in PRs:
         if c is not None and p in operations and O in operations and remove_id(p) == remove_id(O): 
             if O not in problematic_operations:
                 problematic_operations[O] = c
-            # elif problematic_operations[O] != c: # may be a multiinput operation!
-            # TODO: Should raise error, but overwriting variables do not allow for that...
-            #     raise ValueError("Multiple problematic operations caused same outputs: %s" % O) # isdue to variable overwriting!
+
     
     for (I, c, p, O) in PRs:
-        if p in problematic_operations and c is None:
-            # add original caller 
-            original_caller = problematic_operations[p]
+        if p in problematic_operations and c is None: # p is an operation produced by another PR
+            original_caller = problematic_operations[p] # add original caller 
             filtered_PRs.add((I, original_caller, p, O))
         elif O in operations and p in operations: 
             if I is not None: 
@@ -345,7 +340,7 @@ def construct_bipartite_graph(PRs: Set[PRType], output_filename: str) -> nx.DiGr
         operation_nodes.add(p)
         if c is not None:
             caller_nodes.add(c)
-        if O is not None: # redundant
+        if O is not None:
             output_nodes.add(O)
         
         for input_node in [e for e in (I, ) if e is not None]:

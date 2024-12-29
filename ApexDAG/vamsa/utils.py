@@ -1,15 +1,20 @@
 import ast
 import logging
 import random
+from dataclasses import dataclass
 
 from typing import List, Union, Set, Tuple
-
-WIRNodeType = Tuple[Union[str, List[str], ast.AST, List[ast.AST]], bool]
-PRType = Tuple[str, str, str, str]
 
 logging.basicConfig(level=logging.WARNING)  # Adjust for debugging
 logger = logging.getLogger(__name__)  # Get a logger for this module
 
+WIRNodeType = Union[str, List[str], ast.AST, List[ast.AST]]
+PRType = Tuple[str, str, str, str]
+
+@dataclass
+class WIRNode:
+    node: WIRNodeType
+    isAttribute: bool = False
 
 def check_bipartie(PRs: Set[PRType]) -> bool:
     '''
