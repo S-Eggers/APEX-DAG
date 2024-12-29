@@ -4,9 +4,9 @@ import time
 import traceback
 import pandas as pd
 
-from ApexDAG.scripts.notebook import Notebook
-from ApexDAG.scripts.ast.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
-from ApexDAG.scripts.util.kaggle_dataset_iterator import KaggleDatasetIterator
+from ApexDAG.notebook import Notebook
+from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
+from ApexDAG.util.kaggle_dataset_iterator import KaggleDatasetIterator
 
 
 def mine_dataflows_on_kaggle_dataset(args, logger):
@@ -43,6 +43,7 @@ def mine_dataflows_on_kaggle_dataset(args, logger):
                 notebook_path = f"{notebook_path}"
                 tb = traceback.format_exc()
                 kaggle_iterator.print(tb)
+                kaggle_iterator.print(f"Error in notebook {notebook_path}")
                 stats["dfg_extract_time"].append(-float("inf"))
                 
                 folder = os.path.join("output", name, "stacktraces")

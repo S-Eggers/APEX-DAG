@@ -36,6 +36,7 @@ class Draw:
         light_green = "#c4deb0"
         very_soft_yellow = "#DEDAB0"
         very_soft_lime_green = "#B0DEB9"
+        very_soft_purple = "#DEB0DE"
         
         light_salmon = "#FFA07A"
         pale_green = "#98FB98"
@@ -57,6 +58,8 @@ class Draw:
                 node_colors.append(very_soft_yellow)
             elif G.nodes[node]["node_type"] == self.NODE_TYPES["LOOP"]:
                 node_colors.append(very_soft_lime_green)
+            elif G.nodes[node]["node_type"] == self.NODE_TYPES["CLASS"]:
+                node_colors.append(very_soft_purple)
             else:
                 node_colors.append("black")
         
@@ -117,6 +120,7 @@ class Draw:
             Patch(facecolor=pink, edgecolor="none", label="Import") if pink in node_colors else None,
             Patch(facecolor=very_soft_yellow, edgecolor="none", label="If") if very_soft_yellow in node_colors else None,
             Patch(facecolor=very_soft_lime_green, edgecolor="none", label="Loop") if very_soft_lime_green in node_colors else None,
+            Patch(facecolor=very_soft_purple, edgecolor="none", label="Class") if very_soft_purple in node_colors else None,
             Patch(facecolor="black", edgecolor="none", label="Change") if "black" in node_colors else None
         ]
         node_legend_elements = [elem for elem in node_legend_elements if elem is not None]

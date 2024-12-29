@@ -1,6 +1,6 @@
 import ast
-from ApexDAG.scripts import Notebook
-from ApexDAG.scripts.ast.import_visitor import ImportVisitor
+from ApexDAG.notebook import Notebook
+from ApexDAG.sca.import_visitor import ImportVisitor
 
 class NotebookStatMiner:
     def __init__(self, notebook: Notebook):
