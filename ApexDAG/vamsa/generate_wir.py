@@ -6,7 +6,7 @@ import random
 
 from ast import iter_child_nodes
 from matplotlib import pyplot as plt
-from typing import Union, List, Set, Tuple, Optional
+from typing import Set, Tuple, Optional
 
 import networkx as nx
 from networkx.drawing.nx_agraph import graphviz_layout
@@ -16,7 +16,6 @@ from ApexDAG.vamsa.utils import (
     remove_id,
     is_empty_or_none_list,
     flatten,
-    get_relevant_code,
     check_bipartie,
     WIRNodeType,
     PRType,
@@ -64,26 +63,24 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
             if field == "output":
                 return WIRNode(f"{node.value}{add_id()}") # also needs id attribute
         case 'Import':
-            if field == "operation":
-                return WIRNode(node.__class__.__name__ + add_id())
-            elif field == "output":
+            if field == "output":
                 return WIRNode(node.names)
         case 'Module':
             return WIRNode(None)
         case 'alias':
             if field == "output":
                 return WIRNode(node.asname if node.asname is not None else node.name) # also needs id attribute
-            elif field == "caller":
+            elif field == "input":
                 return WIRNode(node.name if node.asname is not None else node.name + add_id())
             if field == "operation":
                 return WIRNode("ImportAs" + add_id()) # node.__class__.__name__ + add_id() # name change to make it same an in paper
-        case 'ImportFrom':
+        case 'ImportFrom': # this causes not bipartie
             if field == "operation":
-                return WIRNode(node.__class__.__name__ + add_id())
-            elif field == "output":
-                return WIRNode(node.names)
-            elif field == "caller":
+                return WIRNode(node.__class__.__name__  + add_id())
+            elif field == "input":
                 return WIRNode(node.module)
+            elif field == "output":
+                return WIRNode([child.name if child.asname is None else child for child in node.names]) # omit alias if not necesary
         case 'Store':
             pass # TODO
         case 'Subscript':
@@ -262,7 +259,7 @@ def GenPR(v: WIRNode, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
         PRs.add((_i, _c, _p, _o))
     return O, PRs
 
-def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
+def GenWIR(root: ast.AST, output_filename: str, if_draw_graph: bool) -> Tuple[nx.DiGraph, Set[PRType]]:
     """
     Generates the WIR (Workflow Intermediate Representation) from an AST.
     
@@ -282,14 +279,13 @@ def GenWIR(root: ast.AST, output_filename='output/wir.png') -> nx.DiGraph:
     bipartie_check = check_bipartie(PRs_filtered)
     logger.warning(f"Graph is bipartie: {bipartie_check}")
         
-    # save prs
     with open(output_filename.replace('.png', '.txt'), 'w') as f:
         for pr in PRs_filtered:
             f.write(f"{pr}\n")
         
-    G = construct_bipartite_graph(PRs_filtered, output_filename=output_filename)
+    G = construct_bipartite_graph(PRs_filtered, output_filename=output_filename, if_draw_graph = if_draw_graph)
     
-    return G
+    return G, PRs_filtered
 
 def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     """
@@ -314,15 +310,15 @@ def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
         if p in problematic_operations and c is None: # p is an operation produced by another PR
             original_caller = problematic_operations[p] # add original caller 
             filtered_PRs.add((I, original_caller, p, O))
-        elif O in operations and p in operations: 
-            if I is not None: 
-                filtered_PRs.add((I,c,O, None))
+            # remove p from problematic operations
+        elif O in problematic_operations and c is not None:
+            pass
         else:
             filtered_PRs.add((I,c,p,O))
     return filtered_PRs
             
 
-def construct_bipartite_graph(PRs: Set[PRType], output_filename: str) -> nx.DiGraph:
+def construct_bipartite_graph(PRs: Set[PRType], output_filename: str, if_draw_graph: bool) -> nx.DiGraph:
     """
     Constructs a bipartite graph from the given PRs.
     
@@ -350,10 +346,19 @@ def construct_bipartite_graph(PRs: Set[PRType], output_filename: str) -> nx.DiGr
         if O is not None:
             G.add_edge(p, O, edge_type='operation_to_output', color='black')
 
-    nx.set_node_attributes(G, {node: 0 for node in input_nodes}, 'bipartite')    
-    nx.set_node_attributes(G, {node: 1 for node in caller_nodes}, 'bipartite')   
-    nx.set_node_attributes(G, {node: 2 for node in operation_nodes}, 'bipartite')
-    nx.set_node_attributes(G, {node: 3 for node in output_nodes}, 'bipartite')   
+    nx.set_node_attributes(G, {node: 'input' for node in input_nodes}, 'role')    
+    nx.set_node_attributes(G, {node: 'caller' for node in caller_nodes}, 'role')   
+    nx.set_node_attributes(G, {node: 'operation' for node in operation_nodes}, 'role')
+    nx.set_node_attributes(G, {node: 'output' for node in output_nodes}, 'role')   
+    
+    all_nodes = input_nodes | output_nodes | caller_nodes | operation_nodes
+    nx.set_node_attributes(G, {node: remove_id(node) for node in all_nodes}, 'label')   
+    
+    if if_draw_graph:
+        draw_graph(G, input_nodes, output_nodes, caller_nodes, operation_nodes, output_filename)
+    return G
+
+def draw_graph(G, input_nodes, output_nodes, caller_nodes, operation_nodes, output_filename):
     
     labels = {node: remove_id(node) for node in G.nodes()}
     
@@ -375,8 +380,6 @@ def construct_bipartite_graph(PRs: Set[PRType], output_filename: str) -> nx.DiGr
     plt.savefig(output_filename)
     plt.close()
     
-    return G
-
 
 if __name__ == "__main__":
     name = 'titanic-advanced-feature-engineering-tutorial'
@@ -388,5 +391,5 @@ if __name__ == "__main__":
     file_lines = file_content.split('\n')
         
     parsed_ast = ast.parse(file_content)
-    wir = GenWIR(parsed_ast, output_filename=f'output/wir-{name}.png')
+    wir, _ = GenWIR(parsed_ast, output_filename=f'output/wir-{name}.png', if_draw_graph=True)
     print("Generated WIR:", wir)

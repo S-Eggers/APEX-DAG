@@ -31,7 +31,9 @@ def check_bipartie(PRs: Set[PRType]) -> bool:
 def add_id():
     return ':id' + str(random.randint(0, 2500))
 
-def remove_id(node_name: str):
+def remove_id(node_name: str | None):
+    if node_name is None:
+        return None
     return node_name.split(':')[0]
 
 def is_empty_or_none_list(I):
