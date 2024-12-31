@@ -4,10 +4,11 @@
 
 ## WiP
 
-- [x] Dataflow Extraction (from Python ASTs)
-- [ ] Code Embedding
-- [ ] Data Lineage Detection
-- [ ] LLM Finetuning Strategy
+- [ ] Paper Teaser
+- [x] Demonstration Paper (ACM SIGMOD/PODS 2025, Berlin, Germany)
+- [x] Encoder (Dataflow Extraction, Tokenizing, Encoding Graph)
+- [ ] Detector & Estimator (Graph Attention Network, Training Tasks, Dataset)
+- [ ] Decoder (Reconstructing, Highlighting, Filter)
 
 ![AST Graph](docs/ast_graph.jpg)
 
