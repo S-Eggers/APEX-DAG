@@ -10,9 +10,6 @@
 - [ ] Detector & Estimator (Graph Attention Network, Training Tasks, Dataset)
 - [ ] Decoder (Reconstructing, Highlighting, Filter)
 
-![AST Graph](docs/ast_graph.jpg)
-
-
 # Environment setup with conda:
 ```
 conda create --name my_env python=3.8
@@ -21,3 +18,6 @@ pip install -r requirements.txt
 
 conda install --channel conda-forge pygraphviz // requires graphviz
 ```
+
+# Abstract Syntax Tree 
+![AST Graph](docs/ast_graph.jpg)
