@@ -1,4 +1,4 @@
-# Dissertation
+# APEX-DAG: <ins>A</ins>utomating <ins>P</ins>ipeline <ins>EX</ins>traction with <ins>D</ins>ataflow, Static Code <ins>A</ins>nalysis, and <ins>G</ins>raph Attention Networks
 
 ![Target picture](docs/system-overview.png)
 
