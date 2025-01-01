@@ -1,17 +1,20 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage: $0 -n <notebook path> -e <single_dataflow|mine_dataflows|watch>"
+    echo "Usage: $0 -n <notebook path> -e <single_dataflow|mine_dataflows|watch> [-d]"
     exit 1
 }
 
-while getopts ":n:e:" opt; do
+while getopts ":n:e:d" opt; do
     case ${opt} in
         n)
             n_value=$OPTARG
             ;;
         e)
             e_value=$OPTARG
+            ;;
+        d)
+            d_flag=true
             ;;
         \?)
             echo "Invalid option: -$OPTARG" >&2
@@ -35,20 +38,32 @@ case $e_value in
             echo "Error: The -n argument is required when e=single_dataflow."
             usage
         fi
-        python main.py -g -e "data_flow_graph_test" -n "$n_value"
+        if [ "$d_flag" = true ]; then
+            python main.py -g -e "data_flow_graph_test" -n "$n_value" -d
+        else
+            python main.py -g -e "data_flow_graph_test" -n "$n_value"
+        fi
         ;;
     watch)
         if [ -z "$n_value" ]; then
             echo "Error: The -n argument is required when e=watch."
             usage
         fi
-        python main.py -g -e "watch" -n "$n_value"
+        if [ "$d_flag" = true ]; then
+            python main.py -g -e "watch" -n "$n_value" -d
+        else
+            python main.py -g -e "watch" -n "$n_value"
+        fi
         ;;
     mine_dataflows)
-        python main.py -g -e "mine_dataflows_on_kaggle_dataset" -d
+        if [ "$d_flag" = true ]; then
+            python main.py -g -e "mine_dataflows_on_kaggle_dataset" -d
+        else
+            python main.py -g -e "mine_dataflows_on_kaggle_dataset"
+        fi
         ;;
     *)
-        echo "Error: Invalid value for -e. Valid options are 'single_dataflow' or 'mine_dataflows'."
+        echo "Error: Invalid value for -e. Valid options are 'single_dataflow', 'mine_dataflows', or 'watch'."
         usage
         ;;
 esac
