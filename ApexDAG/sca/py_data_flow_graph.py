@@ -7,7 +7,7 @@ from typing import Optional
 from ApexDAG.util.draw import Draw
 from ApexDAG.sca.ast_graph import ASTGraph
 from ApexDAG.util.logging import setup_logging
-from ApexDAG.sca.py_util import get_operator_description
+from ApexDAG.sca.py_util import get_operator_description, flatten_list
 from ApexDAG.sca.graph_utils import convert_multidigraph_to_digraph, get_subgraph
 from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES, VERBOSE
 
@@ -47,8 +47,12 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if not target_names:
             self._logger.error(f"Could not get target names for {ast.get_source_segment(self.code, target)}")
             target_names = []
+
+        target_names = flatten_list(target_names)            
+        for target_name_ in target_names:
+            is_obj_attribute = isinstance(target_name_, list)
+            target_name = target_name_[0] if is_obj_attribute else target_name_
             
-        for target_name in target_names:
             # Create a new version for this variable
             self._set_current_variable(self._get_versioned_name(target_name, node.lineno))
             self._set_current_target(target_name)
@@ -286,7 +290,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def visit_Compare(self, node: ast.Compare):
         # ToDo: not correctly implemented yet
         left_var, right_var = self._get_lr_values(node.left, node.comparators[0])
-        
         node.left.parent = node
         node.comparators[0].parent = node
         
@@ -694,8 +697,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._set_last_variable(import_node)
         
     def _process_class_call(self, node: ast.Call, caller_object_name: str, tokens: str=None):
-        # Add the import node and connect it                    
-        class_node = self.classes[tokens][0]
+        # Add the import node and connect it          
+        class_node = self.classes[caller_object_name][0]
         self._add_node(class_node, NODE_TYPES["CLASS"])
         tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
         tokens = self._tokenize_method(tokens)
@@ -774,7 +777,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.end_col_offset
         )
         self._set_last_variable(import_node)
- 
+
     def _process_subscript(self, node: ast.AST) -> tuple[str, int]:
         if isinstance(node.parent.slice, ast.Compare):
             code_segment = "filter"
@@ -802,7 +805,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if names and (
             names[0] in self.imported_names or 
             names[0] in self.import_from_modules or 
-            names[0] in self.variable_versions
+            names[0] in self.variable_versions or
+            names[0] in self.functions or 
+            names[0] in self.classes
         ):
             return names[0]
         
@@ -828,9 +833,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             case ast.Attribute():
                 name = self._get_names(node.value)
                 return [name[0], node.attr] if name else [node.attr]
-            case (ast.Tuple() | ast.List() | ast.Set()):
+            case (ast.Tuple() | ast.List() | ast.Set()):   
                 names = [self._get_names(elt) for elt in node.elts if self._get_names(elt)]
-                return [name[0] for name in names if name]
+                return names
             case ast.FunctionDef():
                 return [node.name]
             case ast.Subscript():
@@ -880,12 +885,15 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         else:
             return None
     
-    def _get_lr_values(self, left: ast.AST, right: ast.AST) -> tuple[Optional[str], Optional[str]]:
-        left_var = self._get_names(left)
-        left_var = left_var[0] if left_var else None
-        right_var = self._get_names(right)
-        right_var = right_var[0] if right_var else None
+    def _get_lr_values(self, left: ast.AST, right: ast.AST) -> tuple[Optional[str], Optional[str]]: 
+        left_var_ = self._get_names(left)
+        left_var_ = flatten_list(left_var_) if left_var_ else None
+        left_var = left_var_[0] if isinstance(left_var_, list) else left_var_
         
+        right_var_ = self._get_names(right)
+        right_var_ = flatten_list(right_var_) if right_var_ else None
+        right_var = right_var_[0] if isinstance(right_var_, list) else right_var_
+
         return left_var, right_var
     
     #-----------------------------------------------------------------------------------------------------------------------------------#

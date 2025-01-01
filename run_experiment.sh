@@ -45,7 +45,7 @@ case $e_value in
         python main.py -g -e "watch" -n "$n_value"
         ;;
     mine_dataflows)
-        python main.py -g -e "mine_dataflows_on_kaggle_dataset" -d
+        python main.py -g -e "mine_dataflows_on_kaggle_dataset"
         ;;
     *)
         echo "Error: Invalid value for -e. Valid options are 'single_dataflow' or 'mine_dataflows'."
