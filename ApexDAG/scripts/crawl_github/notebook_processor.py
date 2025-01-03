@@ -2,6 +2,8 @@ import requests
 import re
 import json
 import base64
+
+from tqdm import tqdm
 from ApexDAG.scripts.crawl_github.github_crawler import GitHubCrawler
 
 class NotebookProcessor(GitHubCrawler):
@@ -52,10 +54,9 @@ class NotebookProcessor(GitHubCrawler):
 
     def process_all_notebooks(self):
         """Process all notebooks in the list."""
-        gathered_notebooks = []
-        for notebook in self.notebooks:
-            gathered_notebooks.append(self.process_notebook(notebook))  
-        self.save_results(gathered_notebooks)
+        for i, notebook in enumerate(tqdm(self.notebooks, desc="Processing Notebooks")):
+            self.notebooks[i] = self.process_notebook(notebook)
+        self.save_results(self.notebooks)
     
     def save_results(self, results):
         """Save the processed notebooks to a JSON file."""
