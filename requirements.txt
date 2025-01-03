@@ -11,3 +11,4 @@ watchdog==6.0.0
 astpretty==3.0.0
 ipykernel==6.29.5 # for notebook visualisation
 seaborn==0.13.2   # for notebook visualisation
+python-dotenv==1.0.1
