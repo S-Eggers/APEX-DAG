@@ -33,7 +33,7 @@ def add_id():
 
 def remove_id(node_name: str | None):
     if node_name is None:
-        return None
+        return ''
     return node_name.split(':')[0]
 
 def is_empty_or_none_list(I):
@@ -83,3 +83,6 @@ def remove_comment_lines(code_string: str):
     code_lines = [line for line in code_string.splitlines() if not line.strip().startswith('#')]
     code_lines = [line for line in code_lines if not line.startswith('print')]
     return '\n'.join(code_lines)
+
+def merge_prs(P: List[PRType], P_prime: List[PRType]) -> Set[PRType]:
+    return list(dict.fromkeys(P + P_prime).keys())

@@ -17,6 +17,7 @@ from ApexDAG.vamsa.utils import (
     is_empty_or_none_list,
     flatten,
     check_bipartie,
+    merge_prs,
     WIRNodeType,
     PRType,
     WIRNode
@@ -77,9 +78,9 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
         case 'ImportFrom': # this causes not bipartie
             if field == "operation":
                 return WIRNode(node.__class__.__name__  + add_id())
-            elif field == "input":
+            elif field == "caller":
                 return WIRNode(node.module)
-            elif field == "output":
+            elif field == "output": # change it to get bipartie graph
                 return WIRNode([child.name if child.asname is None else child for child in node.names]) # omit alias if not necesary
         case 'Store':
             pass # TODO
@@ -202,12 +203,12 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
     return WIRNode(None)
 
 
-def GenPR(v: WIRNode, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
+def GenPR(v: WIRNode, PRs: list[PRType]) -> Tuple[WIRNodeType, list[PRType]]:
     """
     Processes a single AST node to generate WIR variables and update PRs.
     
     :param v: AST node.
-    :param PRs: Set of PRs generated so far.
+    :param PRs: List of PRs generated so far.
     :return: Tuple containing a set of WIR variables and updated PRs.
     """
     
@@ -256,7 +257,7 @@ def GenPR(v: WIRNode, PRs: Set[PRType]) -> Tuple[WIRNodeType, Set[PRType]]:
     operation = p.node if isinstance(p.node, list) else [p.node]
 
     for _i, _c, _p, _o in itertools.product(input, caller, operation, output):
-        PRs.add((_i, _c, _p, _o))
+        PRs.append((_i, _c, _p, _o))
     return O, PRs
 
 def GenWIR(root: ast.AST, output_filename: str, if_draw_graph: bool) -> Tuple[nx.DiGraph, Set[PRType]]:
@@ -266,26 +267,46 @@ def GenWIR(root: ast.AST, output_filename: str, if_draw_graph: bool) -> Tuple[nx
     :param root: Root node of the AST.
     :return: WIR graph G.
     """
-    PRs = set()
+    PRs = []
     
     for child in iter_child_nodes(root):
         _, PRs_prime = GenPR(WIRNode(child), PRs)
-        PRs = PRs.union(PRs_prime)
+        PRs = merge_prs(PRs, PRs_prime)
         
-    PRs = {pr for pr in PRs if pr[2] is not None}
+    PRs = [pr for pr in PRs if pr[2] is not None]
     
     PRs_filtered = filter_PRs(PRs) # filter PRs (problematic operations)
     
     bipartie_check = check_bipartie(PRs_filtered)
     logger.warning(f"Graph is bipartie: {bipartie_check}")
-        
+    
+    # get rid of assign nodes - move to another function
+    assign_operations = [(pr_id,{'input': pr[0], 'output': pr[3]}) for pr_id, pr in enumerate(PRs_filtered) if pr[2] is not None and 'Assign' == remove_id(pr[2]) and pr[1] is None]  
+    added_prs = []
+    indices_to_delete = []
+    
+    # assign output_indices to the prs belonging to input nodes (where they are the output)
+    for assign_pr_id, assign in assign_operations:
+        revelant_input_prs = []
+        for pr_id, pr2 in enumerate(PRs_filtered):
+            if pr2[3] == assign['input']:
+                revelant_input_prs.append(pr_id)
+                indices_to_delete.append(pr_id)
+            if pr2[0] == assign['input']:
+                for rel_input_id in revelant_input_prs:
+                    added_prs.append( (PRs_filtered[rel_input_id][0], PRs_filtered[rel_input_id][1], PRs_filtered[rel_input_id][2], pr2[3]))
+                    
+        indices_to_delete.append(assign_pr_id)
+    PRs_filtered_new = [pr for i, pr in enumerate(PRs_filtered) if i not in indices_to_delete]
+    PRs_filtered_new = PRs_filtered_new + added_prs
+                           
     with open(output_filename.replace('.png', '.txt'), 'w') as f:
-        for pr in PRs_filtered:
+        for pr in PRs_filtered_new:
             f.write(f"{pr}\n")
         
-    G = construct_bipartite_graph(PRs_filtered, output_filename=output_filename, if_draw_graph = if_draw_graph)
+    G = construct_bipartite_graph(PRs_filtered_new, output_filename=output_filename, if_draw_graph = if_draw_graph)
     
-    return G, PRs_filtered
+    return G, PRs_filtered_new
 
 def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     """
@@ -295,7 +316,7 @@ def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     :param PRs: Set of PRs.
     :return: Filtered set of PRs.
     """
-    filtered_PRs = set()
+    filtered_PRs = []
     problematic_operations = dict()
     operations = set([ o for (_, _, o, _) in PRs])
     
@@ -309,12 +330,12 @@ def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     for (I, c, p, O) in PRs:
         if p in problematic_operations and c is None: # p is an operation produced by another PR
             original_caller = problematic_operations[p] # add original caller 
-            filtered_PRs.add((I, original_caller, p, O))
+            filtered_PRs.append((I, original_caller, p, O))
             # remove p from problematic operations
         elif O in problematic_operations and c is not None:
             pass
         else:
-            filtered_PRs.add((I,c,p,O))
+            filtered_PRs.append((I,c,p,O))
     return filtered_PRs
             
 
