@@ -173,7 +173,7 @@ def get_notebook_cells(url):
         logging.warning(f"Error processing notebook {url}: {e}")
         return []
 
-def download_notebooks(json_file, bucket_url, save_dir, output_file_name='annotated_jetbrains_optim_more.json', limit=None, delay=0.01):
+def download_notebooks(json_file, bucket_url, save_dir, output_file_name='annotated_jetbrains_optim_50k.json', limit=None, delay=0.01):
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
