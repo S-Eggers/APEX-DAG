@@ -4,7 +4,7 @@ import json
 import base64
 
 from tqdm import tqdm
-from ApexDAG.scripts.crawl_github.github_crawler import GitHubCrawler
+from ApexDAG.scripts.crawl_github.github_crawler.github_crawler import GitHubCrawler
 
 class NotebookProcessor(GitHubCrawler):
     def __init__(self, notebooks):
