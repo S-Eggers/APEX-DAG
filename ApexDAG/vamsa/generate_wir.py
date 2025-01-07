@@ -302,10 +302,10 @@ def GenWIR(root: ast.AST, output_filename: str, if_draw_graph: bool) -> Tuple[nx
     
     PRs_filtered = filter_PRs(PRs) # filter PRs (problematic operations)
     PRs_filtered = fix_bibartie_issue_import_from(PRs_filtered) # fix bipartie issue for import from statements
+    PR_filtered_no_assign = remove_assignments(PRs_filtered)
     
     bipartie_check = check_bipartie(PRs_filtered)
     
-    PR_filtered_no_assign = remove_assignments(PRs_filtered)
     logger.warning(f"Graph is bipartie: {bipartie_check}")
                            
     with open(output_filename.replace('.png', '.txt'), 'w') as f:
@@ -359,6 +359,8 @@ def fix_bibartie_issue_import_from(PRs: Set[PRType]) -> Set[PRType]:
             imported[O] = O + add_id()
             filtered_PRs.append((I, c, p, imported[O]))
             filtered_PRs.append((None, imported[O], O, None))
+        elif c in imported:
+            filtered_PRs.append((I, imported[c], p, O))
         else:
             filtered_PRs.append((I, c, p, O))
     return filtered_PRs

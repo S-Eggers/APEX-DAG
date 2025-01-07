@@ -19,10 +19,24 @@ def extend_stack(stack, items):
 class KB:
     def __init__(self, knowledge_base = None):
         self.knowledge_base = pd.DataFrame([
-        {"Library": "catboost", "Module": None, "Caller": None, "API Name": "CatBoostClassifier", "Inputs": ["eval metrics: hyperparameter"], "Outputs": ["model"]},
-        {"Library": "pandas", "Module": None, "Caller": None, "API Name": "read_csv", "Inputs": ["datasource"], "Outputs": ["features"]},
+        {"Library": "catboost", "Module": None, "Caller": None, "API Name": "CatBoostClassifier", "Inputs": ["hyperparameter"], "Outputs": ["model"]},
         {"Library": "catboost", "Module": None, "Caller": "model", "API Name": "fit", "Inputs": ['features', 'labels'], "Outputs": ["trained model"]},
-        {"Library": "sklearn", "Module": "model.selection", "Caller": None, "API Name": "train_test_split", "Inputs": ["features", "labels"], "Outputs": ["features", "validation features", "labels", "validation labels"]},])
+        {"Library": "sklearn", "Module": "model.selection", "Caller": None, "API Name": "train_test_split", "Inputs": ["features", "labels"], "Outputs": ["features", "validation features", "labels", "validation labels"]},
+        
+        {"Library": "pandas", "Module": None, "Caller": None, "API Name": "read_csv", "Inputs": ["file_path"], "Outputs": ["data"]},
+        {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "iloc", "Inputs": ["columns_range"], "Outputs": ["features"]},
+        {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "drop", "Inputs": ["columns_to_drop"], "Outputs": ["features"]},
+        {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "filter", "Inputs": ["condition"], "Outputs": ["features"]},
+        {"Library": "sklearn", "Module": "preprocessing", "Caller": None, "API Name": "StandardScaler", "Inputs": ["features"], "Outputs": ["features"]},
+        {"Library": "sklearn", "Module": "preprocessing", "Caller": None, "API Name": "LabelEncoder", "Inputs": ["labels"], "Outputs": ["labels"]},
+        {"Library": "sklearn", "Module": "linear_model", "Caller": None, "API Name": "LogisticRegression", "Inputs": ["features", "labels"], "Outputs": ["model"]},
+        {"Library": "sklearn", "Module": "linear_model", "Caller": "model", "API Name": "fit", "Inputs": ["train_features", "train_labels"], "Outputs": ["trained_model"]},
+        {"Library": "sklearn", "Module": "linear_model", "Caller": "trained_model", "API Name": "predict", "Inputs": ["features"], "Outputs": ["predictions"]},
+        {"Library": "tensorflow", "Module": "keras", "Caller": None, "API Name": "Sequential", "Inputs": ["layers"], "Outputs": ["model"]},
+        {"Library": "tensorflow", "Module": "keras", "Caller": "model", "API Name": "compile", "Inputs": ["optimizer", "loss_function", "metrics"], "Outputs": ["model"]},
+        {"Library": "tensorflow", "Module": "keras", "Caller": "compiled_model", "API Name": "fit", "Inputs": ["features", "labels"], "Outputs": ["trained_model"]},
+        {"Library": "tensorflow", "Module": "keras", "Caller": "trained_model", "API Name": "predict", "Inputs": ["test_features"], "Outputs": ["predictions"]}
+    ])
             
         self.knowledge_base_traversal = pd.DataFrame([
         {"Library": None, "Module": None, "Caller": 'data', "API Name": "Subscript", "Inputs": ["selected columns"]},

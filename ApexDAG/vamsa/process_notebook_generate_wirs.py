@@ -5,6 +5,7 @@ import numpy as np
 
 from ApexDAG.vamsa.utils import remove_comment_lines
 from ApexDAG.vamsa.generate_wir import GenWIR
+from ApexDAG.vamsa.annotate_wir import AnnotationWIR, KB
 from ApexDAG import Notebook
 
 
@@ -50,8 +51,13 @@ if __name__ == '__main__':
             
         parsed_ast = ast.parse(code)
         output_picture = os.path.join(output_path,  'wir.png')
-        wir, _ = GenWIR(parsed_ast, output_filename = output_picture, if_draw_graph=True)
-        
+        output_picture_annotated = os.path.join(output_path,  'annotated-wir.png')
+        wir, prs, tuples = GenWIR(parsed_ast, output_filename=output_picture, if_draw_graph = True)
+        annotated_wir = AnnotationWIR(wir, prs, KB(None))
+        annotated_wir.annotate()
+        input_nodes, output_nodes, caller_nodes, operation_nodes = tuples
+        annotated_wir.draw_graph(input_nodes, output_nodes, caller_nodes, operation_nodes, output_picture_annotated)
+            
         print("WIR written to", os.path.join(output_path,  'wir.png'))
         
     print("Notebooks written to", output_dir)
