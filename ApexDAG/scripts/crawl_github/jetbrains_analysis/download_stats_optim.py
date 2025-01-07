@@ -9,6 +9,9 @@ from tqdm import tqdm
 from collections import defaultdict, Counter
 import logging
 
+# toto: comments hier lassen
+# add position od method
+
 # Precompiled regex patterns to optimize repeated calls
 alias_pattern_cache = {}
 object_pattern_cache = {}
