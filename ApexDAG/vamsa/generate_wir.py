@@ -78,7 +78,7 @@ def extract_from_node(node, field)-> Optional[WIRNodeType]: # main function, not
         case 'ImportFrom': # this causes not bipartie
             if field == "operation":
                 return WIRNode(node.__class__.__name__  + add_id())
-            elif field == "caller":
+            elif field == "input":
                 return WIRNode(node.module)
             elif field == "output": # change it to get bipartie graph
                 return WIRNode([child.name if child.asname is None else child for child in node.names]) # omit alias if not necesary
@@ -229,7 +229,7 @@ def GenPR(v: WIRNode, PRs: list[PRType]) -> Tuple[WIRNodeType, list[PRType]]:
 
     if isinstance(v.node, (str, int, float, bool, type(None))): 
         if isinstance(v.node, str):
-            # todo: progarate if this is from function (attribute) or normal name
+            # progarates if this is from function (attribute) or normal name
             return_name = v.node.replace('\n', '')
             if isAttribute:
                 return_name = return_name + ':meth'
@@ -245,6 +245,7 @@ def GenPR(v: WIRNode, PRs: list[PRType]) -> Tuple[WIRNodeType, list[PRType]]:
         # this logic prevents loops - for some methods we cannot assign the id... (since we git objects)
         if is_empty_or_none_list(I.node) and c.node is None:# if we got only caller object and no other proveance, just return caller, do not add an id
             O = p
+            return O, PRs
         elif isinstance(p.node, list):
             O = WIRNode([(op + add_id()) for op in p.node])
         else:
@@ -260,26 +261,7 @@ def GenPR(v: WIRNode, PRs: list[PRType]) -> Tuple[WIRNodeType, list[PRType]]:
         PRs.append((_i, _c, _p, _o))
     return O, PRs
 
-def GenWIR(root: ast.AST, output_filename: str, if_draw_graph: bool) -> Tuple[nx.DiGraph, Set[PRType]]:
-    """
-    Generates the WIR (Workflow Intermediate Representation) from an AST.
-    
-    :param root: Root node of the AST.
-    :return: WIR graph G.
-    """
-    PRs = []
-    
-    for child in iter_child_nodes(root):
-        _, PRs_prime = GenPR(WIRNode(child), PRs)
-        PRs = merge_prs(PRs, PRs_prime)
-        
-    PRs = [pr for pr in PRs if pr[2] is not None]
-    
-    PRs_filtered = filter_PRs(PRs) # filter PRs (problematic operations)
-    
-    bipartie_check = check_bipartie(PRs_filtered)
-    logger.warning(f"Graph is bipartie: {bipartie_check}")
-    
+def remove_assignments(PRs_filtered: Set[PRType]) -> Set[PRType]:
     # get rid of assign nodes - move to another function
     assign_operations = [(pr_id,{'input': pr[0], 'output': pr[3]}) for pr_id, pr in enumerate(PRs_filtered) if pr[2] is not None and 'Assign' == remove_id(pr[2]) and pr[1] is None]  
     added_prs = []
@@ -299,14 +281,40 @@ def GenWIR(root: ast.AST, output_filename: str, if_draw_graph: bool) -> Tuple[nx
         indices_to_delete.append(assign_pr_id)
     PRs_filtered_new = [pr for i, pr in enumerate(PRs_filtered) if i not in indices_to_delete]
     PRs_filtered_new = PRs_filtered_new + added_prs
+    
+    return PRs_filtered_new
+    
+
+def GenWIR(root: ast.AST, output_filename: str, if_draw_graph: bool) -> Tuple[nx.DiGraph, Set[PRType], tuple[Set, Set, Set, Set]]:
+    """
+    Generates the WIR (Workflow Intermediate Representation) from an AST.
+    
+    :param root: Root node of the AST.
+    :return: WIR graph G.
+    """
+    PRs = []
+    
+    for child in iter_child_nodes(root):
+        _, PRs_prime = GenPR(WIRNode(child), PRs)
+        PRs = merge_prs(PRs, PRs_prime)
+        
+    PRs = [pr for pr in PRs if pr[2] is not None]
+    
+    PRs_filtered = filter_PRs(PRs) # filter PRs (problematic operations)
+    PRs_filtered = fix_bibartie_issue_import_from(PRs_filtered) # fix bipartie issue for import from statements
+    
+    bipartie_check = check_bipartie(PRs_filtered)
+    
+    PR_filtered_no_assign = remove_assignments(PRs_filtered)
+    logger.warning(f"Graph is bipartie: {bipartie_check}")
                            
     with open(output_filename.replace('.png', '.txt'), 'w') as f:
-        for pr in PRs_filtered_new:
+        for pr in PR_filtered_no_assign:
             f.write(f"{pr}\n")
         
-    G = construct_bipartite_graph(PRs_filtered_new, output_filename=output_filename, if_draw_graph = if_draw_graph)
+    G, (input_nodes, output_nodes, caller_nodes, operation_nodes) = construct_bipartite_graph(PR_filtered_no_assign, output_filename=output_filename, if_draw_graph = if_draw_graph)
     
-    return G, PRs_filtered_new
+    return G, PR_filtered_no_assign, (input_nodes, output_nodes, caller_nodes, operation_nodes)
 
 def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     """
@@ -319,27 +327,43 @@ def filter_PRs(PRs: Set[PRType]) -> Set[PRType]:
     filtered_PRs = []
     problematic_operations = dict()
     operations = set([ o for (_, _, o, _) in PRs])
-    
+
     # get double operations
     for (I, c, p, O) in PRs:
         if c is not None and p in operations and O in operations and remove_id(p) == remove_id(O): 
             if O not in problematic_operations:
                 problematic_operations[O] = c
 
-    
     for (I, c, p, O) in PRs:
         if p in problematic_operations and c is None: # p is an operation produced by another PR
             original_caller = problematic_operations[p] # add original caller 
             filtered_PRs.append((I, original_caller, p, O))
             # remove p from problematic operations
         elif O in problematic_operations and c is not None:
-            pass
+            continue
         else:
             filtered_PRs.append((I,c,p,O))
     return filtered_PRs
-            
+        
+def fix_bibartie_issue_import_from(PRs: Set[PRType]) -> Set[PRType]:
+    """
+    Fixes the bipartie issue for import from statements.
+    
+    :param PRs: Set of PRs.
+    :return: Fixed set of PRs.
+    """
+    filtered_PRs = []
+    imported = {}
+    for (I, c, p, O) in PRs:
+        if remove_id(p) == 'ImportFrom':
+            imported[O] = O + add_id()
+            filtered_PRs.append((I, c, p, imported[O]))
+            filtered_PRs.append((None, imported[O], O, None))
+        else:
+            filtered_PRs.append((I, c, p, O))
+    return filtered_PRs
 
-def construct_bipartite_graph(PRs: Set[PRType], output_filename: str, if_draw_graph: bool) -> nx.DiGraph:
+def construct_bipartite_graph(PRs: Set[PRType], output_filename: str, if_draw_graph: bool) -> tuple[nx.DiGraph, tuple[Set, Set, Set, Set]]:
     """
     Constructs a bipartite graph from the given PRs.
     
@@ -377,7 +401,7 @@ def construct_bipartite_graph(PRs: Set[PRType], output_filename: str, if_draw_gr
     
     if if_draw_graph:
         draw_graph(G, input_nodes, output_nodes, caller_nodes, operation_nodes, output_filename)
-    return G
+    return G, (input_nodes, output_nodes, caller_nodes, operation_nodes)
 
 def draw_graph(G, input_nodes, output_nodes, caller_nodes, operation_nodes, output_filename):
     

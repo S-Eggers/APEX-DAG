@@ -2,15 +2,32 @@ import ast
 from ApexDAG.vamsa.generate_wir import GenWIR
 from ApexDAG.vamsa.utils import remove_id
 import networkx as nx
+import pandas as pd
+from matplotlib import pyplot as plt
 
+import networkx as nx
+from networkx.drawing.nx_agraph import graphviz_layout
+
+def add_to_stack(stack, item):
+    if item not in stack:
+        stack.append(item)
+        
+def extend_stack(stack, items):
+    for item in items:
+        add_to_stack(stack, item)
+               
 class KB:
     def __init__(self, knowledge_base = None):
-        import pandas as pd
         self.knowledge_base = pd.DataFrame([
-    {"Library": "catboost", "Module": None, "Caller": None, "API Name": "CatBoostClassifier", "Inputs": ["eval metrics: hyperparameter"], "Outputs": ["model"]},
-    {"Library": "catboost", "Module": None, "Caller": "model", "API Name": "fit", "Inputs": ['features', 'labels'], "Outputs": ["trained model"]},
-    {"Library": "sklearn", "Module": "model selection", "Caller": None, "API Name": "train_test_split", "Inputs": ["features", "labels"], "Outputs": ["features", "validation features"]},])
-        
+        {"Library": "catboost", "Module": None, "Caller": None, "API Name": "CatBoostClassifier", "Inputs": ["eval metrics: hyperparameter"], "Outputs": ["model"]},
+        {"Library": "pandas", "Module": None, "Caller": None, "API Name": "read_csv", "Inputs": ["datasource"], "Outputs": ["features"]},
+        {"Library": "catboost", "Module": None, "Caller": "model", "API Name": "fit", "Inputs": ['features', 'labels'], "Outputs": ["trained model"]},
+        {"Library": "sklearn", "Module": "model.selection", "Caller": None, "API Name": "train_test_split", "Inputs": ["features", "labels"], "Outputs": ["features", "validation features", "labels", "validation labels"]},])
+            
+        self.knowledge_base_traversal = pd.DataFrame([
+        {"Library": None, "Module": None, "Caller": 'data', "API Name": "Subscript", "Inputs": ["selected columns"]},
+        {"Library": None, "Module": None, "Caller": 'data', "API Name": "drop", "Inputs": ["dropped columns"]}])
+            
 
     def __call__(self, L, L_prime, c, p):
         # Filter knowledge base based on parameters
@@ -18,13 +35,45 @@ class KB:
 
         if L is not None:
             filtered_kb = filtered_kb[(filtered_kb['Library'].fillna('') == remove_id(L))]
-        if L_prime is not None:
+        if (not filtered_kb.empty) and L_prime is not None:
             filtered_kb = filtered_kb[(filtered_kb['Module'].fillna('') == remove_id(L_prime))]
         
-        filtered_kb = filtered_kb[(filtered_kb['Caller'].fillna('') == remove_id(c))]
-        filtered_kb = filtered_kb[(filtered_kb['API Name'].fillna('') == remove_id(p))]
+        if (not filtered_kb.empty) and c is not None:
+            filtered_kb = filtered_kb[(filtered_kb['Caller'] == remove_id(c))]
+        elif (not filtered_kb.empty):
+            filtered_kb = filtered_kb[(filtered_kb['Caller'].isna())]
 
-        return filtered_kb["Inputs"], filtered_kb["Outputs"]
+        if (not filtered_kb.empty) and p is not None:
+            filtered_kb = filtered_kb[(filtered_kb['API Name'].fillna('') == remove_id(p))]
+        elif (not filtered_kb.empty):
+            filtered_kb = filtered_kb[(filtered_kb['API Name'].isna())]
+
+        if len(filtered_kb) > 1:
+            raise ValueError("Knowledge base contains multiple matching rows!")
+
+        inputs = filtered_kb["Inputs"].values[0] if len(filtered_kb["Inputs"].values) == 1 else []
+        outputs = filtered_kb["Outputs"].values[0] if len(filtered_kb["Outputs"].values) == 1 else []
+
+        return inputs, outputs
+    
+    def back_query(self, O, p): # TODO: make the name better
+        # Filter knowledge base based on parameters
+        def has_similar_elements(row_list, provided_list):
+            min_len = min(len(row_list), len(provided_list))
+            return all(p == r or p is None for p, r in zip(provided_list[:min_len], row_list[:min_len]))
+
+        filtered_kb = self.knowledge_base
+
+        if p is not None:
+            filtered_kb = filtered_kb[(filtered_kb['API Name'].fillna('') == remove_id(p))]
+        if (not filtered_kb.empty) and O is not None:
+            filtered_kb = filtered_kb[(filtered_kb['Outputs'].apply(lambda x: has_similar_elements(x, O)))]
+        
+        if len(filtered_kb) > 1:
+            raise ValueError("Knowledge base contains multiple matching rows!")
+        inputs = filtered_kb["Inputs"].values[0] if len(filtered_kb["Inputs"].values) == 1 else []
+        
+        return inputs 
     
     
 class AnnotationWIR:
@@ -40,6 +89,16 @@ class AnnotationWIR:
         self.prs = prs
         self.knowledge_base = knowledge_base
         self.annotated_wir = wir.copy()  # Start with a copy for annotations
+    
+    def _get_annotation(self, node):
+        """Get single annotation of a node."""
+        if node is None:
+            return None
+        annotations = self.annotated_wir.nodes[node].get('annotations', [])
+        # if more than 1 raise warning
+        if len(annotations) > 1:
+            raise ValueError(f"Node {node} has multiple annotations: {annotations}")
+        return annotations[0] if annotations else None
 
     def annotate(self):
         """Annotates the WIR using the PRS Algorithm Annotation."""
@@ -53,33 +112,44 @@ class AnnotationWIR:
             forward_stack = [vs]
             while forward_stack:
                 node = forward_stack.pop()  # Pop a process relation
-                pr = inputs, context, process, outputs = self.extract_pr_elements(node)  # Extract PR = <I, c, p, O>
+                pr = inputs, caller, process, outputs = self._extract_pr_elements(node)  # Extract PR = <I, c, p, O>
+                
+                if self.check_if_visited( process):
+                    continue
+                self.visit_node(process)
+                context = self._get_annotation(caller) # get annotation of caller
 
-                #  Annotate in- and outputs using the mock knowledge base
-                annotation_input, annotation_output = self.knowledge_base(library, module, context, process)
-                for index_o, vo in enumerate(outputs):
-                    if annotation_output is not None and len(annotation_output) > index_o:
-                        self.annotate_node(vo, annotation_output[index_o])
+                input_annotations, annotations_output = self.knowledge_base(library, module, context, process)
+                
+                for vo, annotation_output in zip(outputs, annotations_output):
+                    self._annotate_node(vo, annotation_output)
                 
                 annotated_inputs = []
-                for index_i, vi in enumerate(inputs):
-                    if annotation_input is not None and len(annotation_input) > index_i: # FIXME: later not allowing for kward different order
-                        annotated_inputs.append(self.annotate_node(vi, annotation_input[index_i]))
+                min_len = min(len(inputs), len(input_annotations))
+                
+                for input_node, input_annotation in zip(inputs[:min_len], input_annotations[:min_len]):
+                    annotated_inputs.append(self._annotate_node(input_node, input_annotation))
 
                 backward_stack = annotated_inputs # Start from input nodes (I)
 
                 while backward_stack:
-                    pr, annotation = backward_stack.pop()  # Pop a process relation
-                    inputs, context, process, outputs = self.extract_pr_elements(pr)
-
+                    previous_input, annotation = backward_stack.pop()  # Pop a process relation
                     #  Annotate inputs using knowledge base
-                    for vi in inputs:
-                        annotation = self.knowledge_base(outputs, process)
-                        self.annotate_node(vi, annotation)
+                    inputs, caller, process, outputs = self._extract_pr_elements(previous_input, node_type = 'output')  # Extract PR = <I, c, p, O> - find to which inuts where outputs
+                    
+                    if self.check_if_visited( process):
+                        continue
+                    self.visit_node(process)
+                    
+                    outputs_annotations = [self._get_annotation(vo) for vo in outputs] # get the annotation of the previous input and other outputs of same operation
+                    input_annotations = self.knowledge_base.back_query(outputs_annotations, process)
 
-                    # Add unvisited PRs reachable from inputs to the stack
-                    backward_stack.extend(self.find_backward_prs(pr))
-                forward_stack.extend(self.find_forward_prs(pr))
+                    min_len = min(len(inputs), len(input_annotations))
+                    for input_node, input_annotation in zip(inputs[:min_len], input_annotations[:min_len]):
+                        self._annotate_node(input_node, input_annotation)
+                        backward_stack.append((input_node, input_annotation))
+
+                extend_stack(forward_stack, self.find_forward_prs(pr))
 
         return self.annotated_wir
 
@@ -107,7 +177,7 @@ class AnnotationWIR:
 
         return library, module
 
-    def extract_pr_elements(self, node):
+    def _extract_pr_elements(self, node, node_type='operation'):
         """
         Extract elements of a process relation PR = <I, c, p, O> for a given process node.
 
@@ -118,28 +188,47 @@ class AnnotationWIR:
         context = None
         outputs = []
         
-        for pred in self.wir.predecessors(node):
-            edge_data = self.wir.get_edge_data(pred, node)
-            if edge_data.get("edge_type") == "input_to_operation":
-                inputs.append(pred)  # add input nodes
-            elif edge_data.get("edge_type") == "caller_to_operation":
-                context = pred  # add caller node
+        if node_type == 'operation':
+            for pred in self.wir.predecessors(node):
+                edge_data = self.wir.get_edge_data(pred, node)
+                if edge_data.get("edge_type") == "input_to_operation":
+                    inputs.append(pred)  # add input nodes
+                elif edge_data.get("edge_type") == "caller_to_operation":
+                    context = pred  # add caller node
 
-        for succ in self.wir.successors(node):
-            edge_data = self.wir.get_edge_data(node, succ)
-            if edge_data.get("edge_type") == "operation_to_output":
-                outputs.append(succ)  # add output nodes
+            for succ in self.wir.successors(node):
+                edge_data = self.wir.get_edge_data(node, succ)
+                if edge_data.get("edge_type") == "operation_to_output":
+                    outputs.append(succ)  # add output nodes
 
-        operation = node 
-        return inputs, context, operation, outputs
+            operation = node 
+            return inputs, context, operation, outputs
+        
+        elif node_type == 'output':
+            for pred in self.wir.predecessors(node):
+                edge_data = self.wir.get_edge_data(pred, node)
+                if edge_data.get("edge_type") == "operation_to_output":
+                    operation = pred # find operation and do propper pr extraction
+                    return self._extract_pr_elements(operation, node_type='operation')
+            self.visit_node(node)
+            return None, None, None, node
+                    
 
-    def annotate_node(self, node, annotation):
+    def _annotate_node(self, node, annotation):
         """Add an annotation to a node in the WIR."""
         if 'annotations' not in self.annotated_wir.nodes[node]:
             self.annotated_wir.nodes[node]['annotations'] = []
         self.annotated_wir.nodes[node]['annotations'].append(annotation)
         return (node, annotation)
         
+    def check_if_visited(self, node):
+        if node is None:
+            return True # this means we have an output node only and do not want to traverse it either way
+        if 'visited' in self.annotated_wir.nodes[node]:
+            return self.annotated_wir.nodes[node]['visited']
+        return False
+    def visit_node(self, node):
+        self.annotated_wir.nodes[node]['visited'] = True
 
     def find_forward_prs(self, pr):
         """Find forward PRs connected to the outputs of a given PR."""
@@ -152,10 +241,28 @@ class AnnotationWIR:
         
         return set([next_pr[2] for next_pr in self.prs if is_connected(next_pr)]) # get operations connected
     
-    def find_backward_prs(self, pr):
-        """Find backward PRs connected to the inputs of a given PR."""
-        pass
+    def draw_graph(self, input_nodes, output_nodes, caller_nodes, operation_nodes, output_filename):
+    
+        labels = {node: remove_id(node) + f' :Annotation {self._get_annotation(node)}' for node in self.annotated_wir.nodes()}
+        
+        plt.figure(figsize=(200, 40))
+        pos = graphviz_layout(self.annotated_wir, prog='dot')
 
+        nx.draw_networkx_nodes(self.annotated_wir, pos, nodelist=input_nodes, node_shape='o') 
+        nx.draw_networkx_nodes(self.annotated_wir, pos, nodelist=caller_nodes, node_shape='o')
+        nx.draw_networkx_nodes(self.annotated_wir, pos, nodelist=operation_nodes, node_shape='s') 
+        nx.draw_networkx_nodes(self.annotated_wir, pos, nodelist=output_nodes, node_shape='o')
+
+        edges = self.annotated_wir.edges(data=True)
+        edge_colors = [d['color'] for (_, _, d) in edges]
+        
+        nx.draw_networkx_edges(self.annotated_wir, pos, edgelist=edges, edge_color=edge_colors, arrows=True)
+        nx.draw_networkx_labels(self.annotated_wir, pos, labels=labels)
+        
+        
+        plt.legend()
+        plt.savefig(output_filename)
+        plt.close()
 
 if __name__ == "__main__":
     file_path = f'data/raw/test_vamsa.py'
@@ -166,6 +273,8 @@ if __name__ == "__main__":
     file_lines = file_content.split('\n')
         
     parsed_ast = ast.parse(file_content)
-    wir, prs = GenWIR(parsed_ast, output_filename=f'output/wir-annotated-test.png', if_draw_graph = True)
+    wir, prs, tuples = GenWIR(parsed_ast, output_filename=f'output/wir-unannotated-test.png', if_draw_graph = True)
     annotated_wir = AnnotationWIR(wir, prs, KB(None))
     annotated_wir.annotate()
+    input_nodes, output_nodes, caller_nodes, operation_nodes = tuples
+    annotated_wir.draw_graph(input_nodes, output_nodes, caller_nodes, operation_nodes, 'output/annotated-wir-final.png')
