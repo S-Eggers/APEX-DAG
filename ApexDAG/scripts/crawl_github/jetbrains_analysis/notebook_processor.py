@@ -15,13 +15,31 @@ class NotebookProcessor:
     object_pattern_cache = {}
     attribute_pattern_cache = {}
 
-    def __init__(self, json_file, bucket_url, save_dir):
+    def __init__(self, json_file, bucket_url, save_dir, log_file):
         self.json_file = json_file
         self.bucket_url = bucket_url
         self.save_dir = save_dir
+        self.logs_dir = os.path.join(save_dir, 'logs')
+        
+        # Set up logger
+        self.logger = logging.getLogger(f'NotebookProcessor + ({log_file})')
+        self.logger.setLevel(logging.INFO)
 
-    @staticmethod
-    def load_filenames(json_file):
+        os.makedirs(self.logs_dir, exist_ok=True)
+        # Create handlers
+        stream_handler = logging.StreamHandler()
+        file_handler = logging.FileHandler(os.path.join(self.logs_dir, log_file))
+
+        # Create formatter and add it to the handlers
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        stream_handler.setFormatter(formatter)
+        file_handler.setFormatter(formatter)
+
+        # Add handlers to the logger
+        self.logger.addHandler(stream_handler)
+        self.logger.addHandler(file_handler)
+
+    def load_filenames(self, json_file):
         """
         Load filenames from a JSON file.
         """
@@ -29,10 +47,10 @@ class NotebookProcessor:
             with open(json_file, "r") as f:
                 return json.load(f)
         except FileNotFoundError:
-            logging.warning(f"File not found: {json_file}")
+            self.logger.warning(f"File not found: {json_file}")
             return []
         except json.JSONDecodeError as e:
-            logging.warning(f"Error decoding JSON file: {e}")
+            self.logger.warning(f"Error decoding JSON file: {e}")
             return []
 
     @classmethod
@@ -185,8 +203,7 @@ class NotebookProcessor:
         import_table = self.simple_check_aliases_in_code_without_import(cell_code, import_table)
         return self.methods_used_in_code(cell_code, import_table)
 
-    @staticmethod
-    def get_notebook_code(url):
+    def get_notebook_code(self, url):
         """
         Fetch notebook code from a URL.
         """
@@ -198,14 +215,17 @@ class NotebookProcessor:
             notebook = nbformat.reads(notebook_content, as_version=4)
             cells = notebook.get("cells", [])
 
-            code_cells = [cell['source'] for cell in cells if cell.get("cell_type") == "code"]
+            code_cells = [cell['source'] for cell in cells if (cell.get("cell_type") == "code") and (cell['source'] is not None)]
             return '\n'.join(code_cells)
         except requests.exceptions.RequestException as e:
-            logging.warning(f"Failed to fetch {url}: {e}")
-            return []
+            self.logger.warning(f"Failed to fetch {url}: {e}")
+            return None
+        except nbformat.reader.NotJSONError as e:
+            self.logger.warning(f"Fetched {url} but failed to parse: Content is not a valid JSON notebook. Possible HTML content received.")
+            return None
         except Exception as e:
-            logging.warning(f"Error processing notebook {url}: {e}")
-            return []
+                self.logger.warning(f"Error processing notebook {url}: {e}", exc_info=True)
+                return None
 
     def download_notebooks(self, output_file_name='annotated_test.json', start_limit=0, end_limit=None, delay=0):
         """
@@ -216,32 +236,33 @@ class NotebookProcessor:
 
         filenames = self.load_filenames(self.json_file)
         if not filenames:
-            logging.warning("No filenames found.")
+            self.logger.warning("No filenames found.")
             return
 
         filenames = filenames[start_limit:end_limit]
 
         all_annotations = {}
-        output_file_name = f"{output_file_name.replace('.json', '')}_{start_limit}_{end_limit}.json"
         for filename in tqdm(filenames, desc="Processing notebooks"):
             try:
                 file_url = f"{self.bucket_url}{filename}"
                 code = self.get_notebook_code(file_url)
+                if code is None:
+                    continue
                 annotations_object = self.process_cells(code)
                 all_annotations[filename] = annotations_object
                 if delay:
                     time.sleep(delay)
             except Exception as e:
-                logging.warning(f"Error processing {filename}: {e}")
+                self.logger.warning(f"Error processing {filename}: {e}")
                 continue
 
         output_file_path = os.path.join(self.save_dir, output_file_name)
         try:
             with open(output_file_path, 'w') as f:
                 json.dump(all_annotations, f, indent=4)
-            logging.warning(f"Annotations successfully saved to {output_file_path}")
+            self.logger.info(f"Annotations successfully saved to {output_file_path}")
         except Exception as e:
-            logging.warning(f"Failed to save annotations: {e}")
+            self.logger.warning(f"Failed to save annotations: {e}")
 
 
 
@@ -252,5 +273,5 @@ if __name__ == "__main__":
     START_LIMIT = 50
     END_LIMIT = 80
 
-    processor = NotebookProcessor(JSON_FILE, BUCKET_URL, SAVE_DIR)
+    processor = NotebookProcessor(JSON_FILE, BUCKET_URL, SAVE_DIR, log_file=f'notebook_processor_{START_LIMIT}_{END_LIMIT}.log')
     processor.download_notebooks(start_limit=START_LIMIT, end_limit=END_LIMIT)
