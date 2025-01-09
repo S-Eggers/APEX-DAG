@@ -1,7 +1,7 @@
 import argparse
 import os
 import concurrent.futures
-from ApexDAG.scripts.crawl_github.jetbrains_analysis.notebook_processor import NotebookProcessor
+from ApexDAG.scripts.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import JetbrainsNotebookProcessor
 
 def create_slices(start, end, step):
     """
@@ -10,10 +10,10 @@ def create_slices(start, end, step):
     return [(i, min(i + step, end)) for i in range(start, end, step)]
 
 def process_slice(start_limit, end_limit, json_file, bucket_url, save_dir):
-    processor = NotebookProcessor(
+    processor = JetbrainsNotebookProcessor(
         json_file, bucket_url, save_dir, log_file=f"notebooks_{start_limit}_{end_limit}.log"
     )
-    processor.download_notebooks(
+    processor.download_and_mine_notebooks(
         start_limit=start_limit, 
         end_limit=end_limit, 
         output_file_name=f"notebooks_{start_limit}_{end_limit}.json"
@@ -38,6 +38,7 @@ if __name__ == "__main__":
     STEP = args.step
 
     slices = create_slices(START, END, STEP)
+    
     print(f"Creating {len(slices)} slices.")
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=os.cpu_count() * 5) as executor:

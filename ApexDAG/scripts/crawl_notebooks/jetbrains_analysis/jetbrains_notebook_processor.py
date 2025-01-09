@@ -10,7 +10,8 @@ from tqdm import tqdm
 from collections import defaultdict, Counter
 import logging
 
-class NotebookProcessor:
+from ApexDAG.scripts.crawl_notebooks.utils import InvalidNotebookException
+class JetbrainsNotebookProcessor:
     # Class-level caches for regex patterns
     alias_pattern_cache = {}
     object_pattern_cache = {}
@@ -196,6 +197,17 @@ class NotebookProcessor:
         return self.methods_used_in_code(cell_code, import_table)
 
     def get_notebook_code(self, url):
+        notebook = self.get_notebook(url)
+        
+        if notebook is None:
+            return None
+        
+        cells = notebook.get("cells", [])
+        code_cells = [cell['source'] for cell in cells if (cell.get("cell_type") == "code") and (cell['source'] is not None)]
+        return '\n'.join(code_cells)
+    
+    
+    def get_notebook(self, url):
         """
         Fetch notebook code from a URL.
         """
@@ -206,10 +218,7 @@ class NotebookProcessor:
 
             notebook_content = response.content.decode("utf-8")
             notebook = nbformat.reads(notebook_content, as_version=4)
-            cells = notebook.get("cells", [])
-
-            code_cells = [cell['source'] for cell in cells if (cell.get("cell_type") == "code") and (cell['source'] is not None)]
-            return '\n'.join(code_cells)
+            return notebook
         except requests.exceptions.RequestException as e:
             self.logger.warning(f"Failed to fetch {url}: {e}")
             return None
@@ -220,7 +229,7 @@ class NotebookProcessor:
                 self.logger.warning(f"Error processing notebook {url}: {e}", exc_info=True)
                 return None
 
-    def download_notebooks(self, output_file_name='annotated_test.json', start_limit=0, end_limit=None, delay=0):
+    def download_and_mine_notebooks(self, output_file_name='annotated_test.json', start_limit=0, end_limit=None, delay=0):
         """
         Download and process Jupyter notebooks.
         """
@@ -262,7 +271,43 @@ class NotebookProcessor:
             self.logger.info(f"Annotations successfully saved to {output_file_path}")
         except Exception as e:
             self.logger.warning(f"Failed to save annotations: {e}")
+            
+    def iterate_over_notebooks(self, start_limit=0, end_limit=None, delay = 0):
+        """
+        Download and process Jupyter notebooks.
+        """
+        if not os.path.exists(self.save_dir):
+            os.makedirs(self.save_dir)
 
+        filenames = self.load_filenames(self.json_file)
+        if not filenames:
+            self.logger.warning("No filenames found.")
+            return
+
+        filenames = filenames[start_limit:end_limit]
+
+        num_files = len(filenames)
+        log_points = [int(num_files * i / 10) for i in range(1, 10)]
+
+        for file_index, filename in tqdm(enumerate(filenames), total=len(filenames), desc="Processing notebooks"):
+            try:
+                if file_index in log_points:
+                    self.logger.info(f"Processed {file_index + 1}/{len(filenames)} notebooks.")
+
+                file_url = f"{self.bucket_url}{filename}"
+                notebook = self.get_notebook(file_url)
+            
+                if notebook is None:
+                    continue
+                
+                yield filename
+                
+                if delay:
+                    time.sleep(delay)
+                    
+            except Exception as e:
+                self.logger.warning(f"Error processing {filename}: {e}")
+                continue
 
 
 if __name__ == "__main__":
@@ -272,5 +317,5 @@ if __name__ == "__main__":
     START_LIMIT = 50
     END_LIMIT = 80
 
-    processor = NotebookProcessor(JSON_FILE, BUCKET_URL, SAVE_DIR, log_file=f'notebook_processor_{START_LIMIT}_{END_LIMIT}.log')
-    processor.download_notebooks(start_limit=START_LIMIT, end_limit=END_LIMIT)
+    processor = JetbrainsNotebookProcessor(JSON_FILE, BUCKET_URL, SAVE_DIR, log_file=f'notebook_processor_{START_LIMIT}_{END_LIMIT}.log')
+    processor.download_and_mine_notebooks(start_limit=START_LIMIT, end_limit=END_LIMIT)
