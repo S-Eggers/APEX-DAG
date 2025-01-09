@@ -4,6 +4,7 @@ import requests
 import time
 import nbformat
 import re
+import time
 import pandas as pd
 from tqdm import tqdm
 from collections import defaultdict, Counter
@@ -26,17 +27,10 @@ class NotebookProcessor:
         self.logger.setLevel(logging.INFO)
 
         os.makedirs(self.logs_dir, exist_ok=True)
-        # Create handlers
-        stream_handler = logging.StreamHandler()
+        
         file_handler = logging.FileHandler(os.path.join(self.logs_dir, log_file))
-
-        # Create formatter and add it to the handlers
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        stream_handler.setFormatter(formatter)
         file_handler.setFormatter(formatter)
-
-        # Add handlers to the logger
-        self.logger.addHandler(stream_handler)
         self.logger.addHandler(file_handler)
 
     def load_filenames(self, json_file):
@@ -135,12 +129,10 @@ class NotebookProcessor:
     
     @classmethod
     def get_object_pattern(cls, alias_pattern):
-        # Dummy implementation for object pattern
         return r'({})\.\w+\('.format(alias_pattern)
 
     @classmethod
     def get_attribute_pattern(cls, alias_pattern):
-        # Dummy implementation for attribute pattern
         return r'({})\.\w+'.format(alias_pattern)
 
     @classmethod
@@ -208,6 +200,7 @@ class NotebookProcessor:
         Fetch notebook code from a URL.
         """
         try:
+            time.sleep(0.01)
             response = requests.get(url, stream=True)
             response.raise_for_status()
 
@@ -240,10 +233,16 @@ class NotebookProcessor:
             return
 
         filenames = filenames[start_limit:end_limit]
-
+        
+        num_files = len(filenames)
+        log_points = [int(num_files * i / 10) for i in range(1, 10)]
+        
         all_annotations = {}
-        for filename in tqdm(filenames, desc="Processing notebooks"):
+        for file_index, filename in tqdm(enumerate(filenames), total=len(filenames), desc="Processing notebooks"):
             try:
+                if file_index in log_points:
+                    self.logger.info(f" Processed {file_index + 1}/{len(filenames)} notebooks.")
+                
                 file_url = f"{self.bucket_url}{filename}"
                 code = self.get_notebook_code(file_url)
                 if code is None:

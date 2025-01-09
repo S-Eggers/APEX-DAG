@@ -28,8 +28,10 @@ notebooks and scripts
 conda create --name apexdag python=3.10
 conda activate apexdag
 pip install -r requirements.txt
+pip install -e .
 
 conda install --channel conda-forge pygraphviz // requires graphviz
+
 ```
 
 ## Progress
