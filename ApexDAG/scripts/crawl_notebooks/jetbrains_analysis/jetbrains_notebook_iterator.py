@@ -25,24 +25,25 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
         filename = self.filenames[self.current_index]
         self.current_index += 1
         self.progress_bar.update(1)
-
-        return self._fetch_notebook(filename)
+        notebook = self._fetch_notebook(filename)
+        
+        if notebook is not None:
+            return filename, notebook
+        return self.__next__()
 
     def _fetch_notebook(self, filename):
         """Process a single notebook, with a retry mechanism."""
-        for attempt in range(2):  # Try up to 2 times
-            try:
-                file_url = f"{self.bucket_url}{filename}"
-                code = self.get_notebook_code(file_url)
-                if code is None:
-                    raise InvalidNotebookException(f"Failed to fetch notebook {filename}")
-                annotations_object = self.process_cells(code)
-                return filename, annotations_object
-            except Exception as e:
-                self.logger.warning(f"Attempt {attempt + 1} failed for {filename}: {e}")
-        self.logger.warning(f"All attempts failed for {filename}")
-        return filename, None
+        try:
+            file_url = f"{self.bucket_url}{filename}"
+            notebook = self.get_notebook(file_url)
+            if notebook is None:
+                raise InvalidNotebookException(f"Failed to fetch notebook {filename}")
+            return notebook
+        except Exception as e:
+            self.logger.warning(f"Attempt failed for {filename}: {e}")
+            return None
     
-    def print(self, filename, message):
+    def print(self, filename = '', message = ''):
+        message = str(message)
         self.logger.info(f"{filename}: {message}")
         

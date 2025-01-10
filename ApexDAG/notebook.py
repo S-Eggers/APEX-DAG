@@ -190,9 +190,12 @@ class Notebook:
         Returns:
             str: The code of the notebook as a single string.
         """
-        node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
-        
-        return "\n".join([self._G.nodes[i]["code"] for i in node_indicies])
+        try:
+            node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
+            return "\n".join([self._G.nodes[i]["code"] for i in node_indicies])
+        except nx.exception.NetworkXError as e:
+            self._logger.warning(e)
+            return ''
     
     def cell_code(self, indicies: list) -> str:
         """
@@ -210,10 +213,10 @@ class Notebook:
         formatted_code = self.format_code()
         print(formatted_code)
         
-    def save_code(self, file_path: str, mode: str="w+"):
+    def save_code(self, file_path: str, mode: str="w+", encoding: str="utf-8"):
         formatted_code = self.format_code()
 
-        with open(file_path, mode) as file:
+        with open(file_path, mode, encoding=encoding) as file:
             file.write(formatted_code)
         
     def format_code(self) -> str:
