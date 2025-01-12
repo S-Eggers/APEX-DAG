@@ -17,6 +17,11 @@ SAVE_DIR = "output_dataflow_jetbrains/"
 
 def mine_dataflows_on_jetbrains_dataset(args):
     stats = {}
+    
+    folder_dfg = os.path.join(OUTPUT_DIR, "execution_graphs")
+    if not os.path.exists(folder_dfg):
+        os.makedirs(folder_dfg)
+        
 
     jetbrains_iterator = JetbrainsNotebookIterator(
         JSON_FILE, BUCKET_URL, SAVE_DIR, log_file=f'notebook_processor_{args.start_index}_{args.stop_index}.log',
@@ -48,6 +53,8 @@ def mine_dataflows_on_jetbrains_dataset(args):
             dfg.parse_notebook(notebook)
             dfg.optimize()
             dfg_end_time = time.time()
+            
+            dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
 
             if args.draw:
                 dfg.draw(os.path.join("output", name, "dfg"))
@@ -95,7 +102,7 @@ if __name__ == '__main__':
     parser.add_argument("--greedy", action="store_true", help="Use greedy algorithm to create execution graph")
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
     parser.add_argument("--start_index", default=0, help="Start index")
-    parser.add_argument("--stop_index", default=1000, help="End index")
+    parser.add_argument("--stop_index", default=100, help="End index")
     args = parser.parse_args()
 
     mine_dataflows_on_jetbrains_dataset(args)
