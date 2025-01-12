@@ -168,3 +168,5 @@ graph_*.png
 output/*.png
 output/*
 data/*
+*.bin
+*.bin.gz
