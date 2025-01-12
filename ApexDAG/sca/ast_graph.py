@@ -72,7 +72,6 @@ class ASTGraph(ABC):
             implementation for parsing the code.
         """
         self.parse_code(notebook.code())
-        pass
     
     def get_graph(self) -> nx.DiGraph:
         """
