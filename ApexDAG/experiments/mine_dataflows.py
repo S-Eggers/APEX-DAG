@@ -27,7 +27,7 @@ def mine_dataflows_on_kaggle_dataset(args, logger):
                 stats["loc"].append(notebook.loc())
 
                 dfg_start_time = time.time()
-                dfg = DataFlowGraph()
+                dfg = DataFlowGraph(notebook_file)
                 dfg.parse_notebook(notebook)
                 dfg.optimize()
                 dfg_end_time = time.time()
