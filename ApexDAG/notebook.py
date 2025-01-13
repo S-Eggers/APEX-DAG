@@ -192,16 +192,20 @@ class Notebook:
                 prev_index = index
         
         self._exec_graph_exists = True
-    
+
     def code(self) -> str:
         """
-        Returns the code of the notebook as a single string.
+        Returns the code of the notebook as a single string. Handles 0 nodes in graph.
 
         Returns:
             str: The code of the notebook as a single string.
         """
-        node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
-        return "\n\n".join([self._G.nodes[i]["code"] for i in node_indicies])
+        try:
+            node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
+            return "\n\n".join([self._G.nodes[i]["code"] for i in node_indicies])
+        except nx.exception.NetworkXError as e:
+            self._logger.warning(e)
+            return ''
     
     def cell_code(self, indicies: list) -> str:
         """
