@@ -80,6 +80,7 @@ class Notebook:
         self._source = -1
         self._exec_graph_exists = False
         self._cell_window_size = cell_window_size
+        self.url = url
         self._logger = setup_logging("notebook", verbose=self.VERBOSE)
         
     @staticmethod
@@ -117,7 +118,16 @@ class Notebook:
         if self._exec_graph_exists:
             return len(self._G.nodes)
 
-        return len([cell for cell in self._nb.cells if cell.cell_type == "code"])    
+        return len([cell for cell in self._nb.cells if cell.cell_type == "code"])
+    
+    def path(self) -> str:
+        """
+        Returns the path of the notebook.
+
+        Returns:
+            str: The path of the notebook.
+        """
+        return self.url
     
     def create_execution_graph(self, greedy: bool = False):
         """
@@ -190,12 +200,8 @@ class Notebook:
         Returns:
             str: The code of the notebook as a single string.
         """
-        try:
-            node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
-            return "\n".join([self._G.nodes[i]["code"] for i in node_indicies])
-        except nx.exception.NetworkXError as e:
-            self._logger.warning(e)
-            return ''
+        node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
+        return "\n\n".join([self._G.nodes[i]["code"] for i in node_indicies])
     
     def cell_code(self, indicies: list) -> str:
         """
