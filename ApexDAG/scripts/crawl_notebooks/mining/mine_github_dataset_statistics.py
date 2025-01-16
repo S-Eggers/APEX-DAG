@@ -1,7 +1,7 @@
 
 from tqdm import tqdm
 
-from ApexDAG.scripts.crawl_notebooks.github_crawler.paginated_notebook_iterator import PaginatedNotebookIterator
+from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_notebook_iterator import GithubRepositoryNotebookIterator
 from ApexDAG.scripts.crawl_notebooks.notebook_miner import NotebookMiner
 
 if __name__ == "__main__":
@@ -11,7 +11,7 @@ if __name__ == "__main__":
     STOP_INDEX = 100
 
     miner = NotebookMiner(
-        iterator = PaginatedNotebookIterator(
+        iterator = GithubRepositoryNotebookIterator(
         query="extension:ipynb",
         per_page=100,
         max_results=STOP_INDEX - START_INDEX + 1,
