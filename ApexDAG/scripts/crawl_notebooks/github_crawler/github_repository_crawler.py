@@ -1,3 +1,18 @@
+'''
+Github's API prohibits fetching more than 1000 query outputs - code or repositories.
+
+In this project, we are interested in code. However, there is a twist: repositories can be filtered by push
+dates. They can also be sorted by update date. By using different filtering clauses on repositories and sorting them in a clever way,
+we can get way more than 1000 results.
+
+The approach involves:
+1. Filtering repositories by push date
+2. Sorting repositories by update date. # since it is very similar to push
+3. Creating subqueries for different date ranges to bypass the 1000 results limit. # the subqueries in our configuration should quasi-non-overlaping
+4. Using pagination to fetch all pages of results for each subquery.
+
+This method allows us to systematically retrieve a large number of repositories beyond the 1000 results limit imposed by the API.
+'''
 import json
 import time
 import requests
@@ -16,7 +31,8 @@ class GitHubRepositoryCrawler:
                  last_acceptable_date, 
                  log_file = 'log_repo.txt',
                  filter_date_start = '2024-10-01', 
-                 filter_date_end = '2025-01-15'):
+                 filter_date_end = '2025-01-15',
+                 save_folder = ''):
         self.token = os.getenv('GITHUB_TOKEN')
         self.headers = {
             "Authorization": f"token {self.token}",
@@ -28,7 +44,7 @@ class GitHubRepositoryCrawler:
         self.sort = 'updated' # field by which we sort the retrieved items
         self.query = query
         
-        self.max_depth = 3
+        self.max_depth = 4
         self.timeout = 15
         
         self.items_per_page = 100
@@ -48,7 +64,10 @@ class GitHubRepositoryCrawler:
         
         logging.basicConfig(filename=log_file, level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
         self.logger = logging.getLogger(__name__)
-        self.result_file = f"result_{self.query.replace(' ', '_')}_{self.filter_date_start}_{self.filter_date_end}.json"
+        name_of_query = self.query.replace(' ', '_') if self.query.replace(' ', '_') else 'all'
+        
+        self.result_file = f"result_{name_of_query}_{self.filter_date_start}_{self.filter_date_end}.json"
+        self.result_file = os.path.join(save_folder, self.result_file)
         
         
     def create_subqueries(self, start_date, end_date):
@@ -64,10 +83,12 @@ class GitHubRepositoryCrawler:
         """
         subqueries = []
         dates = pd.date_range(start_date, end_date, freq='ME').strftime('%Y-%m-%d').tolist()
+        
+        prefix = '+' if self.query else '' # we only need the + if there is something that we are searching fo - a subset
         for date in dates:
             for lang in self.accepted_languages:
-                subqueries.append(f"+language:{lang}+{self.filter}%3A<%3D{date}&per_page={self.items_per_page}&sort={self.sort}&order=desc")
-                subqueries.append(f"+language:{lang}+{self.filter}%3A>%3D{date}&per_page={self.items_per_page}&sort={self.sort}&order=asc")
+                subqueries.append(f"{prefix}language:{lang}+{self.filter}%3A<%3D{date}&per_page={self.items_per_page}&sort={self.sort}&order=desc")
+                subqueries.append(f"{prefix}language:{lang}+{self.filter}%3A>%3D{date}&per_page={self.items_per_page}&sort={self.sort}&order=asc")
         return subqueries
 
     def getUrl(self, url):
@@ -106,12 +127,13 @@ class GitHubRepositoryCrawler:
         Returns:
             None
         """
-        for subquery in tqdm(self.subqueries[:1]): # add a tdqm progress bar 
+        for subquery in tqdm(self.subqueries): # add a tdqm progress bar 
             current_url = self.createUrl(subquery)
             data = json.loads(json.dumps(self.getUrl(current_url)))
-            number_of_pages = 2 #int(min( data['total_count'], 1000) / self.items_per_page)
+            number_of_pages = int(min( data['total_count'], 1000) / self.items_per_page) + 1
             
             self._get_all_pages(current_url, number_of_pages)
+            tqdm.write(f"Theoretically available in this query: {data['total_count']}")
 
         self.logger.info("DONE! " + str(self.number_of_repos) + " repositories have been processed.")
         self.logger.info("Real number of processed repos" + str(len(list(self.hash_dict.keys()))))
@@ -121,6 +143,8 @@ class GitHubRepositoryCrawler:
             json.dump({f"{k[0]}/{k[1]}": 
                         {'notebook_files':v[0], 'data_files': v[1]} 
                        for k, v in self.hash_dict.items()}, f)
+            
+        return self.hash_dict
         
     def check_for_notebook_files(self, user, repository):
         """
@@ -169,8 +193,8 @@ class GitHubRepositoryCrawler:
 
             all_files = fetch_all_files(api_url)
             
-            data_files = [file['name'] for file in all_files if any(file['name'].endswith(ext) for ext in extensions_data)]
-            notebook_files = [file['name'] for file in all_files if file['name'].endswith(extension_notebooks)]
+            data_files     = {file['name']: {'git_url': file['git_url'], 'html_url': file['html_url']} for file in all_files if any(file['name'].endswith(ext) for ext in extensions_data)}
+            notebook_files = {file['name']: {'git_url': file['git_url'], 'html_url': file['html_url']} for file in all_files if file['name'].endswith(extension_notebooks)}
             
             if notebook_files:
                 self.hash_dict[(user, repository)] = (notebook_files, data_files)
@@ -182,7 +206,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GitHub Repository Crawler")
     parser.add_argument('--query', type=str, default="machine learning", help='The search query for GitHub repositories')
     parser.add_argument('--date', type=str, default='2020-01-31', help='The last acceptable date for repositories')
-    
+    parser.add_argument('--save_folder', type=str, default='data/notebooks/github', help='The folder to save the results')
     args = parser.parse_args()
     
     crawler = GitHubRepositoryCrawler(args.query, args.date)

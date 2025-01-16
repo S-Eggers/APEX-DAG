@@ -7,27 +7,21 @@ import pandas as pd
 
 from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
-from ApexDAG.scripts.crawl_notebooks.github_crawler.paginated_notebook_iterator import PaginatedNotebookIterator
+from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_notebook_iterator import GithubRepositoryNotebookIterator
+from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_crawler import GitHubRepositoryCrawler
 
-
-SAVE_DIR = "data/notebooks/github"
 GITHUB_API_URL = "https://api.github.com/search/code"
-OUTPUT_DIR = 'output/output_dataflow_github'
-JSON_FILE = "data/ntbs_list.json"
-SAVE_DIR = "output_dataflow_github/"
+OUTPUT_DIR = 'output/output_dataflow_gitthub_new/'
+
 
 def mine_dataflows_on_github_dataset(args):
     stats = {}
 
-    github_iterator = PaginatedNotebookIterator(
-        query="extension:ipynb",
-        per_page=100,
-        max_results=args.stop_index - args.start_index + 1,
-        search_url=GITHUB_API_URL,
-        log_file=f'notebook_graph_miner.log'
+    github_iterator = GithubRepositoryNotebookIterator(
+        max_results=100000, # get 100K at max this is not to be expected
+        notebook_paths=args.notebook_paths
     )
 
-    # save folder for exe graphs
     folder_dfg = os.path.join(OUTPUT_DIR, "execution_graphs")
     if not os.path.exists(folder_dfg):
         os.makedirs(folder_dfg)
@@ -46,7 +40,9 @@ def mine_dataflows_on_github_dataset(args):
                 datafiles[filename] = datafiles_current
             notebook_object = notebook_object['notebook_content']
             
-        name = filename.replace(".ipynb", "").replace("https://github.com/", "").replace("/", "_").replace(".", "_")
+        name = '_'.join([filename.split('/')[3], filename.split('/')[4], filename.split('/')[-1].split('%')[-1]])
+        name = name.replace("/", "_").replace(".", "_")
+        
         notebook_url = filename
         stats[filename] = {
             "notebook_url": notebook_url,
@@ -72,7 +68,6 @@ def mine_dataflows_on_github_dataset(args):
             dfg.optimize()
             dfg_end_time = time.time()
             
-            # save execution graph to disk
             dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
 
             if args.draw:
@@ -109,6 +104,7 @@ def mine_dataflows_on_github_dataset(args):
         json.dump(datafiles, f, indent=4)
         
     stats_df.to_csv(os.path.join(OUTPUT_DIR, "dfg_experiment_github.csv"), encoding="utf-8")
+    
     github_iterator.print(f"Succesfully extracted dataflow graphs for {stats_df[stats_df['dfg_extract_time'] > float('-inf')].shape[0]}/{stats_df.shape[0]}")
     if stats_df[stats_df['dfg_extract_time'] > float('-inf')].shape[0] < stats_df.shape[0]:
         github_iterator.print(f"Error types observed: {stats_df[stats_df['exception'].str.len() > 0]['exception'].unique()}")
@@ -125,7 +121,20 @@ if __name__ == '__main__':
     parser.add_argument("--greedy", action="store_true", help="Use greedy algorithm to create execution graph")
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
     parser.add_argument("--start_index", default=0, help="Start index")
-    parser.add_argument("--stop_index", default=100, help="End index")
+    parser.add_argument("--stop_index", default=100000, help="End index")
+    parser.add_argument("--parse_repos", action="store_true", help="If true, create the json file (notebook paths) by going through repositories")
+    parser.add_argument("--notebook_paths", default=None, help="Path of json from github repo crawler")
     args = parser.parse_args()
+    
+    args.parse_repos = True
+    args.greedy = True
+    if args.parse_repos:
+        repo_crawler = GitHubRepositoryCrawler(query = "reconstruction", 
+                                               last_acceptable_date="2020-10-01",
+                                               log_file="github_repo_crawler.log",
+                                               filter_date_start="2024-11-15",
+                                               filter_date_end="2025-01-15")
+        repo_crawler.crawl()
+        args.notebook_paths = repo_crawler.result_file
 
     mine_dataflows_on_github_dataset(args)
