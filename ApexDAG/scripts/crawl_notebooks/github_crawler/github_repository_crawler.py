@@ -21,6 +21,8 @@ import argparse
 import pandas as pd
 import logging
 from tqdm import tqdm
+from datetime import datetime
+from requests.exceptions import HTTPError
 
 DELAY_BETWEEN_QUERIES = 2
 
@@ -187,6 +189,26 @@ class GitHubRepositoryCrawler:
                             all_files.extend(fetch_all_files(file['url'], depth + 1))
                     
                     return all_files
+                
+                except HTTPError as http_err:
+                    if response.status_code == 403:  # Rate limit exceeded
+                        reset_time = int(response.headers.get("X-RateLimit-Reset", time.time() + 3600))
+                        server_time_str = response.headers.get("Date")
+                        if server_time_str:
+                            server_time = datetime.strptime(server_time_str, "%a, %d %b %Y %H:%M:%S %Z")
+                            server_time_unix = int(server_time.timestamp())
+                        else:
+                            server_time_unix = int(time.time()) 
+
+                        sleep_duration = reset_time - server_time_unix
+                        if sleep_duration > 0:
+                            print(f"Rate limit exceeded. Sleeping for {sleep_duration} seconds.")
+                            time.sleep(sleep_duration)
+                            return fetch_all_files(url, depth) # Retry after sleeping
+                    else:
+                        self.logger(f"HTTP error occurred: {http_err}")
+                    return None
+                            
                 except Exception as e:
                     self.logger.error(f"Failed to fetch files from {url}: {e}")
                     return []

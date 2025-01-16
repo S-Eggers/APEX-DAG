@@ -125,7 +125,7 @@ if __name__ == '__main__':
     parser.add_argument("--parse_repos", action="store_true", help="If true, create the json file (notebook paths) by going through repositories")
     parser.add_argument("--notebook_paths", default=None, help="Path of json from github repo crawler")
     args = parser.parse_args()
-    
+    args.parse_repos = True
     if args.parse_repos:
         repo_crawler = GitHubRepositoryCrawler(query = "", 
                                                last_acceptable_date="2020-01-01",

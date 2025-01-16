@@ -4,6 +4,7 @@ import nbformat
 import os
 import base64
 import logging
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -35,15 +36,24 @@ class GitHubCrawler:
         rate_limit_remaining = int(response.headers.get("X-RateLimit-Remaining", 0))
         rate_limit_reset = int(response.headers.get("X-RateLimit-Reset", time.time()))
         
+        server_time_str = response.headers.get("Date")
+        if server_time_str:
+            server_time = datetime.strptime(server_time_str, "%a, %d %b %Y %H:%M:%S %Z")
+            server_time_unix = int(server_time.timestamp())
+        else:
+            server_time_unix = int(time.time())
+
         if response.status_code == 403 and rate_limit_remaining == 0:
-            reset_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(rate_limit_reset))
-            seconds_to_reset = rate_limit_reset - time.time() + 1
+            seconds_to_reset = rate_limit_reset - server_time_unix + 1
+
             if seconds_to_reset > 0:
-                self.logger.warning(f"Rate limit reached. Reset at {reset_time}. Waiting... {seconds_to_reset:.3f} seconds.")  
+                reset_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(rate_limit_reset))
+                self.logger.warning(f"Rate limit reached. Reset at {reset_time}. Waiting... {seconds_to_reset:.3f} seconds.")
             else:
                 seconds_to_reset = 10
-                self.logger.warning(f"Clock misalligmnent on rate reset time, waiting {seconds_to_reset} seconds.")
-            time.sleep(seconds_to_reset) 
+                self.logger.warning(f"Clock misalignment on rate reset time, waiting {seconds_to_reset} seconds.")
+
+            time.sleep(seconds_to_reset)
             return None
 
         return response
