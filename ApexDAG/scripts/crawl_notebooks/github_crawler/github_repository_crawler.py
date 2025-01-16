@@ -44,7 +44,7 @@ class GitHubRepositoryCrawler:
         self.sort = 'updated' # field by which we sort the retrieved items
         self.query = query
         
-        self.max_depth = 4
+        self.max_depth = 5
         self.timeout = 15
         
         self.items_per_page = 100
@@ -130,7 +130,7 @@ class GitHubRepositoryCrawler:
         for subquery in tqdm(self.subqueries): # add a tdqm progress bar 
             current_url = self.createUrl(subquery)
             data = json.loads(json.dumps(self.getUrl(current_url)))
-            number_of_pages = int(min( data['total_count'], 1000) / self.items_per_page) + 1
+            number_of_pages = max(1, int(min( data['total_count'], 1000) / self.items_per_page))
             
             self._get_all_pages(current_url, number_of_pages)
             tqdm.write(f"Theoretically available in this query: {data['total_count']}")

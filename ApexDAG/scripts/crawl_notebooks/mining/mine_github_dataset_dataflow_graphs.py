@@ -11,14 +11,14 @@ from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_notebook_i
 from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_crawler import GitHubRepositoryCrawler
 
 GITHUB_API_URL = "https://api.github.com/search/code"
-OUTPUT_DIR = 'output/output_dataflow_gitthub_new/'
+OUTPUT_DIR = '/home/eggers/data/apexdag_results/github_dfg_100k/'
 
 
 def mine_dataflows_on_github_dataset(args):
     stats = {}
 
     github_iterator = GithubRepositoryNotebookIterator(
-        max_results=100000, # get 100K at max this is not to be expected
+        max_results=args.stop_index, # get 100K at max this is not to be expected
         notebook_paths=args.notebook_paths
     )
 
@@ -120,20 +120,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--greedy", action="store_true", help="Use greedy algorithm to create execution graph")
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
-    parser.add_argument("--start_index", default=0, help="Start index")
+    parser.add_argument("--start_date", default="2020-10-01", help="Oldest allowble date.")
     parser.add_argument("--stop_index", default=100000, help="End index")
     parser.add_argument("--parse_repos", action="store_true", help="If true, create the json file (notebook paths) by going through repositories")
     parser.add_argument("--notebook_paths", default=None, help="Path of json from github repo crawler")
     args = parser.parse_args()
     
-    args.parse_repos = True
-    args.greedy = True
     if args.parse_repos:
-        repo_crawler = GitHubRepositoryCrawler(query = "reconstruction", 
-                                               last_acceptable_date="2020-10-01",
+        repo_crawler = GitHubRepositoryCrawler(query = "", 
+                                               last_acceptable_date="2020-01-01",
                                                log_file="github_repo_crawler.log",
-                                               filter_date_start="2024-11-15",
-                                               filter_date_end="2025-01-15")
+                                               filter_date_start="2020-02-15",
+                                               filter_date_end="2025-01-15",
+                                               save_folder=OUTPUT_DIR)
         repo_crawler.crawl()
         args.notebook_paths = repo_crawler.result_file
 
