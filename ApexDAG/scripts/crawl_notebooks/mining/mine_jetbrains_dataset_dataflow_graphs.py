@@ -9,22 +9,27 @@ from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 from ApexDAG.scripts.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_iterator import JetbrainsNotebookIterator
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BUCKET_URL= "https://github-notebooks-update1.s3-eu-west-1.amazonaws.com/"
-OUTPUT_DIR = 'output/output_dataflow_jetbrains'
+OUTPUT_DIR = 'jetbrains_dfg_100k/'
 JSON_FILE = "data/ntbs_list.json"
-SAVE_DIR = "output_dataflow_jetbrains/"
+RESULTS_DIR = os.getenv('RESULTS_DIR')
+
+FULL_OUTPUT_DIR = os.path.join(RESULTS_DIR, OUTPUT_DIR)
 
 def mine_dataflows_on_jetbrains_dataset(args):
     stats = {}
     
-    folder_dfg = os.path.join(OUTPUT_DIR, "execution_graphs")
+    folder_dfg = os.path.join(FULL_OUTPUT_DIR, "execution_graphs")
     if not os.path.exists(folder_dfg):
         os.makedirs(folder_dfg)
         
 
     jetbrains_iterator = JetbrainsNotebookIterator(
-        JSON_FILE, BUCKET_URL, SAVE_DIR, log_file=f'notebook_processor_{args.start_index}_{args.stop_index}.log',
+        JSON_FILE, BUCKET_URL, FULL_OUTPUT_DIR, log_file=f'notebook_processor_{args.start_index}_{args.stop_index}.log',
         start_index=args.start_index, stop_index=args.stop_index
     )
 
@@ -67,7 +72,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
             jetbrains_iterator.print(filename, f"Error in notebook {notebook_url}")
             stats[filename]["dfg_extract_time"] = -float("inf")
 
-            folder = os.path.join(OUTPUT_DIR, "errors", name, "stacktraces")
+            folder = os.path.join(FULL_OUTPUT_DIR, "errors", name, "stacktraces")
             if not os.path.exists(folder):
                 os.makedirs(folder)
 
@@ -82,10 +87,10 @@ def mine_dataflows_on_jetbrains_dataset(args):
             notebook.save_code(os.path.join(folder, f"{name}.code"))
 
     stats_df = pd.DataFrame.from_dict(stats, orient='index')
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR, exist_ok=True)
+    if not os.path.exists(FULL_OUTPUT_DIR):
+        os.makedirs(FULL_OUTPUT_DIR, exist_ok=True)
 
-    stats_df.to_csv(os.path.join(OUTPUT_DIR, "dfg_experiment_jetbrains.csv"), encoding="utf-8")
+    stats_df.to_csv(os.path.join(FULL_OUTPUT_DIR, "dfg_experiment_jetbrains.csv"), encoding="utf-8")
     jetbrains_iterator.print(f"Succesfully extracted dataflow graphs for {stats_df[stats_df['dfg_extract_time'] > float('-inf')].shape[0]}/{stats_df.shape[0]}")
     if stats_df[stats_df['dfg_extract_time'] > float('-inf')].shape[0] < stats_df.shape[0]:
         jetbrains_iterator.print(f"Error types observed: {stats_df[stats_df['exception'].str.len() > 0]['exception'].unique()}")
@@ -101,8 +106,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--greedy", action="store_true", help="Use greedy algorithm to create execution graph")
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
-    parser.add_argument("--start_index", default=0, help="Start index")
-    parser.add_argument("--stop_index", default=100, help="End index")
+    parser.add_argument("--start_index", type=int, default=0, help="Start index")
+    parser.add_argument("--stop_index", type=int,  default=50000, help="End index")
     args = parser.parse_args()
 
     mine_dataflows_on_jetbrains_dataset(args)
