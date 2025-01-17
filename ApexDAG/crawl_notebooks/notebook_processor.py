@@ -1,16 +1,11 @@
 import json
 import os
-import requests
-import time
-import nbformat
 import re
-import time
 import pandas as pd
-from tqdm import tqdm
 from collections import defaultdict, Counter
 import logging
 
-from ApexDAG.scripts.crawl_notebooks.utils import InvalidNotebookException
+from ApexDAG.crawl_notebooks.utils import InvalidNotebookException
 
 class NotebookProcessor:
     # Class-level caches for regex patterns

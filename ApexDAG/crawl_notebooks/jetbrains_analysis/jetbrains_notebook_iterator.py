@@ -1,6 +1,6 @@
 from tqdm import tqdm
-from ApexDAG.scripts.crawl_notebooks.utils import InvalidNotebookException
-from ApexDAG.scripts.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import JetbrainsNotebookProcessor
+from ApexDAG.crawl_notebooks.utils import InvalidNotebookException
+from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import JetbrainsNotebookProcessor
 
 
 class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):

@@ -1,7 +1,7 @@
 import argparse
 import os
 import concurrent.futures
-from ApexDAG.scripts.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import JetbrainsNotebookProcessor
+from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import JetbrainsNotebookProcessor
 
 def create_slices(start, end, step):
     """

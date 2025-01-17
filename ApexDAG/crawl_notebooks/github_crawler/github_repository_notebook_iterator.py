@@ -4,7 +4,7 @@ import json
 import os
 import logging
 from dotenv import load_dotenv
-from ApexDAG.scripts.crawl_notebooks.github_crawler.github_crawler import GitHubCrawler
+from ApexDAG.crawl_notebooks.github_crawler.github_crawler import GitHubCrawler
 
 load_dotenv()
 

@@ -3,15 +3,11 @@ import os
 import requests
 import time
 import nbformat
-import re
 import time
 import pandas as pd
 from tqdm import tqdm
-from collections import defaultdict, Counter
-import logging
 
-from ApexDAG.scripts.crawl_notebooks.utils import InvalidNotebookException
-from ApexDAG.scripts.crawl_notebooks.notebook_processor import NotebookProcessor
+from ApexDAG.crawl_notebooks.notebook_processor import NotebookProcessor
 
 class JetbrainsNotebookProcessor(NotebookProcessor):
     # Class-level caches for regex patterns

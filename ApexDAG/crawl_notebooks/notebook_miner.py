@@ -4,8 +4,8 @@ import json
 import logging
 import time
 
-from ApexDAG.scripts.crawl_notebooks.notebook_processor import NotebookProcessor
-from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_notebook_iterator import PaginatedNotebookIterator
+from ApexDAG.crawl_notebooks.notebook_processor import NotebookProcessor
+from ApexDAG.crawl_notebooks.github_crawler.github_repository_notebook_iterator import PaginatedNotebookIterator
 
 class NotebookMiner:
     def __init__(self, iterator, save_dir, log_file, start_index=0, stop_index=None):

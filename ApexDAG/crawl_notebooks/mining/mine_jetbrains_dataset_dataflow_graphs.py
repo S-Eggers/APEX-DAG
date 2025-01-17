@@ -1,5 +1,4 @@
 import os
-import re
 import argparse
 import time
 import traceback
@@ -7,7 +6,7 @@ import pandas as pd
 
 from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
-from ApexDAG.scripts.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_iterator import JetbrainsNotebookIterator
+from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_iterator import JetbrainsNotebookIterator
 
 from dotenv import load_dotenv
 

@@ -7,8 +7,8 @@ import pandas as pd
 
 from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
-from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_notebook_iterator import GithubRepositoryNotebookIterator
-from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_crawler import GitHubRepositoryCrawler
+from ApexDAG.crawl_notebooks.github_crawler.github_repository_notebook_iterator import GithubRepositoryNotebookIterator
+from ApexDAG.crawl_notebooks.github_crawler.github_repository_crawler import GitHubRepositoryCrawler
 
 GITHUB_API_URL = "https://api.github.com/search/code"
 OUTPUT_DIR = '/home/eggers/data/apexdag_results/github_dfg_100k/'

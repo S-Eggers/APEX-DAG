@@ -1,8 +1,5 @@
-
-from tqdm import tqdm
-
-from ApexDAG.scripts.crawl_notebooks.github_crawler.github_repository_notebook_iterator import GithubRepositoryNotebookIterator
-from ApexDAG.scripts.crawl_notebooks.notebook_miner import NotebookMiner
+from ApexDAG.crawl_notebooks.github_crawler.github_repository_notebook_iterator import GithubRepositoryNotebookIterator
+from ApexDAG.crawl_notebooks.notebook_miner import NotebookMiner
 
 if __name__ == "__main__":
     SAVE_DIR = "data/notebooks/github"
