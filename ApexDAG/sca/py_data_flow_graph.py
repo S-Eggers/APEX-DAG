@@ -12,6 +12,7 @@ from ApexDAG.sca.py_util import get_operator_description, flatten_list
 from ApexDAG.sca.graph_utils import convert_multidigraph_to_digraph, get_subgraph
 from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES, VERBOSE
 
+from ApexDAG.sca.graph_utils import save_graph
 
 class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def __init__(self, notebook_path: str = ""):
@@ -616,7 +617,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         else:
             G = convert_multidigraph_to_digraph(self._G, NODE_TYPES)
             draw.dfg(G, save_path)
-        
+    
+    def save_dfg(self, path: str):
+        G = convert_multidigraph_to_digraph(self._G, NODE_TYPES)
+        save_graph(G, path) 
+            
     #-----------------------------------------------------------------------------------------------------------------------------------#
     #                                           abstract syntax tree helper functions                                                   #
     #-----------------------------------------------------------------------------------------------------------------------------------#
