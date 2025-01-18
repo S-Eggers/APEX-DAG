@@ -24,7 +24,7 @@ class Notebook:
         _cell_window_size (int): The size of the window for analyzing cell execution in the graph.
 
     Methods:
-        __init__(url, cell_window_size): Initializes the Notebook object.
+        __init__(url, cell_window_size, nb): Initializes the Notebook object.
         remove_jupyter_lines(code): Static method to remove Jupyter-specific lines from a given string of code.
         create_execution_graph(greedy): Constructs the execution graph for the notebook.
         code(): Returns the code of the notebook as a single string.
@@ -42,23 +42,25 @@ class Notebook:
     """
     VERBOSE = False
 
-    def __init__(self, url: str, cell_window_size: int = 1):
+    def __init__(self, url: str, cell_window_size: int = 1, nb: nbformat.NotebookNode = None,):
         """
-        Initializes the object, loading a Jupyter Notebook from a specified URL and setting up a directed graph.
+        Initializes the object, loading a Jupyter Notebook from a specified URL or using an already loaded notebook object,
+        and setting up a directed graph.
 
-        This constructor reads a Jupyter Notebook from the given URL using nbformat and initializes a directed graph
-        (DiGraph) using networkx to represent the notebook's cell execution flow. It sets up various attributes 
-        for managing the notebook and its execution graph.
+        This constructor reads a Jupyter Notebook from the given URL using nbformat or uses the provided notebook object,
+        and initializes a directed graph (DiGraph) using networkx to represent the notebook's cell execution flow. 
+        It sets up various attributes for managing the notebook and its execution graph.
 
         Args:
-            url (str): The URL from which to load the Jupyter Notebook. The notebook is expected to be in a format
-                    compatible with nbformat.
+            url (str, optional): The URL from which to load the Jupyter Notebook. The notebook is expected to be in a format
+                                 compatible with nbformat.
+            nb (NotebookNode, optional): An already loaded Jupyter Notebook object.
             cell_window_size (int, optional): The size of the window for cell execution analysis. This size determines
-                                            how many cells are considered together during the graph creation process.
-                                            Defaults to 1, which means each cell is considered individually.
+                                              how many cells are considered together during the graph creation process.
+                                              Defaults to 1, which means each cell is considered individually.
 
         Attributes:
-            _nb: The Jupyter Notebook loaded from the specified URL.
+            _nb: The Jupyter Notebook loaded from the specified URL or provided directly.
             _G: A directed graph (DiGraph) representing the cell execution flow within the notebook.
             _source: An integer used to track the starting point of the execution graph. Initialized to -1.
             _exec_graph_exists: A boolean flag indicating whether the execution graph has been created. Initialized to False.
@@ -67,7 +69,13 @@ class Notebook:
         Example:
             >>> notebook = Notebook("notebook.ipynb", cell_window_size=2)
         """
-        self._nb = nbformat.read(url, as_version=4)
+        if nb is not None:
+            self._nb = nb
+        elif url is not None:
+            self._nb = nbformat.read(url, as_version=4)
+        else:
+            raise ValueError("Either 'url' or 'nb' must be provided.")
+
         self._G = nx.DiGraph()
         self._source = -1
         self._exec_graph_exists = False
@@ -184,17 +192,20 @@ class Notebook:
                 prev_index = index
         
         self._exec_graph_exists = True
-    
+
     def code(self) -> str:
         """
-        Returns the code of the notebook as a single string.
+        Returns the code of the notebook as a single string. Handles 0 nodes in graph.
 
         Returns:
             str: The code of the notebook as a single string.
         """
-        node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
-        
-        return "\n\n".join([self._G.nodes[i]["code"] for i in node_indicies])
+        try:
+            node_indicies = [index for index in nx.dfs_preorder_nodes(self._G, self._source)]
+            return "\n\n".join([self._G.nodes[i]["code"] for i in node_indicies])
+        except nx.exception.NetworkXError as e:
+            self._logger.warning(e)
+            return ''
     
     def cell_code(self, indicies: list) -> str:
         """
@@ -212,10 +223,10 @@ class Notebook:
         formatted_code = self.format_code()
         print(formatted_code)
         
-    def save_code(self, file_path: str, mode: str="w+"):
+    def save_code(self, file_path: str, mode: str="w+", encoding: str="utf-8"):
         formatted_code = self.format_code()
 
-        with open(file_path, mode) as file:
+        with open(file_path, mode, encoding=encoding) as file:
             file.write(formatted_code)
         
     def format_code(self) -> str:
