@@ -13,3 +13,10 @@ python-dotenv==1.0.1
 fasttext==0.9.3
 tensorflow==2.16.2
 tensorflow-gnn==1.0.3
+
+# for the prompt-based lebelloing
+instructor 
+groq
+pydantic 
+openai 
+anthropic
