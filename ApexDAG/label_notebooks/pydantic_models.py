@@ -1,7 +1,8 @@
-from pydantic import BaseModel
-from typing import List, Optional, Dict
 import re
 import networkx as nx
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Literal
+from textwrap import indent
 from ApexDAG.sca.constants import REVERSE_NODE_TYPES, REVERSE_EDGE_TYPES
 from ApexDAG.label_notebooks.message_template import DomainLabel
 
@@ -10,20 +11,56 @@ class Node(BaseModel):
     id: str
     node_type: str
     
-class LabelledNode(BaseModel):
-    id: str
-    node_type: str
-    domain_label: DomainLabel
+    def __str__(self) -> str:
+        return (f"Node(\n"
+                f"  id={self.id},\n"
+                f"  node_type={self.node_type}\n"
+                f")")
+
     
+class LabelledNode(BaseModel):
+    id: str = Field(..., description="Unique identifier for the node.")
+    node_type: str = Field(..., description="Type of the node, e.g., VARIABLE, FUNCTION, etc.")
+    domain_label: Literal[ # the literal is very important Enum does not work as well 
+        "MODEL_TRAIN", 
+        "MODEL_EVALUATION", 
+        "HYPERPARAMETER_TUNING", 
+        "DATA_EXPORT", 
+        "DATA_IMPORT_EXTRACTION", 
+        "DATA_TRANSFORM", 
+        "EDA", 
+        "ENVIRONMENT", 
+        "NOT_INTERESTING"
+    ] = Field(..., description="Domain-specific label for the node.")
+    class Config:
+        use_enum_values = True  # Automatically serialize Enum values as strings for JSON
+
+    def __str__(self) -> str:
+        return (
+            f"LabelledNode(\n"
+            f"  id='{self.id}',\n"
+            f"  node_type='{self.node_type}',\n"
+            f"  domain_label='{self.domain_label}'\n"
+            f")"
+        )
     @classmethod
-    def from_node(cls, node: Node, domainlabel: DomainLabel) -> 'LabelledNode':
-        return cls(id=node.id, node_type=node.node_type, domainlabel=domainlabel)
+    def from_node(cls, node: Node, domain_label: DomainLabel) -> 'LabelledNode':
+        return cls(id=node.id, node_type=node.node_type, domain_label=domain_label)
 
 class Edge(BaseModel):
     source: str  
     target: str 
     edge_type: str
     code: Optional[str] = None
+    
+    def __str__(self) -> str:
+        return (f"Edge(\n"
+               f"  source={self.source},\n" 
+               f"  target={self.target},\n"
+               f"  code={self.code},\n"
+               f"  edge_type={self.edge_type}\n"
+               f")")
+
 
 class GraphContext(BaseModel):
     nodes: List[Node | LabelledNode]
@@ -93,3 +130,16 @@ class SubgraphContext(GraphContext):
     def get_input_dict(self) -> Dict:
         """Prepare the input for the Groq API or model inference."""
         return self.model_dump()
+    
+    def __str__(self) -> str:
+        # Use indentation to better format nodes and edges
+        nodes_str = indent("\n".join([str(node) for node in self.nodes]), "  ")
+        edges_str = indent("\n".join([str(edge) for edge in self.edges]), "  ")
+        
+        return (
+            f"SubgraphContext(\n"
+            f"  node_of_interest: {self.node_of_interest},\n"
+            f"  nodes: [\n{nodes_str}\n  ],\n"
+            f"  edges: [\n{edges_str}\n  ]\n"
+            f")"
+        )

@@ -14,8 +14,15 @@ def generate_message(node, subgraph_context):
                 "Use one of the following labels:\n"
                 f"{DomainLabel._full_list_to_str()}"
                 "\n"
-                f"Here is the node of interest: '({node.id}) {node.label}'\n"
+                f"Here is the node of interest: '{node.id}'\n"
                 f"And here is the subgraph context: {subgraph_context}"
+                f"Ensure the following JSON structure:"
+                "{\n"
+                '  "id": "...",  # Unique identifier for the node\n'
+                '  "node_type": "...",  # Type of the node \n'
+                '  "domain_label": "...",  # Domain-specific label for the node\n'
+                "}\n"
+                "Please provide the label in this format based on the node's context."
             ),
         }
     ]

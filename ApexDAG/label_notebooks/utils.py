@@ -6,16 +6,16 @@ from ApexDAG.label_notebooks.pydantic_models import GraphContextWithSubgraphSear
 @dataclass
 class Config:
     model_name: str
+    sleep_interval: int
     
 def get_input_subgraph(graph_context: GraphContextWithSubgraphSearch, node_id: str) -> DomainLabel:
     subgraph_nodes, subgraph_edges = graph_context.get_subgraph(node_id)
     model_input = SubgraphContext(
         node_of_interest=node_id,
-        subgraph_nodes=subgraph_nodes,
-        subgraph_edges=subgraph_edges
+        nodes=subgraph_nodes,
+        edges=subgraph_edges
     )
-    input_graph_structure = model_input.get_input_dict()
-    
+    input_graph_structure = str(model_input)
     return input_graph_structure 
 
 
