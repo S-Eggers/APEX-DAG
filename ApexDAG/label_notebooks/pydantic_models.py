@@ -8,19 +8,22 @@ from ApexDAG.label_notebooks.message_template import DomainLabel
 
 
 class Node(BaseModel):
-    id: str
+    node_id: str
     node_type: str
     
     def __str__(self) -> str:
         return (f"Node(\n"
-                f"  id={self.id},\n"
+                f"  id={self.node_id},\n"
                 f"  node_type={self.node_type}\n"
                 f")")
 
     
 class LabelledNode(BaseModel):
-    id: str = Field(..., description="Unique identifier for the node.")
-    node_type: str = Field(..., description="Type of the node, e.g., VARIABLE, FUNCTION, etc.")
+    '''
+    This class is used to serialize the node with the domain label
+    '''
+    node_id: str = Field(..., description="Unique identifier for the node.")
+    node_type: str = Field(..., description="Type of the node")
     domain_label: Literal[ # the literal is very important Enum does not work as well 
         "MODEL_TRAIN", 
         "MODEL_EVALUATION", 
@@ -32,20 +35,27 @@ class LabelledNode(BaseModel):
         "ENVIRONMENT", 
         "NOT_INTERESTING"
     ] = Field(..., description="Domain-specific label for the node.")
+    
     class Config:
+        title = "LabelledNode"
+        description = (
+            "This class is used to serialize the node with the domain label. "
+            "It ensures that the `node_id` and `node_type` are strings and that the `domain_label` "
+            "is one of the specified literals."
+        )
         use_enum_values = True  # Automatically serialize Enum values as strings for JSON
 
     def __str__(self) -> str:
         return (
             f"LabelledNode(\n"
-            f"  id='{self.id}',\n"
+            f"  id='{self.node_id}',\n"
             f"  node_type='{self.node_type}',\n"
             f"  domain_label='{self.domain_label}'\n"
             f")"
         )
     @classmethod
     def from_node(cls, node: Node, domain_label: DomainLabel) -> 'LabelledNode':
-        return cls(id=node.id, node_type=node.node_type, domain_label=domain_label)
+        return cls(node_id=node.node_id, node_type=node.node_type, domain_label=domain_label)
 
 class Edge(BaseModel):
     source: str  
@@ -101,7 +111,7 @@ class GraphContextWithSubgraphSearch(GraphContext):
         dfs(node_id, 0)
 
         subgraph_nodes = list(subgraph_nodes)
-        subgraph_nodes = [node for node in self.nodes if node.id in subgraph_nodes]
+        subgraph_nodes = [node for node in self.nodes if node.node_id in subgraph_nodes]
         
         return subgraph_nodes, subgraph_edges
     
@@ -112,7 +122,7 @@ class GraphContextWithSubgraphSearch(GraphContext):
             G.nodes[node]["label"] = re.sub(r"_\d+", "", node) # there are some very weird node names in the graph, so we need to clean them up a bit
             
         return cls(
-            nodes=[Node(id=node_name, 
+            nodes=[Node(node_id=node_name, 
                         label = node_object["label"], 
                         node_type=REVERSE_NODE_TYPES[node_object["node_type"]]
                         ) for node_name, node_object in G.nodes._nodes.items()],

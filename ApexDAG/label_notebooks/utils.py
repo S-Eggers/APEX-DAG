@@ -8,8 +8,8 @@ class Config:
     model_name: str
     sleep_interval: int
     
-def get_input_subgraph(graph_context: GraphContextWithSubgraphSearch, node_id: str) -> DomainLabel:
-    subgraph_nodes, subgraph_edges = graph_context.get_subgraph(node_id)
+def get_input_subgraph(graph_context: GraphContextWithSubgraphSearch, node_id: str, max_depth: int = 1) -> DomainLabel:
+    subgraph_nodes, subgraph_edges = graph_context.get_subgraph(node_id, max_depth = max_depth)
     model_input = SubgraphContext(
         node_of_interest=node_id,
         nodes=subgraph_nodes,
