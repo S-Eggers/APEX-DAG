@@ -18,5 +18,3 @@ tensorflow-gnn==1.0.3
 instructor 
 groq
 pydantic 
-openai 
-anthropic
