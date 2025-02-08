@@ -1,7 +1,7 @@
 #!/bin/bash
 
 usage() {
-    echo "Usage: $0 -n <notebook path> -e <single_dataflow|mine_dataflows|watch> [-d]"
+    echo "Usage: $0 -n <notebook path> -e <single_dataflow|mine_dataflows|watch|pretrain> [-d]"
     exit 1
 }
 
@@ -53,6 +53,14 @@ case $e_value in
             python main.py -g -e "watch" -n "$n_value" -d
         else
             python main.py -g -e "watch" -n "$n_value"
+        fi
+        ;;
+    pretrain)
+        export TF_USE_LEGACY_KERAS=1
+        if [ "$d_flag" = true ]; then
+            python main.py -g -e "pretrain" -n "$n_value" -d
+        else
+            python main.py -g -e "pretrain" -n "$n_value"
         fi
         ;;
     mine_dataflows)
