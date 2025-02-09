@@ -8,3 +8,4 @@ argparser.add_argument("-g", "--greedy", action="store_true", help="Greedy noteb
 argparser.add_argument("-s", "--save_prev", action="store_true", help="Store previous graph for debugging")
 argparser.add_argument("-e", "--experiment", type=str, default="data_flow_graph_test", help="Experiment to run")
 argparser.add_argument("-d", "--draw", action="store_true", help="Draw AST-/Dataflow Graphs with graph_viz and matplotlib")
+argparser.add_argument("-c", "--checkpoint_path", type=str, default=None, help="Path to checkpoint directory")
