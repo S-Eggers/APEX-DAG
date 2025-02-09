@@ -82,24 +82,15 @@ def get_all_subgraphs(G: nx.DiGraph, variable_versions: dict) -> list[nx.DiGraph
 
 def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_types: dict, edge_types: dict, save_prev=False, verbose=False):
     logger = setup_logging("graph_utils", verbose=verbose)
-    
+
     if os.path.exists(prev_graph_path):
-        prev_G = nx.read_gml(prev_graph_path)
-        for node, attrs in prev_G.nodes(data=True):
-            if 'label' not in attrs:
-                prev_G.nodes[node]['label'] = node
-            if 'node_type' not in attrs:
-                raise ValueError(f"Node {node} is missing required attribute 'node_type'")
-                
-        for u, v, key, data in prev_G.edges(data=True, keys=True):
-            if 'code' not in data or 'edge_type' not in data:
-                raise ValueError(f"Edge {u} -> {v} is missing required attributes 'code' or 'edge_type")
+        prev_G = load_graph(prev_graph_path)
     elif save_prev:
         save_graph(G, new_graph_path)
         return
     else:
         return
-    
+
     edge_types["added"] = -1
     edge_types["modified"] = -2
     edge_types["deleted"] = -3
@@ -151,3 +142,17 @@ def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_t
 
 def save_graph(G: nx.DiGraph, path: str):
     nx.write_gml(G, os.path.join(os.getcwd(), path))
+
+def load_graph(path: str) -> nx.DiGraph:
+    G = nx.read_gml(path)
+    for node, attrs in G.nodes(data=True):
+        if 'label' not in attrs:
+            G.nodes[node]['label'] = node
+        if 'node_type' not in attrs:
+            raise ValueError(f"Node {node} is missing required attribute 'node_type'")
+            
+    for u, v, key, data in G.edges(data=True, keys=True):
+        if 'code' not in data or 'edge_type' not in data:
+            raise ValueError(f"Edge {u} -> {v} is missing required attributes 'code' or 'edge_type")
+    
+    return G
