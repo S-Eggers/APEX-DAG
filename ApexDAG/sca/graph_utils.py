@@ -144,15 +144,34 @@ def save_graph(G: nx.DiGraph, path: str):
     nx.write_gml(G, os.path.join(os.getcwd(), path))
 
 def load_graph(path: str) -> nx.DiGraph:
-    G = nx.read_gml(path)
-    for node, attrs in G.nodes(data=True):
-        if 'label' not in attrs:
-            G.nodes[node]['label'] = node
-        if 'node_type' not in attrs:
-            raise ValueError(f"Node {node} is missing required attribute 'node_type'")
-            
-    for u, v, key, data in G.edges(data=True, keys=True):
-        if 'code' not in data or 'edge_type' not in data:
-            raise ValueError(f"Edge {u} -> {v} is missing required attributes 'code' or 'edge_type")
-    
-    return G
+    """
+    Load a graph from a saved GraphML file.
+
+    Args:
+        path (str): Path to the GraphML file.
+
+    Returns:
+        nx.DiGraph: The loaded directed graph.
+
+    Raises:
+        FileNotFoundError: If the specified path does not exist.
+        ValueError: If the graph cannot be loaded due to missing or invalid attributes.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"The specified path does not exist: {path}")
+
+    try:
+        G = nx.read_gml(path)
+        for node, attrs in G.nodes(data=True):
+            if 'label' not in attrs:
+                G.nodes[node]['label'] = node
+            if 'node_type' not in attrs:
+                raise ValueError(f"Node {node} is missing required attribute 'node_type'")
+
+        for u, v, key, data in G.edges(data=True, keys=True):
+            if 'code' not in data or 'edge_type' not in data:
+                raise ValueError(f"Edge {u} -> {v} is missing required attributes 'code' or 'edge_type")
+
+        return G
+    except Exception as e:
+        raise ValueError(f"Failed to load the graph from {path}: {e}")

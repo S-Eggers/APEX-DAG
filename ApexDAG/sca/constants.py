@@ -19,3 +19,6 @@ EDGE_TYPES = {
 }
 
 VERBOSE = False
+
+REVERSE_NODE_TYPES = {v: k for k, v in NODE_TYPES.items()}
+REVERSE_EDGE_TYPES = {v: k for k, v in EDGE_TYPES.items()}
