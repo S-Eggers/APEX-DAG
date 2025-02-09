@@ -1,0 +1,2 @@
+model_name: "llama-3.3-70b-versatile" # deepseek-r1-distill-llama-70b
+sleep_interval: 2
