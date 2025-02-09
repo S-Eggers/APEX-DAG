@@ -151,3 +151,27 @@ def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_t
 
 def save_graph(G: nx.DiGraph, path: str):
     nx.write_gml(G, os.path.join(os.getcwd(), path))
+
+
+def load_graph(path: str) -> nx.DiGraph:
+    """
+    Load a graph from a saved GraphML file.
+
+    Args:
+        path (str): Path to the GraphML file.
+
+    Returns:
+        nx.DiGraph: The loaded directed graph.
+
+    Raises:
+        FileNotFoundError: If the specified path does not exist.
+        ValueError: If the graph cannot be loaded due to missing or invalid attributes.
+    """
+    if not os.path.exists(path):
+        raise FileNotFoundError(f"The specified path does not exist: {path}")
+
+    try:
+        G = nx.read_gml(path)
+        return G
+    except Exception as e:
+        raise ValueError(f"Failed to load the graph from {path}: {e}")
