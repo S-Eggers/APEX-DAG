@@ -5,13 +5,16 @@ usage() {
     exit 1
 }
 
-while getopts ":n:e:d" opt; do
+while getopts ":n:e:c:d" opt; do
     case ${opt} in
         n)
             n_value=$OPTARG
             ;;
         e)
             e_value=$OPTARG
+            ;;
+        c)
+            c_value=$OPTARG
             ;;
         d)
             d_flag=true
@@ -58,9 +61,9 @@ case $e_value in
     pretrain)
         export TF_USE_LEGACY_KERAS=1
         if [ "$d_flag" = true ]; then
-            python main.py -g -e "pretrain" -n "$n_value" -d
+            python main.py -g -e "pretrain" -n "$n_value" -c "$c_value" -d
         else
-            python main.py -g -e "pretrain" -n "$n_value"
+            python main.py -g -e "pretrain" -n "$n_value" -c "$c_value"
         fi
         ;;
     mine_dataflows)

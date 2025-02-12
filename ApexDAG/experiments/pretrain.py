@@ -36,12 +36,15 @@ def check_graph(G):
                 data[key] = str(data[key])  # Ensure all values are strings
 
 def pretrain_gat(args, logger):
-    checkpoint_path = os.path.join(os.getcwd(), "data", "raw", "kaggle-pretrain-graphs")
+    checkpoint_path = args.checkpoint_path if args.checkpoint_path else os.path.join(os.getcwd(), "data", "raw", "kaggle-pretrain-graphs")
+
+    print(checkpoint_path)
+
     if os.path.exists(checkpoint_path):
         logger.info("Loading preprocessed graphs")
         graphs = [load_graph(os.path.join(checkpoint_path, graph)) for graph in tqdm.tqdm(os.listdir(checkpoint_path), desc="Loading graphs")]
     else:
-        kaggle_iterator = KaggleDatasetIterator(os.path.join(os.getcwd(), "data", "raw", "notebooks"))
+        kaggle_iterator = KaggleDatasetIterator(os.path.join(args.notebook))
 
         logger.info("Mining dataflows on Kaggle dataset")
         graphs = []

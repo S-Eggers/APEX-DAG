@@ -13,9 +13,9 @@ class NotebookHandler(FileSystemEventHandler):
         self.file_to_watch = os.path.basename(file_to_watch)
         self.logger = logger
         self.action = action
+        self.last_file_change = 0
 
     def on_modified(self, event):
-        # Überprüfen, ob die geänderte Datei die überwachte Datei ist
         if event.src_path.endswith(self.file_to_watch):
             file_mod_time = os.path.getmtime(event.src_path)
             if not hasattr(self, 'last_file_change') or file_mod_time > self.last_file_change:
@@ -50,14 +50,14 @@ def execute_action(file_path, logger):
     logger.info(f"Drawing dataflow graph took {end_time - start_time}s")
 
 def watch(args, logger):
-    file_path = os.path.join(os.getcwd(), "data", "raw", args.notebook)
+    file_path = args.notebook
     event_handler = NotebookHandler(file_path, logger, execute_action)
     observer = Observer()
     observer.schedule(event_handler, path=os.path.dirname(file_path), recursive=False)
 
     try:
         observer.start()
-        logger.info(f"Watching for changes in {args.notebook}...")
+        logger.info(f"Watching for changes in {file_path}...")
         while True:
             time.sleep(1)
     except KeyboardInterrupt:
