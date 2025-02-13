@@ -59,6 +59,7 @@ class GitHubRepositoryCrawler:
         
         self.subqueries = self.create_subqueries(self.filter_date_start, 
                                                  self.filter_date_end)
+        self.visited = set()
         
         self.last_acceptable_date = last_acceptable_date
         
@@ -110,8 +111,9 @@ class GitHubRepositoryCrawler:
                 user = item['owner']['login']
                 repository = item['name']
                 self.number_of_repos += 1
-                if (user, repository) not in self.hash_dict:
+                if (user, repository) not in self.visited:
                     self.check_for_notebook_files(user, repository)
+                self.visited.add((user, repository))
                     
             tqdm.write(f"Number of repositories read: {self.number_of_repos}")
             tqdm.write(f"Number of unique repositories in hashset: {len(self.hash_dict)}")

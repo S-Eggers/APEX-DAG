@@ -130,7 +130,7 @@ if __name__ == '__main__':
         repo_crawler = GitHubRepositoryCrawler(query = "", 
                                                last_acceptable_date="2020-01-01",
                                                log_file="github_repo_crawler.log",
-                                               filter_date_start="2020-02-15",
+                                               filter_date_start="2024-12-15",
                                                filter_date_end="2025-01-15",
                                                save_folder=OUTPUT_DIR)
         repo_crawler.crawl()
