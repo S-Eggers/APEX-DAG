@@ -27,26 +27,26 @@ def generate_message(node_id_source: str, node_id_target: str, code_edge:str, su
     NOT_INTERESTING: Not Interesting - Not relevant to the analysis
     """
 
-    json_structure = """
-    {
-      "source_id": "...",  # Unique identifier for the source node
-      "target_id": "...",  # Unique identifier for the target node
-      "code": "...", #
-      "edge_type": "...",  # Type of the edge
-      "domain_label": "..."  # Domain-specific label for the edge
-    }
-    """
 
     message_content = (
-        f"You are an expert in labeling dataflow graphs of Python programs, specifically machine learning. "
-        f"Please label the following edge within the provided subgraph context. "
-        f"The edge of interest is indicated, and the subgraph provides additional context. "
-        f"Use one of the following domain labels:\n{domain_labels}\n\n"
-        f"Here is the edge of interest:\n"
-        f"  ID: '{node_id_source} ---{code_edge}--->{node_id_target}'\n"
-        f"\nHere is the subgraph context:\n{subgraph_context}\n\n"
-        f"Please ensure that your response is formatted as valid JSON with the following structure:\n{json_structure}\n\n"
-        f"Provide the domain label based on the given node's context."
+        f"You are an expert in labeling dataflow graphs of Python programs, specifically in the context of machine learning. "
+        f"Your task is to label a specific edge in the dataflow graph based on the provided context and output the `LabelledEdge` method with the appropriate parameters. "
+        f"Follow these steps:\n"
+        f"1. Examine the edge of interest, which is indicated by the following ID: '{node_id_source} ---{code_edge}--->{node_id_target}'.\n"
+        f"2. Analyze the graph context provided below to understand the relationship between the nodes.\n"
+        f"3. Choose the most appropriate domain label from the following list:\n{domain_labels}\n"
+        f"4. Explain your reasoning for choosing this label.\n"
+        f"5. Output the `LabelledEdge` method with the following structure:\n"
+        f"   LabelledEdge {{\n"
+        f"       \"source_id\": \"{node_id_source}\",  # Unique identifier for the source node\n"
+        f"       \"target_id\": \"{node_id_target}\",  # Unique identifier for the target node\n"
+        f"       \"code\": \"{code_edge}\",  # Code representing the edge\n"
+        f"       \"edge_type\": \"...\",  # Type of the edge\n"
+        f"       \"domain_label\": \"...\"  # Domain-specific label for the edge\n"
+        f"   }}\n"
+        f"\nHere is the graph context for your task:\n{subgraph_context}\n\n"
+        f"Please ensure that your response is only the `LabelledEdge` method with the appropriate parameters."
+        f"Provide the domain label based on the given node's context by only outputting the `LabelledEdge` method with the appropriate parameters."
     )
 
     return [{"role": "user", "content": message_content}]

@@ -39,7 +39,7 @@ class LabelledEdge(BaseModel):
     '''
     source: str = Field(..., description="Unique identifier for the source of the edge.")
     target: str = Field(..., description="Unique identifier for the target of the edge.")
-    code: str = Field(str, description="The code that connects the source and target nodes.")
+    code: Optional[str] = Field(None, description="The code that connects the source and target nodes.")
     edge_type: str = Field(..., description="Type of the edge")
     domain_label: Literal[ # the literal is very important Enum does not work as well 
         "MODEL_TRAIN", 
