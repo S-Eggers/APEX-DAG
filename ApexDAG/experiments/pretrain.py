@@ -2,6 +2,7 @@ import os
 import tqdm
 import torch
 import logging
+import traceback
 from torch.utils.data import random_split
 
 from ApexDAG.encoder import Encoder
@@ -42,8 +43,27 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
 
     logger.info("Checkpoint path: %s", checkpoint_path)
     if os.path.exists(checkpoint_path):
+        errors = 0
+        count = 0
         logger.info("Loading preprocessed graphs")
-        graphs = [load_graph(os.path.join(checkpoint_path, graph)) for graph in tqdm.tqdm(os.listdir(checkpoint_path), desc="Loading graphs")]
+        graphs = []
+        progress_bar = tqdm.tqdm(os.listdir(checkpoint_path), desc="Loading graphs")
+        for graph in progress_bar:
+            count += 1
+            try:
+                graph = load_graph(os.path.join(checkpoint_path, graph))
+                graphs.append(graph)
+            except:
+                progress_bar.write(f"Errror in graph {os.path.join(checkpoint_path, graph)}")
+                tb = traceback.format_exc()
+                progress_bar.write(tb)
+                errors += 1
+
+            if count == 2500:
+                break
+
+        info_str = f"Errors in {errors}/{count} graphs"
+        logger.info(info_str)
     else:
         kaggle_iterator = KaggleDatasetIterator(os.path.join(args.notebook))
 

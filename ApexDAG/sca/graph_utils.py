@@ -168,7 +168,7 @@ def load_graph(path: str) -> nx.DiGraph:
             if 'node_type' not in attrs:
                 raise ValueError(f"Node {node} is missing required attribute 'node_type'")
 
-        for u, v, key, data in G.edges(data=True, keys=True):
+        for u, v, data in G.edges(data=True):
             if 'code' not in data or 'edge_type' not in data:
                 raise ValueError(f"Edge {u} -> {v} is missing required attributes 'code' or 'edge_type")
 
