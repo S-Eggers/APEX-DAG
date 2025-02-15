@@ -17,45 +17,6 @@ class Node(BaseModel):
                 f"  node_type={self.node_type}\n"
                 f")")
 
-    
-class LabelledNode(BaseModel):
-    '''
-    This class is used to serialize the node with the domain label
-    '''
-    node_id: str = Field(..., description="Unique identifier for the node.")
-    node_type: str = Field(..., description="Type of the node")
-    domain_label: Literal[ # the literal is very important Enum does not work as well 
-        "MODEL_TRAIN", 
-        "MODEL_EVALUATION", 
-        "HYPERPARAMETER_TUNING", 
-        "DATA_EXPORT", 
-        "DATA_IMPORT_EXTRACTION", 
-        "DATA_TRANSFORM", 
-        "EDA", 
-        "ENVIRONMENT", 
-        "NOT_INTERESTING"
-    ] = Field(..., description="Domain-specific label for the node.")
-    
-    class Config:
-        title = "LabelledNode"
-        description = (
-            "This class is used to serialize the node with the domain label. "
-            "It ensures that the `node_id` and `node_type` are strings and that the `domain_label` "
-            "is one of the specified literals."
-        )
-        use_enum_values = True  # Automatically serialize Enum values as strings for JSON
-
-    def __str__(self) -> str:
-        return (
-            f"LabelledNode(\n"
-            f"  id='{self.node_id}',\n"
-            f"  node_type='{self.node_type}',\n"
-            f"  domain_label='{self.domain_label}'\n"
-            f")"
-        )
-    @classmethod
-    def from_node(cls, node: Node, domain_label: DomainLabel) -> 'LabelledNode':
-        return cls(node_id=node.node_id, node_type=node.node_type, domain_label=domain_label)
 
 class Edge(BaseModel):
     source: str  
@@ -71,20 +32,78 @@ class Edge(BaseModel):
                f"  edge_type={self.edge_type}\n"
                f")")
 
+    
+class LabelledEdge(BaseModel):
+    '''
+    This class is used to serialize the edge with the edge domain label
+    '''
+    source: str = Field(..., description="Unique identifier for the source of the edge.")
+    target: str = Field(..., description="Unique identifier for the target of the edge.")
+    code: Optional[str] = Field(None, description="The code that connects the source and target nodes.")
+    edge_type: str = Field(..., description="Type of the edge")
+    domain_label: Literal[ # the literal is very important Enum does not work as well 
+        "MODEL_TRAIN", 
+        "MODEL_EVALUATION", 
+        "HYPERPARAMETER_TUNING", 
+        "DATA_EXPORT", 
+        "DATA_IMPORT_EXTRACTION", 
+        "DATA_TRANSFORM", 
+        "EDA", 
+        "ENVIRONMENT", 
+        "NOT_INTERESTING"
+    ] = Field(..., description="Domain-specific label for the edge.")
+    
+    class Config:
+        title = "LabelledEdge"
+        description = (
+            "This class is used to serialize the edge with the domain label. "
+            "It ensures that the `source`, `target` and `node_type` are strings and that the `domain_label` "
+            "is one of the specified literals."
+        )
+        use_enum_values = True  # Automatically serialize Enum values as strings for JSON
+
+    def __str__(self) -> str:
+        return (
+            f"LabelledEdge(\n"
+            f"  source='{self.source}',\n"
+            f"  target='{self.target}',\n"
+            f"  code='{self.code}',\n"
+            f"  edge_type='{self.edge_type}',\n"
+            f"  domain_label='{self.domain_label}'\n"
+            f")"
+        )
+    @classmethod
+    def from_edge(cls, node: Edge, domain_label: DomainLabel) -> 'LabelledEdge':
+        return cls(source=node.source,
+                   target=node.target,
+                   edge_type=node.edge_type, 
+                   code=node.code,
+                   domain_label=domain_label)
+
 
 class GraphContext(BaseModel):
-    nodes: List[Node | LabelledNode]
-    edges: List[Edge]
+    nodes: List[Node]
+    edges: List[Edge | LabelledEdge]
+    
+    edge_dict: Dict[str, List[str]] = Field(default_factory=dict)
 
     def get_neighbors(self, node_id: str):
         """Find neighbors (children and parents) of a given node."""
         children_edges = [edge for edge in self.edges if edge.source == node_id]
         parents_edges = [edge for edge in self.edges if edge.target == node_id]
         return children_edges, parents_edges
+    
+    def populate_edge_dict(self): 
+        """Populate the edge_dict with sources as keys and lists of target indices as values."""
+        self.edge_dict.clear()
+        for index, edge in enumerate(self.edges):
+            if edge.source not in self.edge_dict:
+                self.edge_dict[edge.source] = {}
+            self.edge_dict[edge.source][edge.target] = index
 
 
 class GraphContextWithSubgraphSearch(GraphContext):
-    def get_subgraph(self, node_id: str, max_depth: int = 1):
+    def get_subgraph(self, node_id_source: str, node_id_target: str, max_depth: int = 1):
         """Extract subgraph focusing on the node, its parents, and grandparents."""
         visited = set()
         subgraph_nodes = set()
@@ -108,7 +127,8 @@ class GraphContextWithSubgraphSearch(GraphContext):
                     subgraph_edges.append(parent_edge)
                     dfs(parent_edge.source, current_depth + 1)
 
-        dfs(node_id, 0)
+        dfs(node_id_source, 0)
+        dfs(node_id_target, 0)
 
         subgraph_nodes = list(subgraph_nodes)
         subgraph_nodes = [node for node in self.nodes if node.node_id in subgraph_nodes]
@@ -135,20 +155,20 @@ class GraphContextWithSubgraphSearch(GraphContext):
 
 
 class SubgraphContext(GraphContext):
-    node_of_interest: str
+    edge_of_interest: tuple[str, str]
 
     def get_input_dict(self) -> Dict:
         """Prepare the input for the Groq API or model inference."""
         return self.model_dump()
     
     def __str__(self) -> str:
-        # Use indentation to better format nodes and edges
+
         nodes_str = indent("\n".join([str(node) for node in self.nodes]), "  ")
         edges_str = indent("\n".join([str(edge) for edge in self.edges]), "  ")
         
         return (
             f"SubgraphContext(\n"
-            f"  node_of_interest: {self.node_of_interest},\n"
+            f"  edge_of_interest: {self.edge_of_interest},\n"
             f"  nodes: [\n{nodes_str}\n  ],\n"
             f"  edges: [\n{edges_str}\n  ]\n"
             f")"
