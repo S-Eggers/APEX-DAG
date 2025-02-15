@@ -170,3 +170,4 @@ output/*
 data/*
 *.bin
 *.bin.gz
+runs/*

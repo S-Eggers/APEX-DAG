@@ -9,6 +9,7 @@ from ApexDAG.experiments.dataflow_graph import data_flow_graph_test
 from ApexDAG.experiments.ast_graph_test import ast_graph_test
 from ApexDAG.experiments.watch import watch
 from ApexDAG.experiments.mine_dataflows import mine_dataflows_on_kaggle_dataset
+from ApexDAG.experiments.pretrain import pretrain_gat
 from ApexDAG.util.logging import setup_logging
 
 
@@ -22,6 +23,7 @@ def main(argv=None):
         "data_flow_graph_test": data_flow_graph_test,
         "mine_dataflows_on_kaggle_dataset": mine_dataflows_on_kaggle_dataset,
         "watch": watch,
+        "pretrain": pretrain_gat,
     }
     if args.experiment not in experiments:
         raise ValueError(f"Unknown experiment {args.experiment}")
