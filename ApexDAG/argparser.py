@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 
 argparser = ArgumentParser()
 
-argparser.add_argument("-n", "--notebook", type=str, default="coba_demo.ipynb", help="Jupyter notebook filename")
+argparser.add_argument("-n", "--notebook", type=str, default="./data/raw/demo.ipynb", help="Jupyter notebook filename")
 argparser.add_argument("-w", "--window", type=int, default=1, help="Cell window size for iterating the notebook cells")
 argparser.add_argument("-g", "--greedy", action="store_true", help="Greedy notebook cell parsing")
 argparser.add_argument("-s", "--save_prev", action="store_true", help="Store previous graph for debugging")

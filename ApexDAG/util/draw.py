@@ -146,11 +146,11 @@ class Draw:
         
     def ast(self, G: nx.DiGraph, t2t_paths: list[list[int]]):
         if not os.path.exists("output"):
-            os.makedirs("output", exist_ok=True)
+            os.makedirs(os.getcwd(), "output", exist_ok=True)
 
         G = G.copy()
         plt.figure(figsize=(128, 32))
-        nx.nx_agraph.write_dot(G, os.path.join("output", "ast.dot"))
+        nx.nx_agraph.write_dot(G, os.path.join(os.getcwd(), "output", "ast.dot"))
         for node in G.nodes:
             G.nodes[node]["width"] = 0.9
         pos = graphviz_layout(G, prog="dot")
@@ -178,5 +178,5 @@ class Draw:
         node_colors = ["#eeeeee" for _ in range(len(G.nodes))]
 
         nx.draw(G, pos, labels=node_labels, with_labels=True, edge_color=edge_colors, font_size=10, font_color="#454545", node_color=node_colors, node_size=2500)
-        plt.savefig(os.path.join("output", f"ast_graph.png"))
+        plt.savefig(os.path.join(os.getcwd(), "output", f"ast_graph.png"))
         plt.clf()
