@@ -1,18 +1,24 @@
 import re
 import ast
+import networkx as nx
 from logging import Logger
 from typing import Optional
-import networkx as nx
 
-from ApexDAG.state.state import State
-from ApexDAG.state.stack import Stack
 from ApexDAG.util.draw import Draw
-from ApexDAG.sca.ast_graph import ASTGraph
+from ApexDAG.state import Stack, State
 from ApexDAG.util.logging import setup_logging
-from ApexDAG.sca.py_util import get_operator_description, flatten_list
-from ApexDAG.sca.graph_utils import convert_multidigraph_to_digraph, get_subgraph
-from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES, VERBOSE
-from ApexDAG.sca.graph_utils import save_graph, load_graph
+from ApexDAG.sca import (
+    NODE_TYPES,
+    EDGE_TYPES,
+    VERBOSE,
+    ASTGraph,
+    get_operator_description,
+    flatten_list,
+    convert_multidigraph_to_digraph,
+    get_subgraph,
+    save_graph,
+    load_graph
+)
 
 
 class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
