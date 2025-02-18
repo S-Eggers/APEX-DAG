@@ -444,7 +444,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             parent_context = node.parent.parent_context
             if_context = f"else_if_{node.lineno}"
             self._visit_if_body(node.body, if_context, parent_context)
-            self._state_stack.branches.append((if_context, "else if", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append((self._current_state, "else if", EDGE_TYPES["BRANCH"]))
             if_branch = False
             previous_target = None
         # we are not visiting an elif statement (if or else body)
@@ -457,7 +457,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
             if_context = f"{var_version}_if"
             self._visit_if_body(node.body, if_context, parent_context)
-            self._state_stack.branches.append((if_context, "if", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append((self._current_state, "if", EDGE_TYPES["BRANCH"]))
 
         # visit elif statements
         if node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
@@ -468,7 +468,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         elif len(node.orelse) > 0:
             else_context = f"else_{node.lineno}"
             self._visit_if_body(node.orelse, else_context, parent_context)
-            self._state_stack.branches.append((else_context, "else", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
         # merge state
         if if_branch:
             self._state_stack.merge_states(parent_context, self._state_stack.branches)
@@ -489,7 +489,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         for stmt in node.body:
             stmt.parent = node
             self.visit(stmt)
-        contexts = [(while_context, "loop", EDGE_TYPES["LOOP"])]
+        contexts = [(self._current_state, "loop", EDGE_TYPES["LOOP"])]
 
         if node.orelse and len(node.orelse) > 0:
             else_context = f"{var_version}_else"
@@ -498,9 +498,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             for stmt in node.orelse:
                 stmt.parent = node
                 self.visit(stmt)
-            contexts.append((else_context, "else", EDGE_TYPES["BRANCH"]))
+            contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
 
-        self._state_stack.merge_states(parent_context, *contexts)
+        self._state_stack.merge_states(parent_context, contexts)
         self._current_state = self._state_stack.get_current_state()
         return node
 
@@ -515,7 +515,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         for stmt in node.body:
             stmt.parent = node
             self.visit(stmt)
-        contexts = [(for_context, "loop", EDGE_TYPES["LOOP"])]
+        contexts = [(self._current_state, "loop", EDGE_TYPES["LOOP"])]
 
         if node.orelse and len(node.orelse) > 0:
             else_context = f"{var_version}_else"
@@ -524,9 +524,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             for stmt in node.orelse:
                 stmt.parent = node
                 self.visit(stmt)
-            contexts.append((else_context, "else", EDGE_TYPES["BRANCH"]))
+            contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
 
-        self._state_stack.merge_states(parent_context, *contexts)
+        self._state_stack.merge_states(parent_context, contexts)
         self._current_state = self._state_stack.get_current_state()
         return node
 
@@ -778,7 +778,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 self._current_state.variable_versions[value] = self._current_state.variable_versions[key]
                 del self._current_state.variable_versions[key]
 
-        self._state_stack.merge_states(current_context, (function_context, function_name_tokens, EDGE_TYPES["FUNCTION_CALL"]))
+        self._state_stack.merge_states(current_context, [(self._current_state, function_name_tokens, EDGE_TYPES["FUNCTION_CALL"])])
         self._current_state = self._state_stack.get_current_state()
 
     def _process_library_attr(self, node: ast.Attribute, caller_object_name: str) -> None:
@@ -913,6 +913,52 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             return variable_version
         else:
             return None
+
+    def _import_accessible(self, name: str, max_depth: int = 99) -> bool:
+        if name in self._state_stack.import_from_modules or \
+            name in self._state_stack.imported_names:
+            return True
+
+        if self._current_state.parent_context and max_depth > 0:
+            current_context = self._current_state.context
+            self._state_stack.restore_parent_state()
+            self._current_state = self._state_stack.get_current_state()
+            reachable = self._import_accessible(name, max_depth=max_depth - 1)
+            self._state_stack.restore_state(current_context)
+            self._current_state = self._state_stack.get_current_state()
+            return reachable
+
+        return False
+
+    def _class_accessible(self, name: str, max_depth: int = 99) -> bool:
+        if name in self._state_stack.classes:
+            return True
+
+        if self._current_state.parent_context and max_depth > 0:
+            current_context = self._current_state.context
+            self._state_stack.restore_parent_state()
+            self._current_state = self._state_stack.get_current_state()
+            reachable = self._class_accessible(name, max_depth=max_depth - 1)
+            self._state_stack.restore_state(current_context)
+            self._current_state = self._state_stack.get_current_state()
+            return reachable
+        
+        return False
+
+    def _function_accessible(self, name: str, max_depth: int = 99) -> bool:
+        if name in self._state_stack.functions:
+            return True
+
+        if self._current_state.parent_context and max_depth > 0:
+            current_context = self._current_state.context
+            self._state_stack.restore_parent_state()
+            self._current_state = self._state_stack.get_current_state()
+            reachable = self._function_accessible(name, max_depth=max_depth - 1)
+            self._state_stack.restore_state(current_context)
+            self._current_state = self._state_stack.get_current_state()
+            return reachable
+
+        return False
 
     def _get_lr_values(self, left: ast.AST, right: ast.AST) -> tuple[Optional[str], Optional[str]]:
         left_var_ = self._get_names(left)

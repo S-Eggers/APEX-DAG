@@ -59,9 +59,6 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                 progress_bar.write(tb)
                 errors += 1
 
-            if count == 2500:
-                break
-
         info_str = f"Errors in {errors}/{count} graphs"
         logger.info(info_str)
     else:

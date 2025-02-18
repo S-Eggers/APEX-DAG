@@ -17,7 +17,7 @@ class Stack:
 
         self._current_state = "module"
         self._state = {"module": State("module")}
-        
+
     def create_child_state(self, context: str = None, parent_context: Optional[str] = None) -> None:
         if context in self._state:
             raise ValueError(f"State {context} already exists")
@@ -40,18 +40,18 @@ class Stack:
             raise ValueError(f"No parent state {parent_context} to restore")
 
         self.restore_state(parent_context)
-    
-    def merge_states(self, base_context: str, *args: tuple[str]) -> None:
+
+    def merge_states(self, base_context: str, args: list[tuple]) -> None:
         if base_context not in self._state:
             raise ValueError(f"No state {base_context} to merge")
 
         base_state = self._state[base_context]
-        base_state.merge_state(*args)
-        for context, _, _ in args:
-            if context in self._state:
-                del self._state[context]
+        base_state.merge(*args)
+        for state, _, _ in args:
+            if state.context in self._state:
+                del self._state[state.context]
 
         self._current_state = base_context
-            
+
     def get_current_state(self) -> State:
         return self._state[self._current_state]

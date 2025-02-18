@@ -11,6 +11,10 @@ class State:
         self._logger = setup_logging("state.State", VERBOSE)
         self.edge_for_current_target: dict = {}
         self.variable_versions: dict = {}
+        self.imported_names: dict = {}
+        self.import_from_modules: dict = {}
+        self.classes:dict = {}
+        self.functions:dict = {}
         self.current_target: str = None
         self.current_variable: str = None
         self.last_variable: str = None
@@ -37,6 +41,14 @@ class State:
                 return self.edge_for_current_target
             case "variable_versions":
                 return self.variable_versions
+            case "imported_names":
+                return self.imported_names
+            case "import_from_modules":
+                return self.import_from_modules
+            case "classes":
+                return self.classes
+            case "functions":
+                return self.functions
             case "_G":
                 return self._G
             case _:
@@ -60,6 +72,14 @@ class State:
                 self.edge_for_current_target = value
             case "variable_versions":
                 self.variable_versions = value
+            case "imported_names":
+                self.imported_names = value
+            case "import_from_modules":
+                self.import_from_modules = value
+            case "classes":
+                self.classes = value
+            case "functions":
+                self.functions = value
             case "_G":
                 self._G = value
             case _:
@@ -192,10 +212,10 @@ class State:
         target: str,
         code: str,
         edge_type: int,
-        lineno: Optional[int]=None,
-        col_offset: Optional[int]=None,
-        end_lineno: Optional[int]=None,
-        end_col_offset: Optional[int]=None
+        lineno: int=-1,
+        col_offset: int=-1,
+        end_lineno: int=-1,
+        end_col_offset: int=-1
     ):
         if source and target and source != target and len(code) > 0:
             key = f"{source}_{target}_{code}"

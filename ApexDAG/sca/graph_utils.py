@@ -140,7 +140,7 @@ def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_t
         Draw(node_types, edge_types).dfg(prev_G, "debug_graph")
         save_graph(G, new_graph_path)    
 
-def save_graph(G: nx.DiGraph, path: str):
+def save_graph(G: nx.DiGraph, path: str) -> None:
     nx.write_gml(G, os.path.join(os.getcwd(), path))
 
 def load_graph(path: str) -> nx.DiGraph:
