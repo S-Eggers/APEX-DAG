@@ -1,5 +1,6 @@
 import os
 import time
+import logging
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
@@ -27,12 +28,11 @@ class NotebookHandler(FileSystemEventHandler):
                 self.last_file_change = file_mod_time
 
 
-def execute_action(file_path, logger):
+def execute_action(file_path: str, logger: logging.Logger) -> None:
     Notebook.VERBOSE = False
     DataFlowGraph.VERBOSE = False
 
-    notebook_path = os.path.join(os.getcwd(), "data", "raw", file_path)
-    notebook = Notebook(notebook_path)
+    notebook = Notebook(file_path)
     notebook.create_execution_graph(greedy=True)
 
     dfg = DataFlowGraph()
@@ -49,7 +49,7 @@ def execute_action(file_path, logger):
     end_time = time.time()
     logger.info(f"Drawing dataflow graph took {end_time - start_time}s")
 
-def watch(args, logger):
+def watch(args, logger: logging.Logger) -> None:
     file_path = args.notebook
     event_handler = NotebookHandler(file_path, logger, execute_action)
     observer = Observer()

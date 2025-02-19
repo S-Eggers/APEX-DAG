@@ -1,9 +1,9 @@
 import os
-
 import tqdm
 import torch
+import logging
+import traceback
 from torch.utils.data import random_split
-
 
 from ApexDAG.encoder import Encoder
 from ApexDAG.notebook import Notebook
@@ -23,26 +23,44 @@ def check_graph(G):
         for key in data:
             if data[key] is None:
                 print(node, key, data[key])
-                data[key] = "None"  # Replace None with a string
+                data[key] = "None" 
             else:
-                data[key] = str(data[key])  # Ensure all values are strings
+                data[key] = str(data[key])
 
     for u, v, data in G.edges(data=True):
         for key in data:
             print(u, v, key, data[key])
             if data[key] is None:
-                data[key] = "None"  # Replace None with a string
+                data[key] = "None"
             else:
-                data[key] = str(data[key])  # Ensure all values are strings
+                data[key] = str(data[key])
 
-def pretrain_gat(args, logger):
-    checkpoint_path = args.checkpoint_path if args.checkpoint_path else os.path.join(os.getcwd(), "data", "raw", "kaggle-pretrain-graphs")
+def pretrain_gat(args, logger: logging.Logger) -> None:
+    if args.checkpoint_path is not None:
+        checkpoint_path = args.checkpoint_path
+    else:
+        checkpoint_path = os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs")
 
-    print(checkpoint_path)
-
+    logger.info("Checkpoint path: %s", checkpoint_path)
     if os.path.exists(checkpoint_path):
+        errors = 0
+        count = 0
         logger.info("Loading preprocessed graphs")
-        graphs = [load_graph(os.path.join(checkpoint_path, graph)) for graph in tqdm.tqdm(os.listdir(checkpoint_path), desc="Loading graphs")]
+        graphs = []
+        progress_bar = tqdm.tqdm(os.listdir(checkpoint_path), desc="Loading graphs")
+        for graph in progress_bar:
+            count += 1
+            try:
+                graph = load_graph(os.path.join(checkpoint_path, graph))
+                graphs.append(graph)
+            except:
+                progress_bar.write(f"Errror in graph {os.path.join(checkpoint_path, graph)}")
+                tb = traceback.format_exc()
+                progress_bar.write(tb)
+                errors += 1
+
+        info_str = f"Errors in {errors}/{count} graphs"
+        logger.info(info_str)
     else:
         kaggle_iterator = KaggleDatasetIterator(os.path.join(args.notebook))
 
@@ -63,7 +81,7 @@ def pretrain_gat(args, logger):
             check_graph(graph)
             save_graph(graph, os.path.join(checkpoint_path, f"graph_{index}.gml"))
 
-    checkpoint_path = os.path.join(os.getcwd(), "data", "raw", "kaggle-pretrain-ecoded-graphs")
+    checkpoint_path += "-encoded"
     if os.path.exists(checkpoint_path):
         logger.info("Loading encoded graphs")
         encoded_graphs = [
@@ -86,8 +104,8 @@ def pretrain_gat(args, logger):
     logger.info("Creating dataset")
     dataset = GraphDataset(encoded_graphs)
     dataset_size = len(dataset)
-    train_size = int(0.8 * dataset_size)  # 80% for training
-    val_size = dataset_size - train_size  # Remaining 20% for validation
+    train_size = int(0.8 * dataset_size)
+    val_size = dataset_size - train_size
 
     # Randomly split the dataset
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
