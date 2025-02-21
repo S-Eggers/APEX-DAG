@@ -11,7 +11,7 @@ from ApexDAG.crawl_notebooks.github_crawler.github_repository_notebook_iterator 
 from ApexDAG.crawl_notebooks.github_crawler.github_repository_crawler import GitHubRepositoryCrawler
 
 GITHUB_API_URL = "https://api.github.com/search/code"
-OUTPUT_DIR = '/home/eggers/data/apexdag_results/github_dfg_100k/'
+OUTPUT_DIR = '/home/eggers/data/apexdag_results/github_dfg_100k_new/'
 
 
 def mine_dataflows_on_github_dataset(args):
@@ -25,6 +25,10 @@ def mine_dataflows_on_github_dataset(args):
     folder_dfg = os.path.join(OUTPUT_DIR, "execution_graphs")
     if not os.path.exists(folder_dfg):
         os.makedirs(folder_dfg)
+    
+    folder_code = os.path.join(OUTPUT_DIR, "code")
+    if not os.path.exists(folder_code):
+        os.makedirs(folder_code)
         
     folder_datafiles = os.path.join(OUTPUT_DIR, "datafiles")
     if not os.path.exists(folder_datafiles):
@@ -69,6 +73,7 @@ def mine_dataflows_on_github_dataset(args):
             dfg_end_time = time.time()
             
             dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
+            notebook.save_code(os.path.join(folder_code, f"{name}.code"))
 
             if args.draw:
                 dfg.draw(os.path.join("output", name, "dfg"))
@@ -120,18 +125,19 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--greedy", action="store_true", help="Use greedy algorithm to create execution graph")
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
-    parser.add_argument("--start_date", default="2020-10-01", help="Oldest allowble date.")
-    parser.add_argument("--stop_index", default=100000, help="End index")
+    parser.add_argument("--start_date", default="2024-12-15", help="Oldest allowble date.")
+    parser.add_argument("--end_date", default="2025-02-21", help="Newest allowble date.")
+    parser.add_argument("--stop_index", default=110000, help="End index")
     parser.add_argument("--parse_repos", action="store_true", help="If true, create the json file (notebook paths) by going through repositories")
     parser.add_argument("--notebook_paths", default=None, help="Path of json from github repo crawler")
     args = parser.parse_args()
     
     if args.parse_repos:
-        repo_crawler = GitHubRepositoryCrawler(query = "", 
-                                               last_acceptable_date="2020-01-01",
+        repo_crawler = GitHubRepositoryCrawler(query = "Machine Learning", 
+                                               last_acceptable_date=args.start_date,
                                                log_file="github_repo_crawler.log",
-                                               filter_date_start="2024-12-15",
-                                               filter_date_end="2025-01-15",
+                                               filter_date_start=args.start_date,
+                                               filter_date_end=args.end_date,
                                                save_folder=OUTPUT_DIR)
         repo_crawler.crawl()
         args.notebook_paths = repo_crawler.result_file
