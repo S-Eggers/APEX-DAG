@@ -1,3 +1,16 @@
+'''
+Create dataflow graphs from the notebooks in the JetBrains 10M dataset.
+
+Source: https://blog.jetbrains.com/datalore/2020/12/17/we-downloaded-10-000-000-jupyter-notebooks-from-github-this-is-what-we-learned/
+
+Utilize the file provided by the dataset, saved as data/ntbs_list.json.
+
+Example run:
+
+python ApexDAG/crawl_notebooks/mining/mine_jetbrains_dataset_dataflow_graphs.py --greedy --stop_index 110000 --start_index 0
+'''
+
+
 import os
 import argparse
 import time
@@ -13,7 +26,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BUCKET_URL= "https://github-notebooks-update1.s3-eu-west-1.amazonaws.com/"
-OUTPUT_DIR = 'jetbrains_dfg_100k/'
+OUTPUT_DIR = 'jetbrains_dfg_100k_new/'
 JSON_FILE = "data/ntbs_list.json"
 RESULTS_DIR = os.getenv('RESULTS_DIR')
 
@@ -25,6 +38,10 @@ def mine_dataflows_on_jetbrains_dataset(args):
     folder_dfg = os.path.join(FULL_OUTPUT_DIR, "execution_graphs")
     if not os.path.exists(folder_dfg):
         os.makedirs(folder_dfg)
+        
+    folder_code = os.path.join(FULL_OUTPUT_DIR, "code")
+    if not os.path.exists(folder_code):
+        os.makedirs(folder_code)
         
 
     jetbrains_iterator = JetbrainsNotebookIterator(
@@ -59,7 +76,8 @@ def mine_dataflows_on_jetbrains_dataset(args):
             dfg_end_time = time.time()
             
             dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
-
+            notebook.save_code(os.path.join(folder_code, f"{name}.code"))
+            
             if args.draw:
                 dfg.draw(os.path.join("output", name, "dfg"))
 
@@ -106,7 +124,7 @@ if __name__ == '__main__':
     parser.add_argument("--greedy", action="store_true", help="Use greedy algorithm to create execution graph")
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
     parser.add_argument("--start_index", type=int, default=0, help="Start index")
-    parser.add_argument("--stop_index", type=int,  default=50000, help="End index")
+    parser.add_argument("--stop_index", type=int,  default=110000, help="End index")
     args = parser.parse_args()
 
     mine_dataflows_on_jetbrains_dataset(args)
