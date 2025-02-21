@@ -11,5 +11,6 @@ ipykernel==6.29.5 # for notebook visualisation
 seaborn==0.13.2   # for notebook visualisation
 python-dotenv==1.0.1
 fasttext==0.9.3
-tensorflow==2.16.2
-tensorflow-gnn==1.0.3
+instructor 
+groq
+pydantic 

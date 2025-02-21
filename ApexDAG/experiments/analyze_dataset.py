@@ -1,5 +1,6 @@
 import os
 import sys
+import logging
 import pandas as pd
 
 from ApexDAG.notebook import Notebook
@@ -7,10 +8,20 @@ from ApexDAG.util.notebook_stat_miner import NotebookStatMiner
 from ApexDAG.util.kaggle_dataset_iterator import KaggleDatasetIterator
 
 
-def analyze_kaggle_dataset(args, logger):
-    column_names = ["name", "url", "notebook", "type", "evaluation_metric", "selection_criteria", "beginner", "prize", "imports", "import_usage", "import_counts",  "cells_with_imports", "custom_classes", "custom_functions", "num_code_cells"]
+def analyze_kaggle_dataset(args, logger: logging.Logger) -> None:
+    column_names = ["name", "url", "notebook", "type", "evaluation_metric", 
+                    "selection_criteria", "beginner", "prize", "imports", 
+                    "import_usage", "import_counts",  "cells_with_imports", 
+                    "custom_classes", "custom_functions", "num_code_cells"
+                    ]
     dataset_stats = pd.DataFrame(columns=column_names)
-    kaggle_iterator = KaggleDatasetIterator(os.path.join(os.getcwd(), "data", "raw", "notebooks"))
+
+    if args.checkpoint_path is not None:
+        main_folder = args.checkpoint_path
+    else:
+        main_folder = os.path.join(os.getcwd(), "data", "raw", "notebooks")
+
+    kaggle_iterator = KaggleDatasetIterator(main_folder)
     for competition in kaggle_iterator:
         for notebook_file in competition["ipynb_files"]:
             try:
@@ -20,7 +31,7 @@ def analyze_kaggle_dataset(args, logger):
                 results = NotebookStatMiner(notebook).mine()
 
             except:
-                print(f"Error processing notebook {notebook_path}")
+                logger.error("Error processing notebook %s", notebook_path)
                 sys.exit(-1)
                 
             notebook_stats = {
@@ -42,5 +53,7 @@ def analyze_kaggle_dataset(args, logger):
             }
             stats_df = pd.DataFrame([notebook_stats], columns=column_names)
             dataset_stats = pd.concat([dataset_stats, stats_df], ignore_index=True)
-        
-    dataset_stats.to_csv(os.path.join(os.getcwd(), "output", "kaggle_dataset_stats.csv"), index=False)
+
+    output_path = os.path.join(os.getcwd(), "output")
+    os.makedirs(output_path, exist_ok=True)
+    dataset_stats.to_csv(os.path.join(output_path, "dataset_stats.csv"), index=False)

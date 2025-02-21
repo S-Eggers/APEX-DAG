@@ -170,3 +170,5 @@ output/*
 data/*
 *.bin
 *.bin.gz
+runs/*
+checkpoints/*

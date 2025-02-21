@@ -2,7 +2,7 @@ import ast
 from typing import List
 from ApexDAG.notebook import Notebook
 
-from ApexDAG.sca.ast_graph import ASTGraph
+from ApexDAG.sca import ASTGraph
 from ApexDAG.util.draw import Draw
 
 

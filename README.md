@@ -1,26 +1,24 @@
 # APEX-DAG: <ins>A</ins>utomating <ins>P</ins>ipeline <ins>EX</ins>traction with <ins>D</ins>ataflow, Static Code <ins>A</ins>nalysis, and <ins>G</ins>raph Attention Networks
 
-![Target picture](docs/system-overview.png)
-
 ## Abstract
 
 Modern data-driven systems often rely on complex pipelines to
 process and transform data for downstream machine learning (ML)
-tasks. Extracting these pipelines and understanding their structure
-is critical for ensuring transparency, performance optimization,
-and maintainability, especially in large-scale projects. In this work,
-we introduce a novel system, APEX-DAG (Automating Pipeline
+tasks. Extracting these pipelines and understanding their struc-
+ture is critical for ensuring transparency, performance optimiza-
+tion, and maintainability, especially in large-scale projects. In this
+work, we introduce a novel system, APEX-DAG (Automating Pipeline
 EXtraction with Dataflow, Static Code Analysis, and Graph Atten-
 tion Networks), which automates the extraction of data pipelines
 from computational notebooks or scripts. Unlike execution-based
 methods, APEX-DAG leverages static code analysis to identify the
 dataflow, transformations, and dependencies within ML workflows
 without executing the code or the need to alter the code. Further,
-after an initial training phase, our system does not need information
-about different libraries in the form of annotation or knowledge
-bases. This information is inferred by analyzing the structure and
-relationships within extracted dataflow graphs of computational
-notebooks and scripts
+after an initial training phase, our system can identify pipelines
+that built with previously unseen libraries.
+
+## Demo video
+You can find the demo video <a href="https://drive.google.com/file/d/1Al18W68A5X8hl3LfdGuOFVs1WUtNogjB/view?usp=sharing">here</a>.
 
 ## Environment setup with conda:
 
@@ -36,12 +34,7 @@ conda install --channel conda-forge pygraphviz // requires graphviz
 
 ## Progress
 
-- [ ] Paper Teaser
 - [x] Demonstration Paper (ACM SIGMOD/PODS 2025, Berlin, Germany)
-- [x] Encoder (Dataflow Extraction, Tokenizing, Encoding Graph)
-- [ ] Detector & Estimator (Graph Attention Network, Training Tasks, Dataset)
-- [ ] Decoder (Reconstructing, Highlighting, Filter)
-
-## Other 
-
-![AST Graph](docs/ast_graph.jpg)
+- [x] Translator (Dataflow Extraction, Tokenizing, Encoding Graph)
+- [x] Detector & Estimator (Graph Attention Network, Training Tasks, Dataset)
+- [x] Annotator (Graph Attention Network, Training Tasks, Dataset)
