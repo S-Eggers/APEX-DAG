@@ -72,6 +72,9 @@ def mine_dataflows_on_github_dataset(args):
             dfg.optimize()
             dfg_end_time = time.time()
             
+            if len(dfg._current_state.get_graph().nodes) < 2:
+                raise Exception("Empty DFG")
+                
             dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
             notebook.save_code(os.path.join(folder_code, f"{name}.code"))
 
@@ -125,15 +128,15 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("--greedy", action="store_true", help="Use greedy algorithm to create execution graph")
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
-    parser.add_argument("--start_date", default="2024-12-15", help="Oldest allowble date.")
-    parser.add_argument("--end_date", default="2025-02-21", help="Newest allowble date.")
-    parser.add_argument("--stop_index", default=110000, help="End index")
+    parser.add_argument("--start_date", default="2023-02-22", help="Oldest allowble date.")
+    parser.add_argument("--end_date", default="2025-02-22", help="Newest allowble date.")
+    parser.add_argument("--stop_index", default=1100000, help="End index")
     parser.add_argument("--parse_repos", action="store_true", help="If true, create the json file (notebook paths) by going through repositories")
     parser.add_argument("--notebook_paths", default=None, help="Path of json from github repo crawler")
     args = parser.parse_args()
     
     if args.parse_repos:
-        repo_crawler = GitHubRepositoryCrawler(query = "Machine Learning", 
+        repo_crawler = GitHubRepositoryCrawler(query = "", 
                                                last_acceptable_date=args.start_date,
                                                log_file="github_repo_crawler.log",
                                                filter_date_start=args.start_date,

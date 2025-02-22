@@ -1,98 +1,131 @@
 import os
 import instructor
 import time
-import argparse
-import networkx as nx
+import logging
+import re
 
 from groq import Groq
 from tqdm import tqdm
-from ApexDAG.util.draw import Draw
-from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES
 from ApexDAG.sca.graph_utils import load_graph
+from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.label_notebooks.message_template import generate_message
-from ApexDAG.label_notebooks.pydantic_models import LabelledEdge, GraphContextWithSubgraphSearch, SubgraphContext
-from ApexDAG.label_notebooks.utils import get_input_subgraph, load_config, Config
+from ApexDAG.label_notebooks.pydantic_models import LabelledEdge, GraphContextWithSubgraphSearch
+from ApexDAG.label_notebooks.pydantic_models import GraphContextWithSubgraphSearch, SubgraphContext
 
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
-def label_edge(G, G_with_context, edge, edge_num_index, client, config, max_depth=2):
-    
-    start_time = time.time()
-    
-    try:
-        graph_context = get_input_subgraph(G_with_context, edge.source, edge.target, max_depth=max_depth)
+class GraphLabeler:
+    def __init__(self, config: Config, graph_path: str, code_path: str):
+        self.config = config
+        self.graph_path = graph_path
         
-        resp = client.chat.completions.create(
-            model=config.model_name,
-            messages = generate_message(edge.source, edge.target, edge.code, graph_context),
-            response_model=LabelledEdge,
+        self.G = load_graph(self.graph_path)
+        self.client = Groq(api_key=os.environ.get('GROQ_API_KEY'))
+        self.client = instructor.from_groq(self.client, mode=instructor.Mode.TOOLS)
+        
+        self.G_with_context = GraphContextWithSubgraphSearch.from_graph(self.G)
+        self.code_lines = self.read_code(code_path)
+        
+        
+    def read_code(self, code_path: str):
+        with open(code_path, 'r') as f:
+            code = f.read()
+        return code.splitlines()
+        
+    def get_input_subgraph(self, node_id_source: str, node_id_target: str, max_depth: int = 1):
+        subgraph_nodes, subgraph_edges = self.G_with_context.get_subgraph(node_id_source, node_id_target, max_depth = max_depth)
+        model_input = SubgraphContext(
+            edge_of_interest=(node_id_source, node_id_target),
+            nodes=subgraph_nodes,
+            edges=subgraph_edges
         )
-    except Exception as _:
-        # TODO: spot bad requests- when do they happen?
-        graph_context = get_input_subgraph(G_with_context, edge.source, edge.target, max_depth=max_depth + 1)
-        
-        resp = client.chat.completions.create(
-            model=config.model_name,
-            messages = generate_message(edge.source, edge.target, edge.code, graph_context),
-            response_model=LabelledEdge,
-        )
-        
-    end_time = time.time()
-    elapsed_time = end_time - start_time
+        input_graph_structure = str(model_input)
+        return input_graph_structure 
+    
+    def get_input_code_context(self, node_id_source: str, node_id_target: str, max_depth: int = 1):
+        _, subgraph_edges = self.G_with_context.get_subgraph(node_id_source, node_id_target, max_depth=max_depth)
 
-    G.edges._adjdict[edge.source][edge.target]["domain_label"] = resp.domain_label # serialize into labelled node! 
-    G_with_context.edges[edge_num_index] = LabelledEdge.from_edge(edge, resp.domain_label)
-        
-    sleep_time = max(0, config.sleep_interval - elapsed_time)
-        
-    if sleep_time > 0:
-        time.sleep(sleep_time)  # sleep to comply with the rate limit
-    return G, G_with_context
+        lines = sorted({
+            line
+            for edge in subgraph_edges
+            for line in (edge.lineno or [])
+        })
 
-def insert_missing_value_for_edge(G, G_with_context, edge, edge_num_index):
-    G.edges._adjdict[edge.source][edge.target]["domain_label"] = 'MISSING' # serialize into labelled node! 
-    G_with_context.nodes[edge_num_index] = LabelledEdge.from_edge(edge, 'MISSING')
-    return G, G_with_context
+        if -1 in lines:
+            return "\n".join(self.code_lines)
+        
+        expanded_lines = sorted({line_offset for line in lines for line_offset in (line - 1, line, line + 1) if 0 <= line_offset < len(self.code_lines)})
+        return "\n".join(self.code_lines[line] for line in expanded_lines)
+                
+
+    def extract_wait_time(self, error_message):
+        match = re.search(r'Please try again in (\d+)m(\d+\.\d+)s', error_message)
+        if match:
+            minutes = int(match.group(1))
+            seconds = float(match.group(2))
+            return minutes * 60 + seconds
+        return None
+
+    def label_edge(self, edge, edge_num_index, max_depth=2):
+        start_time = time.time()
+        retry_attempts = 3
+        retry_delay = 60  # initial delay in seconds
+
+        for attempt in range(retry_attempts):
+            try:
+                graph_context = self.get_input_subgraph(edge.source, edge.target, max_depth=max_depth)
+                code_context = self.get_input_code_context(edge.source, edge.target, max_depth=max_depth)
+                
+                resp = self.client.chat.completions.create(
+                    model=self.config.model_name,
+                    messages=generate_message(edge.source, edge.target, edge.code, graph_context, code_context),
+                    response_model=LabelledEdge,
+                )
+                if resp.domain_label != "MORE_CONTEXT_NEEDED":
+                    break
+                else:
+                    max_depth += 1
+            except instructor.exceptions.InstructorRetryException as e:
+                logging.error(f"Rate limit error during request for edge {edge.source} -> {edge.target}: {e}")
+                wait_time = self.extract_wait_time(str(e))
+                if wait_time:
+                    retry_delay = wait_time
+                if attempt < retry_attempts - 1:
+                    logging.info(f"Retrying in {retry_delay} seconds...")
+                    time.sleep(retry_delay)
+                    retry_delay *= 2  # exponential backoff
+                else:
+                    logging.error(f"Exceeded maximum retry attempts for edge {edge.source} -> {edge.target}")
+                    raise e
+            except Exception as e:
+                logging.error(f"Error during initial request for edge {edge.source} -> {edge.target}: {e}. Trying with depth + 1.")
+                max_depth += 1
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
+        self.G.edges._adjdict[edge.source][edge.target]["domain_label"] = resp.domain_label 
+        self.G_with_context.edges[edge_num_index] = LabelledEdge.from_edge(edge, resp.domain_label)
             
-def label_graph(config: Config, G: nx.DiGraph):
-    G_with_context = GraphContextWithSubgraphSearch.from_graph(G)
-    G_with_context.populate_edge_dict()
-    
-    client = Groq(
-        api_key=os.environ.get('GROQ_API_KEY'),
-    )
-    client = instructor.from_groq(client, mode=instructor.Mode.TOOLS)
+        sleep_time = max(0, self.config.sleep_interval - elapsed_time)
+            
+        if sleep_time > 0:
+            time.sleep(sleep_time)  # sleep to comply with the rate limit
 
-    for edge_index, edge in tqdm(enumerate(G_with_context.edges), total=len(G_with_context.edges), desc=f"Processing nodes of graph:"):
-        try:
-            G, G_with_context = label_edge(G, G_with_context, edge, edge_index, client, config)
-        except Exception as e:
-            print(f"Error: {e}") # TODO: propper logging exception, but there is no propper logging yet
-            G, G_with_context = insert_missing_value_for_edge(G, G_with_context, edge, edge_index)
-    
-    for source in G.edges._adjdict:
-        for target in G.edges._adjdict[source]:
-            edge_index = G_with_context.edge_dict[source][target]
-            G.edges._adjdict[source][target]["domain_label"] = G_with_context.edges[edge_index].domain_label
-    
-    return G, G_with_context
+    def insert_missing_value_for_edge(self, edge, edge_num_index):
+        self.G.edges._adjdict[edge.source][edge.target]["domain_label"] = 'MISSING' 
+        self.G_with_context.nodes[edge_num_index] = LabelledEdge.from_edge(edge, 'MISSING')
+
+    def label_graph(self):
         
-    
-if __name__ == "__main__":
-    args = argparse.ArgumentParser()
-    
-    args.add_argument("--config_path", type=str, default= "ApexDAG/label_notebooks/config.yaml", help="Name of the model to use for labeling")
-    args.add_argument("--graph_path", type=str, default= "output/graph.gml", help="Path to the graph file")
-    args = args.parse_args()
-    
-    config = load_config(args.config_path)
-    
-    G = load_graph(args.graph_path)
-    G, G_with_context = label_graph(config, G)
-    
-    directory_path = f"output/labelling/labelled_graph_{config.model_name}_data/"
-    os.makedirs(directory_path, exist_ok=True)
-    nx.write_gml(G, f"{directory_path}/labelled.gml")
+        self.G_with_context.populate_edge_dict()
 
-    G = nx.read_gml(f"{directory_path}/labelled.gml")
-    drawer = Draw(NODE_TYPES, EDGE_TYPES)
-    drawer.labelled_dfg(G, f'{directory_path}labelled_dfg') 
+        for edge_index, edge in tqdm(enumerate(self.G_with_context.edges), total=len(self.G_with_context.edges), desc="Processing nodes of graph:"):
+            try:
+                self.label_edge(edge, edge_index)
+                logging.info(f"Successfully labelled edge {edge.source} -> {edge.target}")
+            except Exception as e:
+                logging.error(f"Error during edge labelling: {e}. Filling value with missing.")
+                self.insert_missing_value_for_edge(edge, edge_index)
+        
+        return self.G, self.G_with_context
