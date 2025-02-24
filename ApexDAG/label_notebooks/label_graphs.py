@@ -9,17 +9,16 @@ from ApexDAG.label_notebooks.utils import load_config
 from ApexDAG.sca.graph_utils import load_graph
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 
-# Set up logging to both file and stdout
 log_format = "%(asctime)s - %(levelname)s - %(message)s"
+
 logging.basicConfig(
     level=logging.INFO,
     format=log_format,
     handlers=[
-        logging.FileHandler("graph_labeling.log"),  # Log to a file
-        logging.StreamHandler()  # Log to stdout
+        logging.FileHandler("graph_labeling.log"),
+        logging.StreamHandler()
     ]
 )
 
@@ -35,8 +34,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--config_path", type=str, default="ApexDAG/label_notebooks/config.yaml", help="Path to the configuration file")
-    parser.add_argument("--source_path", type=str, default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs", help="Path to the input graph files")
-    parser.add_argument("--target_path", type=str, default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs", help="Path to save labeled graph files")
+    parser.add_argument("--source_path", type=str, default="C:/Users/ismyn/UNI/TUB/data/jetbrains_dfg_100k_new/jetbrains_dfg_100k_new/execution_graphs", help="Path to the input graph files")
+    parser.add_argument("--target_path", type=str, default="C:/Users/ismyn/UNI/TUB/data/jetbrains_dfg_100k_new/jetbrains_dfg_100k_new_labeled/execution_graphs", help="Path to save labeled graph files")
     
     args = parser.parse_args()
     
@@ -47,7 +46,7 @@ if __name__ == "__main__":
         exit(1)
 
     os.makedirs(args.target_path, exist_ok=True)
-    files = [f for f in os.listdir(args.source_path) if f.endswith(".execution_graph")][6:]
+    files = [f for f in os.listdir(args.source_path) if f.endswith(".execution_graph")][106:]
     
     for filename in tqdm(files, desc="Processing graph files"):
         if filename.endswith(".execution_graph"):
@@ -69,5 +68,5 @@ if __name__ == "__main__":
                     
                 logging.info(f"Saved labeled graph to: {output_file}")
             except Exception as e:
-                logging.error(f"Failed to process {filename}: {e}")
+                logging.error(f"Failed to process {filename}: {e}", exc_info=True)
                 time.sleep(10)
