@@ -1,5 +1,6 @@
 import re
 import ast
+import astpretty
 import networkx as nx
 from logging import Logger
 from typing import Optional
@@ -129,6 +130,12 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         node.targets = [target]
         self.visit_Assign(node)
         return node
+    
+    def visit_AnnAssign(self, node) -> ast.AnnAssign:
+        node.targets = [node.target]
+        self.visit_Assign(node)
+        return node
+
 
     def visit_Expr(self, node: ast.Expr) -> ast.Expr:
         base_name = self._get_base_name(node.value)
@@ -160,15 +167,19 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_Lambda(self, node: ast.Lambda) -> ast.Lambda:
+        # ToDo: this method is executed twice
         if hasattr(node, "parent") and isinstance(node.parent, ast.Assign):
             name = self._get_names(node)[0]
             name = self._get_versioned_name(name, node.lineno)
             parent_name = self._get_names(node.parent.targets[0])[0]            
-            context_name = f"{parent_name}_{name}"            
+            context_name = f"{parent_name}_{name}"
+            if context_name in self._state_stack:
+                # does solve the problem, however, not really solving the root cause...
+                return node
+
             self._state_stack.functions[parent_name]["context"] = context_name            
             self._state_stack.functions[parent_name]["args"] = self._process_arguments(node.args)
             self._state_stack.functions[parent_name]["is_recursive"] = False
-
             parent_context = self._current_state.context
             self._state_stack.create_child_state(context_name, parent_context)
             self._current_state = self._state_stack.get_current_state()
@@ -184,7 +195,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         else:
             code = ast.get_source_segment(self.code, node)
-            message = f"Ignoring lambda function {code} as it is assigned to a variable"
+            message = f"Ignoring lambda function {code} as it is not assigned to a variable"
             self._logger.debug(message)
             self._logger.debug(ast.dump(node))
             super().generic_visit(node)
@@ -228,7 +239,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> ast.Call:
         # we are calling a second order function, e.g. dataframe.dropna()
-        if isinstance(node.func, ast.Attribute):         
+        if isinstance(node.func, ast.Attribute):
             caller_object_name = self._get_caller_object(node.func.value)
             function_name = node.func.attr
             # we are calling a chained method, e.g. dataframe.dropna().dropna()

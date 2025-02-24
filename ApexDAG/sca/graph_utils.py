@@ -26,33 +26,33 @@ def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbos
     # Iterate through the edges in the original graph
     for u, v, data in G.edges(data=True):
         edge_pair = (u, v)
-        
+
         if G.number_of_edges(u, v) > 1 and edge_pair not in processed_edges:
-            logger.debug(f"Processing multiple edges between {u} and {v}")
+            logger.debug("Processing multiple edges between %s and %s", str(u), str(v))
             # Process all edges between u and v
             edges = list(G.get_edge_data(u, v).items())
-            
+
             # Create intermediate nodes and edges for multiple edges
             for i, (_, edge_data) in enumerate(edges):
                 if i == 0:
                     # Create the first intermediate node and edge
                     intermediate_node = f"{v}_intermediate_1"
-                    new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])                        
+                    new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])
                     new_G.add_edge(u, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"])
                 elif i < len(edges) - 1:
                     # Create subsequent intermediate nodes and edges
                     intermediate_node_prev = f"{v}_intermediate_{i}"
                     intermediate_node = f"{v}_intermediate_{i+1}"
-                    new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])                        
+                    new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])
                     new_G.add_edge(intermediate_node_prev, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"])
                 else:
                     # Connect the last intermediate node to the original destination node
                     intermediate_node_prev = f"{v}_intermediate_{i}"
                     new_G.add_edge(intermediate_node_prev, v, code=edge_data["code"], edge_type=edge_data["edge_type"])
-            
+
             # Mark this pair as processed
             processed_edges.add(edge_pair)
-        
+
         elif edge_pair not in processed_edges:
             # If there's only one edge, copy it directly
             new_G.add_edge(u, v, **data)
@@ -124,17 +124,17 @@ def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_t
     
     for node in modified_nodes:
         prev_G.nodes[node]['node_type'] = -2
-    
+
     for node in removed_nodes:
         prev_G.nodes[node]['node_type'] = -3
-        
+
     logger.debug(f"Added edges: {added_edges}")
     logger.debug(f"Removed edges: {removed_edges}")
     logger.debug(f"Modified edges: {modified_edges}")
     logger.debug(f"Added nodes: {added_nodes}")
     logger.debug(f"Removed nodes: {removed_nodes}")
     logger.debug(f"Modified nodes: {modified_nodes}")
-    
+
     if save_prev: 
         logger.debug("Saving debug graph")
         Draw(node_types, edge_types).dfg(prev_G, "debug_graph")
