@@ -46,7 +46,7 @@ if __name__ == "__main__":
         exit(1)
 
     os.makedirs(args.target_path, exist_ok=True)
-    files = [f for f in os.listdir(args.source_path) if f.endswith(".execution_graph")][106:]
+    files = [f for f in os.listdir(args.source_path) if f.endswith(".execution_graph")]
     
     for filename in tqdm(files, desc="Processing graph files"):
         if filename.endswith(".execution_graph"):
