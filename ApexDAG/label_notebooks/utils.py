@@ -6,6 +6,7 @@ from dataclasses import dataclass
 class Config:
     model_name: str
     sleep_interval: int
+    max_depth: int
     
 
 def load_config(config_path: str) -> Config:

@@ -34,8 +34,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     
     parser.add_argument("--config_path", type=str, default="ApexDAG/label_notebooks/config.yaml", help="Path to the configuration file")
-    parser.add_argument("--source_path", type=str, default="C:/Users/ismyn/UNI/TUB/data/jetbrains_dfg_100k_new/jetbrains_dfg_100k_new/execution_graphs", help="Path to the input graph files")
-    parser.add_argument("--target_path", type=str, default="C:/Users/ismyn/UNI/TUB/data/jetbrains_dfg_100k_new/jetbrains_dfg_100k_new_labeled/execution_graphs", help="Path to save labeled graph files")
+    parser.add_argument("--source_path", type=str, default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs", help="Path to the input graph files")
+    parser.add_argument("--target_path", type=str, default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs", help="Path to save labeled graph files")
     
     args = parser.parse_args()
     

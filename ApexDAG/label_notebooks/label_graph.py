@@ -139,12 +139,13 @@ class GraphLabeler:
         
         self.G_with_context.populate_edge_dict()
 
-        if len(self.G_with_context.edges) > 100:
+        if len(self.G_with_context.edges) > 110:
             logging.warning(f"Graph has more than 100 edges ({len(self.G_with_context.edges)}). This may take a long time to process.")
             raise ValueError("Graph has more than 100 edges. Please reduce the number of edges before processing. Skipping")
+        
         for edge_index, edge in tqdm(enumerate(self.G_with_context.edges), total=len(self.G_with_context.edges), desc="Processing nodes of graph:"):
             try:
-                self.label_edge(edge, edge_index)
+                self.label_edge(edge, edge_index, max_depth = self.config.max_depth)
                 logging.info(f"Successfully labelled edge {edge.source} -> {edge.target}")
             except Exception as e:
                 logging.error(f"Error during edge labelling: {e}. Filling value with missing.")
