@@ -56,14 +56,15 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         count = 0
         logger.info("Loading preprocessed graphs")
         graphs = []
-        progress_bar = tqdm.tqdm(checkpoint_path.iterdir(), desc="Loading graphs")
+        directory_content = list(checkpoint_path.iterdir())
+        progress_bar = tqdm.tqdm(directory_content, desc="Loading graphs")
         for graph in progress_bar:
             count += 1
             try:
-                graph = load_graph(os.path.join(str(checkpoint_path), graph))
+                graph = load_graph(graph)
                 graphs.append(graph)
             except:
-                progress_bar.write(f"Errror in graph {os.path.join(str(checkpoint_path), graph)}")
+                progress_bar.write(f"Errror in graph {graph}")
                 tb = traceback.format_exc()
                 progress_bar.write(tb)
                 errors += 1
@@ -106,9 +107,8 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         encoded_graphs = []
         for index, graph in load_bar:
             try:
-                message = f"""Encoding graph {index} with
-                nodes {len(graph.nodes)} and edges {len(graph.edges)}"""
-                load_bar.write(message)
+                msg = f"Encoding graph {index} with nodes {len(graph.nodes)} and edges {len(graph.edges)}"
+                load_bar.write(msg)
                 encoded_graph = encoder.encode(graph)
                 torch.save(encoded_graph, checkpoint_path / f"graph_{index}.pt")
                 encoded_graphs.append(encoded_graph)
