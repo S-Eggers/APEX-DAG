@@ -4,6 +4,7 @@ import torch
 import signal
 import logging
 import traceback
+from pathlib import Path
 from torch.utils.data import random_split
 
 from ApexDAG.encoder import Encoder
@@ -47,21 +48,22 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         checkpoint_path = args.checkpoint_path
     else:
         checkpoint_path = os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs")
+    checkpoint_path = Path(checkpoint_path)
 
     logger.info("Checkpoint path: %s", checkpoint_path)
-    if os.path.exists(checkpoint_path):
+    if checkpoint_path.exists():
         errors = 0
         count = 0
         logger.info("Loading preprocessed graphs")
         graphs = []
-        progress_bar = tqdm.tqdm(os.listdir(checkpoint_path), desc="Loading graphs")
+        progress_bar = tqdm.tqdm(checkpoint_path.iterdir(), desc="Loading graphs")
         for graph in progress_bar:
             count += 1
             try:
-                graph = load_graph(os.path.join(checkpoint_path, graph))
+                graph = load_graph(os.path.join(str(checkpoint_path), graph))
                 graphs.append(graph)
             except:
-                progress_bar.write(f"Errror in graph {os.path.join(checkpoint_path, graph)}")
+                progress_bar.write(f"Errror in graph {os.path.join(str(checkpoint_path), graph)}")
                 tb = traceback.format_exc()
                 progress_bar.write(tb)
                 errors += 1
@@ -83,22 +85,22 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                 dfg.optimize()
                 graphs.append(dfg.get_graph())
 
-        os.makedirs(checkpoint_path, exist_ok=True)
+        os.makedirs(str(checkpoint_path), exist_ok=True)
         for index, graph in enumerate(graphs):
             check_graph(graph)
-            save_graph(graph, os.path.join(checkpoint_path, f"graph_{index}.gml"))
+            save_graph(graph, checkpoint_path / f"graph_{index}.gml")
 
-    checkpoint_path += "-encoded"
-    if os.path.exists(checkpoint_path):
+    checkpoint_path = checkpoint_path.parent / "pytorch-encoded"
+    if checkpoint_path.exists():
         logger.info("Loading encoded graphs")
         encoded_graphs = [
-            torch.load(os.path.join(checkpoint_path, path))
+            torch.load(os.path.join(str(checkpoint_path), path))
             for path
-            in tqdm.tqdm(os.listdir(checkpoint_path), desc="Loading encoded graphs")
+            in tqdm.tqdm(os.listdir(str(checkpoint_path)), desc="Loading encoded graphs")
         ]
     else:
         logger.info("Encoding graphs")
-        os.makedirs(checkpoint_path, exist_ok=True)
+        os.makedirs(str(checkpoint_path), exist_ok=True)
         encoder = Encoder()
         load_bar = tqdm.tqdm(enumerate(graphs), desc="Encoding graphs")
         encoded_graphs = []
@@ -108,7 +110,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                 nodes {len(graph.nodes)} and edges {len(graph.edges)}"""
                 load_bar.write(message)
                 encoded_graph = encoder.encode(graph)
-                torch.save(graph, os.path.join(checkpoint_path, f"graph_{index}.pt"))
+                torch.save(encoded_graph, checkpoint_path / f"graph_{index}.pt")
                 encoded_graphs.append(encoded_graph)
             except KeyboardInterrupt:
                 load_bar.write("Interrupted, continuing with next graph")
