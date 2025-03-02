@@ -1,6 +1,7 @@
 import os
 import tqdm
 import torch
+import signal
 import logging
 import traceback
 from torch.utils.data import random_split
@@ -18,12 +19,18 @@ from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.trainer import PretrainingTrainer
 
 
+def signal_handler(signum, frame):
+    global interrupted
+    interrupted = True
+
+signal.signal(signal.SIGINT, signal_handler) 
+
 def check_graph(G):
     for node, data in G.nodes(data=True):
         for key in data:
             if data[key] is None:
                 print(node, key, data[key])
-                data[key] = "None" 
+                data[key] = "None"
             else:
                 data[key] = str(data[key])
 
@@ -91,15 +98,21 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         ]
     else:
         logger.info("Encoding graphs")
-        encoder = Encoder()
-        encoded_graphs = [
-            encoder.encode(graph)
-            for graph
-            in tqdm.tqdm(graphs, desc="Encoding graphs")
-        ]
         os.makedirs(checkpoint_path, exist_ok=True)
-        for index, graph in enumerate(encoded_graphs):
-            torch.save(graph, os.path.join(checkpoint_path, f"graph_{index}.pt"))
+        encoder = Encoder()
+        load_bar = tqdm.tqdm(enumerate(graphs), desc="Encoding graphs")
+        encoded_graphs = []
+        for index, graph in load_bar:
+            try:
+                message = f"""Encoding graph {index} with
+                nodes {len(graph.nodes)} and edges {len(graph.edges)}"""
+                load_bar.write(message)
+                encoded_graph = encoder.encode(graph)
+                torch.save(graph, os.path.join(checkpoint_path, f"graph_{index}.pt"))
+                encoded_graphs.append(encoded_graph)
+            except KeyboardInterrupt:
+                load_bar.write("Interrupted, continuing with next graph")
+                continue
 
     logger.info("Creating dataset")
     dataset = GraphDataset(encoded_graphs)
