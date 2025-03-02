@@ -49,6 +49,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     else:
         checkpoint_path = os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs")
     checkpoint_path = Path(checkpoint_path)
+    checkpoint_encoded_path = os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs")
 
     logger.info("Checkpoint path: %s", checkpoint_path)
     if checkpoint_path.exists():
@@ -91,7 +92,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
             check_graph(graph)
             save_graph(graph, checkpoint_path / f"graph_{index}.gml")
 
-    checkpoint_path = checkpoint_path.parent / "pytorch-encoded"
+    checkpoint_path = checkpoint_encoded_path.parent / "pytorch-encoded"
     if checkpoint_path.exists():
         logger.info("Loading encoded graphs")
         encoded_graphs = [
