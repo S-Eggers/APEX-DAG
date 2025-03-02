@@ -49,7 +49,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     else:
         checkpoint_path = os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs")
     checkpoint_path = Path(checkpoint_path)
-    checkpoint_encoded_path = os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs")
+    checkpoint_encoded_path = Path(os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs"))
 
     logger.info("Checkpoint path: %s", checkpoint_path)
     if checkpoint_path.exists():
@@ -126,7 +126,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     # Randomly split the dataset
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    model = MultiTaskGAT(hidden_dim=300, num_heads=4, node_classes=len(NODE_TYPES), edge_classes=len(EDGE_TYPES))
+    model = MultiTaskGAT(hidden_dim=300, num_heads=16, node_classes=len(NODE_TYPES), edge_classes=len(EDGE_TYPES))
     print(model)
     # Instantiate the trainer
     trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu")
