@@ -69,6 +69,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             if isinstance(value, ast.Lambda):
                 base_name = self._get_base_name(target)
                 self._state_stack.functions[base_name] = {"node": self._current_state.current_variable}
+                self._current_state.add_node(self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"])
             else:
                 self._current_state.add_node(self._current_state.current_variable, NODE_TYPES["VARIABLE"])
 
@@ -174,7 +175,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             parent_name = self._get_names(node.parent.targets[0])[0]            
             context_name = f"{parent_name}_{name}"
             if context_name in self._state_stack:
-                # does solve the problem, however, not really solving the root cause...
                 return node
 
             self._state_stack.functions[parent_name]["context"] = context_name            
@@ -192,6 +192,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self.visit(node.body)
             self._state_stack.restore_state(parent_context)
             self._current_state = self._state_stack.get_current_state()
+            
+            # self._current_state.add_node(context_name, NODE_TYPES["INTERMEDIATE"])
 
         else:
             code = ast.get_source_segment(self.code, node)
@@ -204,7 +206,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 argument_node = f"{arg}_{node.lineno}"
                 self._current_state.add_node(argument_node, NODE_TYPES["VARIABLE"])
                 self._current_state.variable_versions[arg] = [argument_node]
-
         return node
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
