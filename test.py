@@ -23,9 +23,13 @@ if __name__ == "__main__":
     
     code_directory = '/home/eggers/data/apexdag_results/testing_jetbrains_dfg_100k_new/code_subset_attribute_error'
     execution_graphs_destination = '/home/eggers/data/apexdag_results/testing_jetbrains_dfg_100k_new/dfg_subset_attribute_error'
+    draw = True
+    draw_destination = os.path.join(execution_graphs_destination, 'draw')
     
     if not os.path.exists(execution_graphs_destination):
         os.makedirs(execution_graphs_destination)
+    if draw and not os.path.exists(draw_destination):
+        os.makedirs(draw_destination)
         
     notebook_objects = {}
     for filename in os.listdir(code_directory):
@@ -47,5 +51,8 @@ if __name__ == "__main__":
         dfg_end_time = time.time()
         
         # make sure destination exists
+        if draw:
+            dfg.draw(os.path.join(draw_destination, f"{notebook_name}.png"))
             
         dfg.save_dfg(os.path.join(execution_graphs_destination, f"{notebook_name}.execution_graph"))
+        

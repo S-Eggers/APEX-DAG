@@ -657,7 +657,26 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.end_lineno,
                         node.end_col_offset
                     )
+            if isinstance(arg, (ast.Tuple)):
+                arg_names = self._get_names(arg)
+                arg_names = [arg_name[0] for arg_name in arg_names if arg_name]
 
+                for arg_name in arg_names:  
+                    if arg_name:
+                        arg_version = self._get_last_variable_version(arg_name)
+                        code_segment = self._tokenize_method(arg_name)
+                        self._current_state.add_edge(
+                            arg_version,
+                            self._current_state.current_variable,
+                            code_segment,
+                            EDGE_TYPES["INPUT"],
+                            node.lineno,
+                            node.col_offset,
+                            node.end_lineno,
+                            node.end_col_offset
+                        )
+                
+            
     def _process_library_call(self, node: ast.Call, caller_object_name: str, tokens: str=None) -> None:
         # Add the import node and connect it
         import_node = self._state_stack.imported_names[caller_object_name]
