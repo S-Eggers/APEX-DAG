@@ -1,10 +1,17 @@
 import nbformat as nbf
 import os
 import time
+import logging
+from tqdm import tqdm
 
 from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 
+# Set up logging to both file and terminal
+logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(message)s', handlers=[
+    logging.FileHandler("notebook_errors.log"),
+    logging.StreamHandler()
+])
 
 def notebook_out_of_cells(filename):
     notebook = nbf.v4.new_notebook()
@@ -18,11 +25,9 @@ def notebook_out_of_cells(filename):
 
     return notebook
 
-
 if __name__ == "__main__":
-    
-    code_directory = '/home/eggers/data/apexdag_results/testing_jetbrains_dfg_100k_new/code_subset_attribute_error'
-    execution_graphs_destination = '/home/eggers/data/apexdag_results/testing_jetbrains_dfg_100k_new/dfg_subset_attribute_error'
+    code_directory = '/home/eggers/data/apexdag_results/testing_jetbrains_dfg_100k_new/code_subset_attribute_error_new_batch'
+    execution_graphs_destination = '/home/eggers/data/apexdag_results/testing_jetbrains_dfg_100k_new/dfg_subset_attribute_error_new_batch'
     draw = True
     draw_destination = os.path.join(execution_graphs_destination, 'draw')
     
@@ -39,20 +44,26 @@ if __name__ == "__main__":
             notebook_objects[name] = notebook_out_of_cells(file_path)
     
     # now we have all of the quasi-problematic objects
-    for notebook_name, notebook_object in notebook_objects.items():
-        notebook = Notebook(url=None, nb=notebook_object)
-        notebook.create_execution_graph(greedy=True)
-        execution_graph_end = time.time()
+    for notebook_name, notebook_object in tqdm(notebook_objects.items(), desc="Processing Notebooks"):
+        try:
+            notebook = Notebook(url=None, nb=notebook_object)
+            notebook.create_execution_graph(greedy=True)
+            execution_graph_end = time.time()
+                
+            dfg_start_time = time.time()
+            dfg = DataFlowGraph()
+            dfg.parse_notebook(notebook)
+            dfg.optimize()
+            dfg_end_time = time.time()
             
-        dfg_start_time = time.time()
-        dfg = DataFlowGraph()
-        dfg.parse_notebook(notebook)
-        dfg.optimize()
-        dfg_end_time = time.time()
+            # make sure destination exists
+            if draw:
+                dfg.draw(os.path.join(draw_destination, f"{notebook_name}.png"))
+                
+            dfg.save_dfg(os.path.join(execution_graphs_destination, f"{notebook_name}.execution_graph"))
         
-        # make sure destination exists
-        if draw:
-            dfg.draw(os.path.join(draw_destination, f"{notebook_name}.png"))
-            
-        dfg.save_dfg(os.path.join(execution_graphs_destination, f"{notebook_name}.execution_graph"))
-        
+        except Exception as e:
+            error_message = f"Error processing notebook {notebook_name}: {str(e)}"
+            logging.error(error_message)
+            with open("notebook_errors.txt", "a") as error_file:
+                error_file.write(error_message + "\n")
