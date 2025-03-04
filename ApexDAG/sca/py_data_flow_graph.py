@@ -69,6 +69,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             if isinstance(value, ast.Lambda):
                 base_name = self._get_base_name(target)
                 self._state_stack.functions[base_name] = {"node": self._current_state.current_variable}
+                self._current_state.add_node(self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"])
             else:
                 self._current_state.add_node(self._current_state.current_variable, NODE_TYPES["VARIABLE"])
 
@@ -174,7 +175,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             parent_name = self._get_names(node.parent.targets[0])[0]            
             context_name = f"{parent_name}_{name}"
             if context_name in self._state_stack:
-                # does solve the problem, however, not really solving the root cause...
                 return node
 
             self._state_stack.functions[parent_name]["context"] = context_name            
@@ -192,6 +192,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self.visit(node.body)
             self._state_stack.restore_state(parent_context)
             self._current_state = self._state_stack.get_current_state()
+            
+            # self._current_state.add_node(context_name, NODE_TYPES["INTERMEDIATE"])
 
         else:
             code = ast.get_source_segment(self.code, node)
@@ -204,7 +206,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 argument_node = f"{arg}_{node.lineno}"
                 self._current_state.add_node(argument_node, NODE_TYPES["VARIABLE"])
                 self._current_state.variable_versions[arg] = [argument_node]
-
         return node
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> ast.FunctionDef:
@@ -656,7 +657,26 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.end_lineno,
                         node.end_col_offset
                     )
+            if isinstance(arg, (ast.Tuple)):
+                arg_names = self._get_names(arg)
+                arg_names = [arg_name[0] for arg_name in arg_names if arg_name]
 
+                for arg_name in arg_names:  
+                    if arg_name:
+                        arg_version = self._get_last_variable_version(arg_name)
+                        code_segment = self._tokenize_method(arg_name)
+                        self._current_state.add_edge(
+                            arg_version,
+                            self._current_state.current_variable,
+                            code_segment,
+                            EDGE_TYPES["INPUT"],
+                            node.lineno,
+                            node.col_offset,
+                            node.end_lineno,
+                            node.end_col_offset
+                        )
+                
+            
     def _process_library_call(self, node: ast.Call, caller_object_name: str, tokens: str=None) -> None:
         # Add the import node and connect it
         import_node = self._state_stack.imported_names[caller_object_name]
