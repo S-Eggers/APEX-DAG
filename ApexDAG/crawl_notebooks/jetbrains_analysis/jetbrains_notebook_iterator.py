@@ -8,11 +8,11 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
         super().__init__(JSON_FILE, BUCKET_URL, SAVE_DIR, log_file)
         self.filenames = self.load_filenames(self.json_file)
         
-        self.current_index = start_index
         self.stop_index = stop_index if stop_index else len(self.filenames)
 
         self.filenames = self.filenames[start_index:stop_index]
         self.progress_bar = tqdm(total=len(self.filenames), desc="Processing Notebooks")
+        self.current_index = 0
 
     def __iter__(self):
         return self

@@ -23,6 +23,7 @@ class Edge(BaseModel):
     target: str 
     edge_type: str
     code: Optional[str] = None
+    lineno: Optional[List[int]] = None
     
     def __str__(self) -> str:
         return (f"Edge(\n"
@@ -41,6 +42,7 @@ class LabelledEdge(BaseModel):
     target: str = Field(..., description="Unique identifier for the target of the edge.")
     code: Optional[str] = Field(None, description="The code that connects the source and target nodes.")
     edge_type: str = Field(..., description="Type of the edge")
+    lineno: Optional[List[int]] = Field(None, description="The line number of the code that connects the source and target nodes.")
     domain_label: Literal[ # the literal is very important Enum does not work as well 
         "MODEL_TRAIN", 
         "MODEL_EVALUATION", 
@@ -50,7 +52,10 @@ class LabelledEdge(BaseModel):
         "DATA_TRANSFORM", 
         "EDA", 
         "ENVIRONMENT", 
-        "NOT_INTERESTING"
+        "NOT_INTERESTING",
+        "MISSING",
+        "MORE_CONTEXT_NEEDED"
+        
     ] = Field(..., description="Domain-specific label for the edge.")
     
     class Config:
@@ -73,12 +78,14 @@ class LabelledEdge(BaseModel):
             f")"
         )
     @classmethod
-    def from_edge(cls, node: Edge, domain_label: DomainLabel) -> 'LabelledEdge':
-        return cls(source=node.source,
-                   target=node.target,
-                   edge_type=node.edge_type, 
-                   code=node.code,
-                   domain_label=domain_label)
+    def from_edge(cls, edge: Edge, domain_label: DomainLabel) -> 'LabelledEdge':
+        return cls(source=edge.source,
+                   target=edge.target,
+                   edge_type=edge.edge_type, 
+                   code=edge.code,
+                   lineno=edge.lineno,
+                   domain_label=domain_label
+                   )
 
 
 class GraphContext(BaseModel):
@@ -137,21 +144,33 @@ class GraphContextWithSubgraphSearch(GraphContext):
     
     @classmethod
     def from_graph(cls, G: nx.DiGraph) -> 'GraphContextWithSubgraphSearch':
+        for node_name in G.nodes:
+            G.nodes[node_name]["label"] = re.sub(r"_\d+", "", node_name)
 
-        for node in G.nodes:
-            G.nodes[node]["label"] = re.sub(r"_\d+", "", node) # there are some very weird node names in the graph, so we need to clean them up a bit
-            
-        return cls(
-            nodes=[Node(node_id=node_name, 
-                        label = node_object["label"], 
-                        node_type=REVERSE_NODE_TYPES[node_object["node_type"]]
-                        ) for node_name, node_object in G.nodes._nodes.items()],
-            edges=[Edge(source=source, 
-                        target=target, 
-                        code=G.edges._adjdict[source][target]["code"], 
-                        edge_type=REVERSE_EDGE_TYPES[G.edges._adjdict[source][target]["edge_type"]]
-                        ) for (source, target) in G.edges]
-        )
+        def build_node(node_name: str, node_data: dict) -> Node:
+            return Node(
+                node_id=node_name,
+                label=node_data["label"],
+                node_type=REVERSE_NODE_TYPES.get(node_data.get("node_type"), "UNKNOWN")
+            )
+
+        def build_edge(source: str, target: str, edge_data: dict) -> Edge:
+            lineno_start: Optional[int] = edge_data.get("lineno")
+            lineno_end: Optional[int] = edge_data.get("end_lineno", lineno_start)
+            lineno_range = list(range(lineno_start, lineno_end + 1)) if lineno_start is not None else [-1]
+
+            return Edge(
+                source=source,
+                target=target,
+                code=edge_data.get("code", ""),
+                edge_type=REVERSE_EDGE_TYPES.get(edge_data.get("edge_type"), "UNKNOWN"),
+                lineno=lineno_range
+            )
+
+        nodes = [build_node(name, data) for name, data in G.nodes(data=True)]
+        edges = [build_edge(src, tgt, data) for src, tgt, data in G.edges(data=True)]
+
+        return cls(nodes=nodes, edges=edges)
 
 
 class SubgraphContext(GraphContext):
