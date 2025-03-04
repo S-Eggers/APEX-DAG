@@ -101,7 +101,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
             in tqdm.tqdm(os.listdir(str(checkpoint_path)), desc="Loading encoded graphs")
         ]
     else:
-        logger.info("Encoding graphs")
+        logger.debug("Encoding graphs")
         os.makedirs(str(checkpoint_path), exist_ok=True)
         encoder = Encoder()
         load_bar = tqdm.tqdm(enumerate(graphs), desc="Encoding graphs")
@@ -115,6 +115,11 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                 torch.save(encoded_graph, checkpoint_path / f"graph_{index}.pt")
             except KeyboardInterrupt:
                 load_bar.write("Interrupted, continuing with next graph")
+                continue
+            except Exception as e:
+                load_bar.write(f"Error in graph {index}: {str(e)}")
+                tb = traceback.format_exc()
+                load_bar.write(tb)
                 continue
 
     logger.info("Creating dataset")
