@@ -105,14 +105,14 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         os.makedirs(str(checkpoint_path), exist_ok=True)
         encoder = Encoder()
         load_bar = tqdm.tqdm(enumerate(graphs), desc="Encoding graphs")
-        encoded_graphs = []
         for index, graph in load_bar:
+            if hasattr(graph, "nodes") and len(graph.nodes) < 3 and hasattr(graph, "edges") and len(graph.edges) < 2:
+                continue
             try:
                 msg = f"Encoding graph {index} with nodes {len(graph.nodes)} and edges {len(graph.edges)}"
                 load_bar.write(msg)
                 encoded_graph = encoder.encode(graph)
                 torch.save(encoded_graph, checkpoint_path / f"graph_{index}.pt")
-                encoded_graphs.append(encoded_graph)
             except KeyboardInterrupt:
                 load_bar.write("Interrupted, continuing with next graph")
                 continue
@@ -126,7 +126,12 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     # Randomly split the dataset
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
-    model = MultiTaskGAT(hidden_dim=300, num_heads=16, node_classes=len(NODE_TYPES), edge_classes=len(EDGE_TYPES))
+    model = MultiTaskGAT(
+        hidden_dim=300, 
+        num_heads=16, 
+        node_classes=len(NODE_TYPES), 
+        edge_classes=len(EDGE_TYPES)
+    )
     print(model)
     # Instantiate the trainer
     trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu")
