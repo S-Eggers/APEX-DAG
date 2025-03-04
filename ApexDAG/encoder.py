@@ -52,7 +52,7 @@ class Encoder:
         if len(existing_edges) >= len(nodes) * (len(nodes) - 1):
             raise InsufficientNegativeEdgesException()
         
-        elif len(nodes) * (len(nodes) - 1) > len(existing_edges) + num_neg_samples:
+        elif len(nodes) * (len(nodes) - 1) < len(existing_edges) + num_neg_samples:
             self.logger(f"WARNING: Not enough negative edges to sample. Found {len(existing_edges)} existing edges, need {len(nodes) * (len(nodes) - 1)}")
             num_neg_samples = len(nodes) * (len(nodes) - 1) - len(existing_edges)
 
