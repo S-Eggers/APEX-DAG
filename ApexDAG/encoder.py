@@ -3,6 +3,7 @@ import fasttext
 import networkx as nx
 import torch
 from torch_geometric.data import Data
+from ApexDAG.util.training_utils import InsufficientNegativeEdgesException
 
 class Encoder:
     def __init__(self, logger=None):
@@ -45,6 +46,16 @@ class Encoder:
     def _sample_negative_edges(self, graph, node_to_id, num_neg_samples):
         nodes = list(graph.nodes())
         negative_edges = set()
+        existing_edges = set((u, v) for u, v in graph.edges()) | set((v, u) for u, v in graph.edges())
+
+        # check if there are enough negative edges to sample
+        if len(existing_edges) >= len(nodes) * (len(nodes) - 1):
+            raise InsufficientNegativeEdgesException()
+        
+        elif len(nodes) * (len(nodes) - 1) > len(existing_edges) + num_neg_samples:
+            self.logger(f"WARNING: Not enough negative edges to sample. Found {len(existing_edges)} existing edges, need {len(nodes) * (len(nodes) - 1)}")
+            num_neg_samples = len(nodes) * (len(nodes) - 1) - len(existing_edges)
+
         while len(negative_edges) < num_neg_samples:
             u, v = random.sample(nodes, 2)
             if (u, v) not in graph.edges and (v, u) not in graph.edges:
