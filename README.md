@@ -1,4 +1,5 @@
 # APEX-DAG: <ins>A</ins>utomating <ins>P</ins>ipeline <ins>EX</ins>traction with <ins>D</ins>ataflow, Static Code <ins>A</ins>nalysis, and <ins>G</ins>raph Attention Networks
+![translator_input_output(1)](https://github.com/user-attachments/assets/2f128811-38ea-4566-acc1-e6d8fd6f1005)
 
 ## Abstract
 
