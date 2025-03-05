@@ -93,14 +93,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
             save_graph(graph, checkpoint_path / f"graph_{index}.gml")
 
     checkpoint_path = checkpoint_encoded_path.parent / "pytorch-encoded"
-    if checkpoint_path.exists():
-        logger.info("Loading encoded graphs")
-        encoded_graphs = [
-            torch.load(os.path.join(str(checkpoint_path), path))
-            for path
-            in tqdm.tqdm(os.listdir(str(checkpoint_path)), desc="Loading encoded graphs")
-        ]
-    else:
+    if not checkpoint_path.exists():
         logger.debug("Encoding graphs")
         os.makedirs(str(checkpoint_path), exist_ok=True)
         encoder = Encoder()
@@ -121,6 +114,12 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                 tb = traceback.format_exc()
                 load_bar.write(tb)
                 continue
+    logger.info("Loading encoded graphs")
+    encoded_graphs = [
+            torch.load(os.path.join(str(checkpoint_path), path))
+            for path
+            in tqdm.tqdm(os.listdir(str(checkpoint_path)), desc="Loading encoded graphs")
+        ]
 
     logger.info("Creating dataset")
     dataset = GraphDataset(encoded_graphs)
