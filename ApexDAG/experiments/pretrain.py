@@ -132,7 +132,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
 
     model = MultiTaskGAT(
         hidden_dim=300, 
-        num_heads=16, 
+        num_heads=4, 
         node_classes=len(NODE_TYPES), 
         edge_classes=len(EDGE_TYPES)
     )
