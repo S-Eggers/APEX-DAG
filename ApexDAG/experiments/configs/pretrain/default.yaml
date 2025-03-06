@@ -1,0 +1,11 @@
+checkpoint_path: "data/raw/pretrain-graphs"
+encoded_checkpoint_path: "data/raw/pretrain-graphs/pytorch-encoded"
+hidden_dim: 300
+num_heads: 4
+node_classes: 8
+edge_classes: 6
+batch_size: 32
+learning_rate: 0.001
+num_epochs: 100
+train_split: 0.8
+patience: 10

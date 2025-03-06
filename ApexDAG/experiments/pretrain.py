@@ -1,4 +1,5 @@
 import os
+import yaml
 import tqdm
 import torch
 import signal
@@ -30,26 +31,24 @@ def check_graph(G):
     for node, data in G.nodes(data=True):
         for key in data:
             if data[key] is None:
-                print(node, key, data[key])
                 data[key] = "None"
             else:
                 data[key] = str(data[key])
 
     for u, v, data in G.edges(data=True):
         for key in data:
-            print(u, v, key, data[key])
             if data[key] is None:
                 data[key] = "None"
             else:
                 data[key] = str(data[key])
 
 def pretrain_gat(args, logger: logging.Logger) -> None:
-    if args.checkpoint_path is not None:
-        checkpoint_path = args.checkpoint_path
-    else:
-        checkpoint_path = os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs")
-    checkpoint_path = Path(checkpoint_path)
-    checkpoint_encoded_path = Path(os.path.join(os.getcwd(), "data", "raw", "pretrain-graphs"))
+    # Load configuration
+    with open(args.config_path, "r") as f:
+        config = yaml.safe_load(f)
+
+    checkpoint_path = Path(config["checkpoint_path"])
+    checkpoint_encoded_path = Path(config["encoded_checkpoint_path"])
 
     logger.info("Checkpoint path: %s", checkpoint_path)
     if checkpoint_path.exists():
@@ -120,20 +119,19 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     logger.info("Creating dataset")
     dataset = GraphDataset(encoded_graphs)
     dataset_size = len(dataset)
-    train_size = int(0.8 * dataset_size)
+    train_size = int(config["train_split"] * dataset_size)
     val_size = dataset_size - train_size
 
     # Randomly split the dataset
     train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
 
     model = MultiTaskGAT(
-        hidden_dim=300, 
-        num_heads=16, 
-        node_classes=len(NODE_TYPES), 
-        edge_classes=len(EDGE_TYPES)
+        hidden_dim=config["hidden_dim"], 
+        num_heads=config["num_heads"], 
+        node_classes=config["node_classes"], 
+        edge_classes=config["edge_classes"]
     )
     print(model)
     # Instantiate the trainer
-    trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu")
-    # Train the model
-    trainer.train(num_epochs=100)
+    trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu", patience=config["patience"])
+    trainer.train(num_epochs=config["num_epochs"])
