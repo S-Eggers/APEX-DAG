@@ -4,6 +4,7 @@ import torch
 import signal
 import logging
 import traceback
+import wandb
 from pathlib import Path
 from torch.utils.data import random_split
 
@@ -133,6 +134,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         edge_classes=len(EDGE_TYPES)
     )
     print(model)
+    wandb.watch(model, log="all")
     # Instantiate the trainer
     trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu")
     # Train the model

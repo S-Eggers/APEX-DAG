@@ -172,3 +172,6 @@ data/*
 *.bin.gz
 runs/*
 checkpoints/*
+
+# weights and biases
+wandb/*
