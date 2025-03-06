@@ -1,5 +1,5 @@
-checkpoint_path: "data/raw/pretrain-graphs"
-encoded_checkpoint_path: "data/raw/pretrain-graphs/pytorch-encoded"
+checkpoint_path: "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs"
+encoded_checkpoint_path: "data/raw/pytorch-embedded"
 hidden_dim: 300
 num_heads: 4
 node_classes: 8
@@ -9,3 +9,12 @@ learning_rate: 0.001
 num_epochs: 100
 train_split: 0.8
 patience: 10
+
+#hyperparameters for encoder
+
+min_nodes: 3
+min_edges: 2
+
+
+# for testing, remove later on
+load_encoded_old_if_exist: True # if the graphs are encoded do not encode them once again.
