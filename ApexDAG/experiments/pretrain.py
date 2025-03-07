@@ -5,6 +5,7 @@ import torch
 import signal
 import logging
 import traceback
+import wandb
 from pathlib import Path
 from torch.utils.data import random_split
 
@@ -171,6 +172,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     """Main entry point for pretraining the GAT model."""
     with open(args.config_path, "r") as f:
         config = yaml.safe_load(f)
+
 
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded"

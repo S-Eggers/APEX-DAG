@@ -1,5 +1,6 @@
 import os
 import tqdm
+import wandb
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -103,8 +104,10 @@ class PretrainingTrainer:
 
             for k, v in avg_train_losses.items():
                 self.writer.add_scalar(f"Train/{k}", v, epoch)
+                wandb.log({f"Train/{k}": v, "epoch": epoch})
             for k, v in avg_val_losses.items():
                 self.writer.add_scalar(f"Validation/{k}", v, epoch)
+                wandb.log({f"Validation/{k}": v, "epoch": epoch})
 
             self.log_histograms(epoch)
             if epoch % 10 == 0: 
@@ -139,3 +142,4 @@ class PretrainingTrainer:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             global_step = f"{epoch}_{timestamp}"
             self.writer.add_embedding(node_embeddings, metadata=metadata, global_step=global_step, tag="embeddings")
+            wandb.log({"embeddings": node_embeddings.cpu().data.numpy(), "epoch": epoch})
