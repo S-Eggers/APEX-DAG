@@ -5,20 +5,16 @@ import torch
 import signal
 import logging
 import traceback
-import wandb
 from pathlib import Path
 from torch.utils.data import random_split
 
 from ApexDAG.encoder import Encoder
-from ApexDAG.notebook import Notebook
-from ApexDAG.util.kaggle_dataset_iterator import KaggleDatasetIterator
-
-from ApexDAG.sca.graph_utils import save_graph, load_graph
-from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
-
+from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.trainer import PretrainingTrainer
+
+from ApexDAG.nn.trainer import INTERRUPTED
 
 
 class GraphProcessor:
@@ -164,6 +160,7 @@ def signal_handler(signum, frame):
     """Handles interrupt signals (Ctrl+C)."""
     global interrupted
     interrupted = True
+    INTERRUPTED = True
 
 signal.signal(signal.SIGINT, signal_handler)
 

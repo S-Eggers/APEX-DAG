@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GATv2Conv, BatchNorm
+from torch_geometric.nn import GATv2Conv, BatchNorm, LayerNorm
 
 class MultiTaskGAT(nn.Module):
     def __init__(self, hidden_dim, num_heads=8, node_classes=8, edge_classes=6, dropout=0.2):
@@ -9,26 +9,26 @@ class MultiTaskGAT(nn.Module):
 
         # First GAT layer
         self.gat1 = GATv2Conv(
-            in_channels=hidden_dim, 
-            out_channels=hidden_dim // num_heads, 
-            heads=num_heads, 
+            in_channels=hidden_dim,
+            out_channels=hidden_dim // num_heads,
+            heads=num_heads,
             concat=True
         )
-        self.bn1 = BatchNorm(hidden_dim)  # Batch Normalization
+        self.bn1 = LayerNorm(hidden_dim)
         self.dropout = nn.Dropout(dropout)
 
         # Second GAT layer (deeper model)
         self.gat2 = GATv2Conv(
-            in_channels=hidden_dim, 
-            out_channels=hidden_dim // num_heads, 
-            heads=num_heads, 
+            in_channels=hidden_dim,
+            out_channels=hidden_dim // num_heads,
+            heads=num_heads,
             concat=True
         )
-        self.bn2 = BatchNorm(hidden_dim)
+        self.bn2 = LayerNorm(hidden_dim)
 
         # Task-specific heads
-        self.node_type_head = nn.Linear(hidden_dim, node_classes)  
-        self.edge_type_head = nn.Linear(hidden_dim, edge_classes)  
+        self.node_type_head = nn.Linear(hidden_dim, node_classes)
+        self.edge_type_head = nn.Linear(hidden_dim, edge_classes)
         
         # Edge existence prediction with additional transformation
         self.edge_mlp = nn.Sequential(
