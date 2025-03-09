@@ -8,15 +8,17 @@ from datetime import datetime
 from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
+# TODO: fix inheriance and introduce a base class for training
 global INTERRUPTED
 INTERRUPTED = False
 
 class FinetuningTrainer:
-    def __init__(self, model, train_dataset, val_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10):
+    def __init__(self, model, train_dataset, val_dataset, test_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10):
         self.model = model.to(device)
         self.device = device
         self.train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
         self.val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+        self.test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         self.criterion_node = nn.CrossEntropyLoss()
         self.criterion_edge_type = nn.CrossEntropyLoss()

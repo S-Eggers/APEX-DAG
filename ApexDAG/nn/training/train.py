@@ -114,16 +114,31 @@ class GATTrainer:
         wandb.watch(model, log="all")
         
         dataset = GraphDataset(encoded_graphs)
-        train_size = int(self.config["train_split"] * len(dataset))
-        val_size = len(dataset) - train_size
-        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         
         if mode == Modes.PRETRAINING:
             self.logger.info("Training in pretraining mode")
+            train_size = int(self.config["train_split"] * len(dataset))
+            val_size = len(dataset) - train_size
+            train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+        
             trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu", patience=self.config["patience"])
             trainer.train(num_epochs=self.config["num_epochs"])
             
+            # log confisuin matrices in trainer
+            trainer.log_confusion_matrices()
+            
         elif mode == Modes.LINEAR_PROBING:
             self.logger.info("Training in linear probing mode")
-            trainer = FinetuningTrainer(model, train_dataset, val_dataset, device="cpu", patience=self.config["patience"])
+            
+            train_size = int(self.config["train_split"] * len(dataset))
+            test_size = int(self.config["test_split"] * len(dataset))
+            val_size = len(dataset) - train_size - test_size
+            
+            train_dataset, val_dataset = random_split(dataset, [train_size, val_size + test_size])
+            val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
+            
+            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device="cpu", patience=self.config["patience"])
             trainer.train(num_epochs=self.config["num_epochs"])
+        
+            # log confisuin matrices in trainer
+            trainer.log_confusion_matrices()
