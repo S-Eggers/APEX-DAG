@@ -14,8 +14,6 @@ from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.trainer import PretrainingTrainer
 
-from ApexDAG.nn.trainer import INTERRUPTED
-
 
 class GraphProcessor:
     """Handles loading and preprocessing of graphs."""
@@ -160,7 +158,6 @@ def signal_handler(signum, frame):
     """Handles interrupt signals (Ctrl+C)."""
     global interrupted
     interrupted = True
-    INTERRUPTED = True
 
 signal.signal(signal.SIGINT, signal_handler)
 

@@ -8,8 +8,6 @@ from datetime import datetime
 from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-global INTERRUPTED
-INTERRUPTED = False
 
 class PretrainingTrainer:
     def __init__(self, model, train_dataset, val_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10):
@@ -91,12 +89,6 @@ class PretrainingTrainer:
         training_bar.set_description("Training")
 
         for epoch in training_bar:
-            is_interrupted = INTERRUPTED
-            if is_interrupted:
-                self.save_checkpoint(epoch, self.best_val_loss, "model_interrupted.pt")
-                training_bar.write("Training interrupted, last model saved.")
-                break
-
             train_losses = []
             val_losses = []
 
