@@ -122,10 +122,6 @@ class GATTrainer:
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         
             trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu", patience=self.config["patience"])
-            trainer.train(num_epochs=self.config["num_epochs"])
-            
-            # log confisuin matrices in trainer
-            trainer.log_confusion_matrices()
             
         elif mode == Modes.LINEAR_PROBING:
             self.logger.info("Training in linear probing mode")
@@ -138,7 +134,10 @@ class GATTrainer:
             val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
             
             trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device="cpu", patience=self.config["patience"])
-            trainer.train(num_epochs=self.config["num_epochs"])
+        trainer.train(num_epochs=self.config["num_epochs"])
         
-            # log confisuin matrices in trainer
-            trainer.log_confusion_matrices()
+        # log confisuin matrices in trainer
+        trainer.log_confusion_matrix(train_dataset, "Train")
+        trainer.log_confusion_matrix(val_dataset, "Val")
+        if mode == Modes.LINEAR_PROBING:
+            trainer.log_confusion_matrix(test_dataset, "Test")

@@ -51,3 +51,5 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
 
     # train model
     trainer.train(encoded_graphs, model, mode)
+    
+    
