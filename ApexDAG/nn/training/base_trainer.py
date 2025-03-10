@@ -34,6 +34,8 @@ class BaseTrainer:
         self.patience = patience
         self.best_val_loss = float("inf")
         self.early_stopping_counter = 0
+        
+        self.conf_matrices_types = ["edge_type_preds"] # defined in subclasses
 
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
@@ -46,7 +48,7 @@ class BaseTrainer:
             'val_loss': val_loss
         }, checkpoint_path)
 
-    def log_confusion_matrix(self, loader, phase):
+    def log_confusion_matrix(self, loader, phase, pred_type = "edge_type_preds"):
         self.model.eval()
         all_preds = []
         all_labels = []
@@ -55,8 +57,20 @@ class BaseTrainer:
             for data in loader:
                 data = data.to(self.device)
                 outputs = self.model(data)
-                preds = torch.argmax(outputs["edge_type_preds"], dim=1).cpu().numpy()
-                labels = data.edge_types.cpu().numpy()
+                
+                if pred_type == "edge_type_preds":
+                    labels = data.edge_types.cpu().numpy()
+                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
+                    # if the label is -1 then omit  it with mask
+                    valid_edge_mask = labels != -1
+                    preds = preds[valid_edge_mask]
+                    labels = labels[valid_edge_mask]
+                elif pred_type == "edge_existence_preds":
+                    labels = data.edge_existence.cpu().numpy()
+                    preds = (outputs[pred_type] > 0.5).cpu().numpy().astype(int)
+                elif pred_type == "node_type_preds":
+                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
+                    labels = data.node_types.cpu().numpy()
                 
                 all_preds.extend(preds)
                 all_labels.extend(labels)
@@ -67,13 +81,13 @@ class BaseTrainer:
         sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
         plt.xlabel("Predicted Label")
         plt.ylabel("True Label")
-        plt.title(f"{phase} Confusion Matrix")
+        plt.title(f"{phase} Confusion Matrix ({pred_type})")
 
         cm_path = f"{self.checkpoint_dir}/{phase}_conf_matrix_epoch.png"
         plt.savefig(cm_path)
         plt.close()
 
-        wandb.log({f"{phase}/Confusion_Matrix": wandb.Image(cm_path)})
+        wandb.log({f"{phase}/Confusion_Matrix_{pred_type}": wandb.Image(cm_path)})
 
     def train_step(self, data):
         raise NotImplementedError("train_step should be implemented in subclasses")

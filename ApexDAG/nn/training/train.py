@@ -44,7 +44,7 @@ class GraphProcessor:
 
         self.logger.info("Loading preprocessed graphs...")
         errors = 0
-        graph_files = list(self.checkpoint_path.iterdir())
+        graph_files = list(self.checkpoint_path.iterdir())[:20000]
         
         for graph_file in tqdm.tqdm(graph_files, desc="Loading graphs"):
             try:
@@ -59,7 +59,11 @@ class GraphProcessor:
 
 class GraphEncoder:
     """Handles encoding of graphs into tensors for training."""
-    def __init__(self, encoded_checkpoint_path: Path, logger: logging.Logger, min_nodes: int, min_edges: int, load_encoded_old_if_exist: bool):
+    def __init__(self, encoded_checkpoint_path: Path, 
+                 logger: logging.Logger, 
+                 min_nodes: int, 
+                 min_edges: int, 
+                 load_encoded_old_if_exist: bool):
         self.encoded_checkpoint_path = encoded_checkpoint_path
         self.logger = logger
         self.encoded_graphs = []
@@ -71,14 +75,14 @@ class GraphEncoder:
         # for testing, remove if not needed downstream
         self.load_old_if_exist = load_encoded_old_if_exist
 
-    def encode_graphs(self, graphs):
+    def encode_graphs(self, graphs, feature_to_encode):
         """Encodes graphs and saves them to disk."""
         if self.encoded_checkpoint_path.exists() and self.load_old_if_exist:
             self.logger.info("Loading encoded graphs...")
             self.encoded_graphs = [
                 torch.load(self.encoded_checkpoint_path / path)
                 for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs")
-            ]
+            ][:20000]
         else:
             self.logger.info("Encoding graphs...")
             os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
@@ -89,7 +93,7 @@ class GraphEncoder:
                     continue  # skip small graphs
 
                 try:
-                    encoded_graph = encoder.encode(graph)
+                    encoded_graph = encoder.encode(graph, feature_to_encode)
                     torch.save(encoded_graph, self.encoded_checkpoint_path / f"graph_{index}.pt")
                     self.encoded_graphs.append(encoded_graph)
                 except KeyboardInterrupt:
@@ -136,8 +140,8 @@ class GATTrainer:
             trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device="cpu", patience=self.config["patience"])
         trainer.train(num_epochs=self.config["num_epochs"])
         
-        # log confisuin matrices in trainer
-        trainer.log_confusion_matrix(train_dataset, "Train")
-        trainer.log_confusion_matrix(val_dataset, "Val")
-        if mode == Modes.LINEAR_PROBING:
-            trainer.log_confusion_matrix(test_dataset, "Test")
+        for type_conf_matrix in trainer.conf_matrices_types:
+            trainer.log_confusion_matrix(train_dataset, "Train", type_conf_matrix )
+            trainer.log_confusion_matrix(val_dataset, "Val", type_conf_matrix)
+            if mode == Modes.LINEAR_PROBING:
+                trainer.log_confusion_matrix(test_dataset, "Test", type_conf_matrix)

@@ -9,6 +9,7 @@ class FinetuningTrainer(BaseTrainer):
     def __init__(self, model, train_dataset, val_dataset, test_dataset, **kwargs):
         super().__init__(model, train_dataset, val_dataset, **kwargs)
         self.test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+        self.conf_matrices_types = ["edge_type_preds"]
 
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
@@ -30,7 +31,13 @@ class FinetuningTrainer(BaseTrainer):
 
         losses = {}
         
-        losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
+        if "edge_type_preds" in outputs:
+            valid_edge_mask = data.edge_types != -1  # Mask for valid edges
+            if valid_edge_mask.any():  # Ensure there are valid edges
+                edge_type_preds = outputs["edge_type_preds"][valid_edge_mask]
+                edge_type_targets = data.edge_types[valid_edge_mask]
+                losses["edge_type_loss"] = self.criterion_edge_type(edge_type_preds, edge_type_targets)
+
        
         total_loss = sum(losses.values())
         total_loss.backward()
@@ -48,6 +55,11 @@ class FinetuningTrainer(BaseTrainer):
         losses = {}
 
         if "edge_type_preds" in outputs:
-            losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
+            valid_edge_mask = data.edge_types != -1  # Mask for valid edges
+            if valid_edge_mask.any():  # Ensure there are valid edges
+                edge_type_preds = outputs["edge_type_preds"][valid_edge_mask]
+                edge_type_targets = data.edge_types[valid_edge_mask]
+                losses["edge_type_loss"] = self.criterion_edge_type(edge_type_preds, edge_type_targets)
+
     
         return {k: v.item() for k, v in losses.items()}

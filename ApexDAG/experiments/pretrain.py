@@ -37,7 +37,10 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded"
 
     graph_processor = GraphProcessor(checkpoint_path, logger)
-    graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, config['min_nodes'], config['min_edges'], config['load_encoded_old_if_exist'])
+    graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, 
+                                 config['min_nodes'], 
+                                 config['min_edges'], 
+                                 config['load_encoded_old_if_exist'])
     
     model = create_model(config)
     
@@ -47,7 +50,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     graph_processor.load_preprocessed_graphs()
 
     # encode graphs
-    encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs)
+    encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="edge_type")
 
     # train model
     trainer.train(encoded_graphs, model, mode)
