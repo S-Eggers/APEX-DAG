@@ -4,7 +4,7 @@ import networkx as nx
 import torch
 from torch_geometric.data import Data
 from ApexDAG.util.training_utils import InsufficientNegativeEdgesException
-
+from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 
 class Encoder:
     def __init__(self, logger=None, nude_num_types_pretrain = 8, edge_num_types_pretrain = 6):
@@ -80,8 +80,13 @@ class Encoder:
         edge_features, edge_types, edge_existence = [], [], []
 
         def process_edge(attrs, is_positive):
+            def map_labels_to_int(label):
+                if type(label) == str: # finetune
+                    return DOMAIN_EDGE_TYPES[label] if label in DOMAIN_EDGE_TYPES else -1
+                if type(label) == int: # pretrain
+                    return label
             edge_emb = self._get_sentence_vector(attrs["code"]) if is_positive else torch.zeros(300)
-            edge_type_for_training = int(attrs.get(feature_to_encode, -1)) if is_positive else -1 # can be different label - as in dinetuning the domain label:)
+            edge_type_for_training = int(map_labels_to_int(attrs.get(feature_to_encode, -1))) if is_positive else -1 # can be different label
 
             edge_features.append(edge_emb)
             edge_types.append(edge_type_for_training)
