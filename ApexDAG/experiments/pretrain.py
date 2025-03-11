@@ -6,20 +6,20 @@ from pathlib import Path
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 
+
 def create_model(config):
     return MultiTaskGAT(
             hidden_dim=config["hidden_dim"], 
             num_heads=config["num_heads"], 
             node_classes=config["node_classes"], 
             edge_classes=config["edge_classes"]
+
         )
-    
     
 def signal_handler(signum, frame):
     """Handles interrupt signals (Ctrl+C)."""
     global interrupted
     interrupted = True
-    INTERRUPTED = True
 
 signal.signal(signal.SIGINT, signal_handler)
 

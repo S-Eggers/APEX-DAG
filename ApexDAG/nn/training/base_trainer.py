@@ -12,8 +12,6 @@ from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import confusion_matrix
 
-global INTERRUPTED
-INTERRUPTED = False
 
 class BaseTrainer:
     def __init__(self, model, train_dataset, val_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10):
@@ -100,11 +98,6 @@ class BaseTrainer:
         training_bar.set_description("Training")
 
         for epoch in training_bar:
-            if INTERRUPTED:
-                self.save_checkpoint(epoch, self.best_val_loss, "model_interrupted.pt")
-                training_bar.write("Training interrupted, last model saved.")
-                break
-
             train_losses = []
             val_losses = []
 
