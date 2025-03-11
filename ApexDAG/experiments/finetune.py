@@ -1,8 +1,8 @@
 import yaml
 import logging
 import torch
+import wandb
 from pathlib import Path
-from ApexDAG.nn.gat import MultiTaskGAT
 
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
@@ -31,6 +31,8 @@ def finetune_gat(args, logger: logging.Logger) -> None:
 
     with open(args.config_path, "r") as f:
         config = yaml.safe_load(f)
+        wandb.config.update(config)
+        wandb.save(args.config_path)
 
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded-finetune"

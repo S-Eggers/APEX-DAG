@@ -1,7 +1,7 @@
 import yaml
 import signal
 import logging
-
+import wandb
 from pathlib import Path
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
@@ -10,9 +10,12 @@ from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 def create_model(config):
     return MultiTaskGAT(
             hidden_dim=config["hidden_dim"], 
+            hidden_dim_edge=config["hidden_dim_edge"],
             num_heads=config["num_heads"], 
             node_classes=config["node_classes"], 
-            edge_classes=config["edge_classes"]
+            edge_classes=config["edge_classes"],
+            hidden_dim_pretrain_edge_embed=config["embed_model_dim"],
+            hidden_dim_pretrain_node_embed=config["embed_model_dim"],
 
         )
     
@@ -31,6 +34,8 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
     with open(args.config_path, "r") as f:
         config = yaml.safe_load(f)
+        wandb.config.update(config)
+        wandb.save(args.config_path)
 
 
     checkpoint_path = Path(config["checkpoint_path"])
@@ -40,7 +45,8 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, 
                                  config['min_nodes'], 
                                  config['min_edges'], 
-                                 config['load_encoded_old_if_exist'])
+                                 config['load_encoded_old_if_exist'],
+                                 embedding_model_name=config['embedding_model_name'])
     
     model = create_model(config)
     

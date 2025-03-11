@@ -44,7 +44,7 @@ class GraphProcessor:
 
         self.logger.info("Loading preprocessed graphs...")
         errors = 0
-        graph_files = list(self.checkpoint_path.iterdir())
+        graph_files = list(self.checkpoint_path.iterdir())[:60000]
         
         for graph_file in tqdm.tqdm(graph_files, desc="Loading graphs"):
             try:
@@ -63,7 +63,8 @@ class GraphEncoder:
                  logger: logging.Logger, 
                  min_nodes: int, 
                  min_edges: int, 
-                 load_encoded_old_if_exist: bool):
+                 load_encoded_old_if_exist: bool,
+                 embedding_model_name: str):
         self.encoded_checkpoint_path = encoded_checkpoint_path
         self.logger = logger
         self.encoded_graphs = []
@@ -71,6 +72,8 @@ class GraphEncoder:
         # hyperparams
         self.min_nodes = min_nodes
         self.min_edges = min_edges
+        
+        self.embedding_model_name = embedding_model_name
         
         # for testing, remove if not needed downstream
         self.load_old_if_exist = load_encoded_old_if_exist
@@ -82,11 +85,11 @@ class GraphEncoder:
             self.encoded_graphs = [
                 torch.load(self.encoded_checkpoint_path / path)
                 for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs")
-            ]
+            ][:60000]
         else:
             self.logger.info("Encoding graphs...")
             os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
-            encoder = Encoder()
+            encoder = Encoder(embedding_model_name=self.embedding_model_name)
 
             for index, graph in tqdm.tqdm(enumerate(graphs), desc="Encoding graphs"):
                 if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
@@ -102,8 +105,8 @@ class GraphEncoder:
                 except InsufficientNegativeEdgesException:
                     self.logger.error(f"Insufficient negative edges in graph {index}")
                     continue
-                except Exception:
-                    self.logger.error(f"Error in graph {index}")
+                # except Exception:
+                #     self.logger.error(f"Error in graph {index}")
 
 
         return self.encoded_graphs

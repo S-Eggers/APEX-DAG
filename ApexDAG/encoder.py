@@ -5,11 +5,13 @@ import torch
 from torch_geometric.data import Data
 from ApexDAG.util.training_utils import InsufficientNegativeEdgesException
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
+from ApexDAG.embedding_model import EmbeddingModel
 
 class Encoder:
-    def __init__(self, logger=None, nude_num_types_pretrain = 8, edge_num_types_pretrain = 6):
+    def __init__(self, logger=None, nude_num_types_pretrain = 8, edge_num_types_pretrain = 6, embedding_model_name = 'fasttext'):
         self.logger = logger or print
-        self._fasttext_model = fasttext.load_model("cc.en.300.bin")
+        self._embedding_model = EmbeddingModel.create_model(embedding_model_name)
+        self.encoder_embedding_dim = self._embedding_model.embedding_dimension 
         self.nude_num_types_pretrain = nude_num_types_pretrain
         self.edge_num_types_pretrain = edge_num_types_pretrain
         
@@ -35,12 +37,7 @@ class Encoder:
             edge_features=edge_features,
             edge_existence=edge_existence,
         )
-
-    def _get_sentence_vector(self, sentence: str) -> torch.Tensor:
-        if "\n" in sentence:
-            self.logger(f"ERROR: Sentence contains newline character: {sentence}")
-            sentence = sentence.replace("\n", " ")
-        return torch.tensor(self._fasttext_model.get_sentence_vector(sentence), dtype=torch.float32)
+        
 
     def _sample_negative_edges(self, graph, node_to_id, num_neg_samples):
         nodes = list(graph.nodes())
@@ -65,7 +62,7 @@ class Encoder:
         node_features, node_types = [], []
         for _, attrs in graph.nodes(data=True):
             variable_name = " ".join(attrs["label"].split("_")[:-1])
-            embedding = self._get_sentence_vector(variable_name)
+            embedding = self._embedding_model.get_embedding(variable_name)
             node_type = int(attrs.get("node_type", -1))
 
             node_features.append(embedding)
@@ -85,7 +82,7 @@ class Encoder:
                     return DOMAIN_EDGE_TYPES[label] if label in DOMAIN_EDGE_TYPES else -1
                 if type(label) == int: # pretrain
                     return label
-            edge_emb = self._get_sentence_vector(attrs["code"]) if is_positive else torch.zeros(300)
+            edge_emb = self._embedding_model.get_embedding(attrs["code"]) if is_positive else torch.zeros(self.encoder_embedding_dim)
             edge_type_for_training = int(map_labels_to_int(attrs.get(feature_to_encode, -1))) if is_positive else -1 # can be different label
 
             edge_features.append(edge_emb)
