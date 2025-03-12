@@ -172,6 +172,7 @@ data/*
 *.bin.gz
 runs/*
 checkpoints/*
+models/*
 
 # weights and biases
 wandb/*

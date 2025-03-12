@@ -4,33 +4,36 @@ import wandb
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import matplotlib.pyplot as plt
+import seaborn as sns
+
 from datetime import datetime
 from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
+from sklearn.metrics import confusion_matrix
 
 
-class PretrainingTrainer:
+class BaseTrainer:
     def __init__(self, model, train_dataset, val_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10):
         self.model = model.to(device)
         self.device = device
         self.train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
         self.val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
+        
         self.criterion_node = nn.CrossEntropyLoss()
         self.criterion_edge_type = nn.CrossEntropyLoss()
         self.criterion_edge_existence = nn.BCELoss()
         
-        # TensorBoard writer
         self.writer = SummaryWriter(log_dir=log_dir)
-        
-        # Checkpoint directory
         self.checkpoint_dir = checkpoint_dir
         os.makedirs(checkpoint_dir, exist_ok=True)
-        
-        # Early stopping variables
+
         self.patience = patience
         self.best_val_loss = float("inf")
         self.early_stopping_counter = 0
+        
+        self.conf_matrices_types = ["edge_type_preds"] # defined in subclasses
 
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
@@ -43,46 +46,52 @@ class PretrainingTrainer:
             'val_loss': val_loss
         }, checkpoint_path)
 
+    def log_confusion_matrix(self, loader, phase, pred_type = "edge_type_preds"):
+        self.model.eval()
+        all_preds = []
+        all_labels = []
+        
+        with torch.no_grad():
+            for data in loader:
+                data = data.to(self.device)
+                outputs = self.model(data)
+                
+                if pred_type == "edge_type_preds":
+                    labels = data.edge_types.cpu().numpy()
+                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
+                    # if the label is -1 then omit  it with mask
+                    valid_edge_mask = labels != -1
+                    preds = preds[valid_edge_mask]
+                    labels = labels[valid_edge_mask]
+                elif pred_type == "edge_existence_preds":
+                    labels = data.edge_existence.cpu().numpy()
+                    preds = (outputs[pred_type] > 0.5).cpu().numpy().astype(int)
+                elif pred_type == "node_type_preds":
+                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
+                    labels = data.node_types.cpu().numpy()
+                
+                all_preds.extend(preds)
+                all_labels.extend(labels)
+        
+        cm = confusion_matrix(all_labels, all_preds)
+        
+        plt.figure(figsize=(8, 6))
+        sns.heatmap(cm, annot=True, fmt="d", cmap="Blues")
+        plt.xlabel("Predicted Label")
+        plt.ylabel("True Label")
+        plt.title(f"{phase} Confusion Matrix ({pred_type})")
+
+        cm_path = f"{self.checkpoint_dir}/{phase}_conf_matrix_epoch.png"
+        plt.savefig(cm_path)
+        plt.close()
+
+        wandb.log({f"{phase}/Confusion_Matrix_{pred_type}": wandb.Image(cm_path)})
+
     def train_step(self, data):
-        self.model.train()
-        self.optimizer.zero_grad()
-        data = data.to(self.device)
-        outputs = self.model(data)
-
-        losses = {}
-        if "node_type_preds" in outputs:
-            losses["node_type_loss"] = self.criterion_node(outputs["node_type_preds"], data.node_types)
-        if "edge_type_preds" in outputs:
-            losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
-        if "edge_existence_preds" in outputs:
-            edge_existence_preds = outputs["edge_existence_preds"].squeeze(dim=-1)
-            edge_existence_targets = data.edge_existence.float()
-            losses["edge_existence_loss"] = self.criterion_edge_existence(edge_existence_preds, edge_existence_targets)
-
-        total_loss = sum(losses.values())
-        total_loss.backward()
-        self.optimizer.step()
-
-        return {k: v.item() for k, v in losses.items()}
+        raise NotImplementedError("train_step should be implemented in subclasses")
 
     def validate_step(self, data):
-        self.model.eval()
-        data = data.to(self.device)
-
-        with torch.no_grad():
-            outputs = self.model(data)
-
-        losses = {}
-        if "node_type_preds" in outputs:
-            losses["node_type_loss"] = self.criterion_node(outputs["node_type_preds"], data.node_types)
-        if "edge_type_preds" in outputs:
-            losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
-        if "edge_existence_preds" in outputs:
-            edge_existence_preds = outputs["edge_existence_preds"].squeeze(dim=-1)
-            edge_existence_targets = data.edge_existence.float()
-            losses["edge_existence_loss"] = self.criterion_edge_existence(edge_existence_preds, edge_existence_targets)
-
-        return {k: v.item() for k, v in losses.items()}
+        raise NotImplementedError("validate_step should be implemented in subclasses")
 
     def train(self, num_epochs):
         training_bar = tqdm.tqdm(range(num_epochs))
@@ -110,7 +119,8 @@ class PretrainingTrainer:
                 wandb.log({f"Validation/{k}": v, "epoch": epoch})
 
             self.log_histograms(epoch)
-            if epoch % 10 == 0: 
+
+            if epoch % 10 == 0:
                 example_data = next(iter(self.train_loader)).to(self.device)
                 self.log_embeddings(epoch, example_data)
 
@@ -143,3 +153,5 @@ class PretrainingTrainer:
             global_step = f"{epoch}_{timestamp}"
             self.writer.add_embedding(node_embeddings, metadata=metadata, global_step=global_step, tag="embeddings")
             wandb.log({"embeddings": node_embeddings.cpu().data.numpy(), "epoch": epoch})
+
+

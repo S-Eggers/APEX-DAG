@@ -4,17 +4,26 @@ import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv, BatchNorm, LayerNorm
 
 class MultiTaskGAT(nn.Module):
-    def __init__(self, hidden_dim, num_heads=8, node_classes=8, edge_classes=6, dropout=0.2):
+    def __init__(self, hidden_dim, 
+                 num_heads=8, 
+                 node_classes=8, 
+                 edge_classes=6, 
+                 dropout=0.2,
+                 num_types_pretrain = 8,
+                 edge_num_types_pretrain = 6,
+                 hidden_dim_pretrain_node_embed = 50,
+                 hidden_dim_pretrain_edge_embed = 50):
         super(MultiTaskGAT, self).__init__()
-
+        
         # First GAT layer
         self.gat1 = GATv2Conv(
             in_channels=hidden_dim,
             out_channels=hidden_dim // num_heads,
             heads=num_heads,
-            concat=True
+            concat=True,
+            edge_dim=hidden_dim
         )
-        self.bn1 = LayerNorm(hidden_dim)
+        self.ln1 = LayerNorm(hidden_dim)
         self.dropout = nn.Dropout(dropout)
 
         # Second GAT layer (deeper model)
@@ -22,9 +31,10 @@ class MultiTaskGAT(nn.Module):
             in_channels=hidden_dim,
             out_channels=hidden_dim // num_heads,
             heads=num_heads,
-            concat=True
+            concat=True,
+            edge_dim=hidden_dim
         )
-        self.bn2 = LayerNorm(hidden_dim)
+        self.ln2 = LayerNorm(hidden_dim)
 
         # Task-specific heads
         self.node_type_head = nn.Linear(hidden_dim, node_classes)
@@ -38,18 +48,18 @@ class MultiTaskGAT(nn.Module):
         )
 
     def forward(self, data, task=None):
-        x, edge_index = data.x, data.edge_index
+        x, edge_embeds, edge_index = data.x, data.edge_features, data.edge_index
 
         # First GAT layer with normalization and dropout
         x_res = x  # Save residual connection
-        x = self.gat1(x, edge_index)
-        x = self.bn1(x)
+        x = self.gat1(x, edge_index, edge_attr=edge_embeds)
+        x = self.ln1(x)
         x = F.relu(x)
         x = self.dropout(x)
 
         # Second GAT layer (Deeper Model)
-        x = self.gat2(x, edge_index)
-        x = self.bn2(x)
+        x = self.gat2(x, edge_index, edge_attr=edge_embeds)
+        x = self.ln2(x)
         x = F.relu(x)
         x = self.dropout(x)
 

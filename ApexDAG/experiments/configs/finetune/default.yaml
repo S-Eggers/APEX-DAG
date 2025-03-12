@@ -1,0 +1,21 @@
+checkpoint_path: "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs/"
+encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune"
+pretrained_model_path: "checkpoints/model_epoch_pretrained_61.pt"
+hidden_dim: 300
+num_heads: 4
+node_classes: 8
+edge_classes: 9
+batch_size: 32
+learning_rate: 0.001
+num_epochs: 100
+train_split: 0.6
+test_split: 0.2
+val_split: 0.2
+patience: 10
+
+# hyperparameters for encoder
+min_nodes: 3
+min_edges: 2
+
+# for testing, remove later on
+load_encoded_old_if_exist: True # if the graphs are encoded do not encode them once again.
