@@ -9,8 +9,6 @@ from ApexDAG.util.logging import setup_logging, setup_wandb
 def main(argv=None):
     logger = setup_logging("main", True)
     args = argparser.parse_args(argv)
-    
-    setup_wandb(project_name="APEX-DAG")
 
     start_time = time.time()
     match args.experiment:
@@ -31,9 +29,11 @@ def main(argv=None):
             watch(args, logger)
         case "pretrain":
             from ApexDAG.experiments.pretrain import pretrain_gat
+            setup_wandb(project_name="APEX-DAG")
             pretrain_gat(args, logger)
         case "finetune":
             from ApexDAG.experiments.finetune import finetune_gat
+            setup_wandb(project_name="APEX-DAG")
             finetune_gat(args, logger)
         case _:
             raise ValueError(f"Unknown experiment {args.experiment}")

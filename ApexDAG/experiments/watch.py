@@ -45,7 +45,7 @@ def execute_action(file_path: str, logger: logging.Logger) -> None:
     end_time = time.time()
     logger.info(f"Optimizing dataflow graph took {end_time - start_time}s")
     start_time = time.time()
-    dfg.draw()
+    dfg.webrender()
     end_time = time.time()
     logger.info(f"Drawing dataflow graph took {end_time - start_time}s")
 
