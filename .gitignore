@@ -176,3 +176,5 @@ models/*
 
 # weights and biases
 wandb/*
+node_modules/*
+apex-dag-jupyter/src/app/data_flow_graph.json
