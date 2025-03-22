@@ -6,13 +6,19 @@ import Graph from "./module/graph";
 export default function Home() {
 
   const [graphData, setGraphData] = useState({ elements: [] });
+  //setGraphData(require("./data_flow_graph.json"));
 
   useEffect(() => {
-    const socket = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL || "ws://localhost:8000");
+    const socket = new WebSocket("ws://localhost:8081");
 
     socket.onmessage = (event) => {
-      const newGraphData = JSON.parse(event.data);
-      setGraphData(newGraphData);
+      const message = JSON.parse(event.data);
+      if (message.type === "update") {
+        const newGraphData = message.data;
+        console.log(newGraphData);
+        console.log(typeof newGraphData);
+        setGraphData(newGraphData);
+      }
     };
 
     socket.onerror = (error) => {
@@ -22,7 +28,9 @@ export default function Home() {
     return () => {
       socket.close();
     };
+    
   }, []);
+
   return (
     <>
       <div className={"page"}>

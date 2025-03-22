@@ -45,7 +45,8 @@ def execute_action(file_path: str, logger: logging.Logger) -> None:
     end_time = time.time()
     logger.info(f"Optimizing dataflow graph took {end_time - start_time}s")
     start_time = time.time()
-    dfg.webrender()
+    path = os.path.join(os.getcwd(), "apex-dag-jupyter", "src", "app", "data_flow_graph")
+    dfg.webrender(path)
     end_time = time.time()
     logger.info(f"Drawing dataflow graph took {end_time - start_time}s")
 

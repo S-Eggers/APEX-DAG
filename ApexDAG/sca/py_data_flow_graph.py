@@ -586,10 +586,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             print("Drawing full graph")
             draw.dfg(G, save_path)
 
-    def webrender(self) -> None:
+    def webrender(self, save_path: str = None) -> None:
         draw = Draw(NODE_TYPES, EDGE_TYPES)
         G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
-        draw.dfg_webrendering(G)
+        draw.dfg_webrendering(G, save_path)
 
     def save_dfg(self, path: str) -> None:
         G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
