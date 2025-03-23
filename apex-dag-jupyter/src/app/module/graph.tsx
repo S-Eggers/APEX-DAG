@@ -108,7 +108,7 @@ export default function Graph({ graphData = {elements: []} }) {
     ];
 
     const graphRef = useRef(null);
-    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [pan, setPan] = useState<cytoscape.Position | null>(null);
     const [zoom, setZoom] = useState(1);
 
     const drawGraph = () => {
@@ -118,10 +118,14 @@ export default function Graph({ graphData = {elements: []} }) {
             layout: layout,
             elements: graphData.elements,
         });
-
-        cy.pan(pan);
+        
+        if (pan) {
+            cy.pan(pan);
+        } else {
+            console.log("Centering the graph");
+            cy.center();
+        }
         cy.zoom(zoom);
-
         cy.on('pan', () => {
             setPan(cy.pan());
         });
