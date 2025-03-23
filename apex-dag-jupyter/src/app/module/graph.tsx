@@ -1,6 +1,6 @@
 "use client"
 
-import React, {useEffect, useRef} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
 
@@ -108,15 +108,30 @@ export default function Graph({ graphData = {elements: []} }) {
     ];
 
     const graphRef = useRef(null);
+    const [pan, setPan] = useState({ x: 0, y: 0 });
+    const [zoom, setZoom] = useState(1);
 
     const drawGraph = () => {
-        cytoscape.use(dagre);
         const cy = cytoscape({
             container: graphRef.current,
             style: style,
             layout: layout,
-            elements: graphData.elements
+            elements: graphData.elements,
         });
+
+        cy.pan(pan);
+        cy.zoom(zoom);
+
+        cy.on('pan', () => {
+            setPan(cy.pan());
+        });
+
+        cy.on('zoom', () => {
+            setZoom(cy.zoom());
+        });
+
+        setPan(cy.pan());
+        setZoom(cy.zoom());
     };
        
     useEffect(() => {
