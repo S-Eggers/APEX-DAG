@@ -14,11 +14,11 @@ from sklearn.metrics import confusion_matrix
 
 
 class BaseTrainer:
-    def __init__(self, model, train_dataset, val_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10):
+    def __init__(self, model, train_dataset, val_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10, batch_size=32):
         self.model = model.to(device)
         self.device = device
-        self.train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
-        self.val_loader = DataLoader(val_dataset, batch_size=32, shuffle=False)
+        self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        self.val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False)
         self.optimizer = optim.Adam(self.model.parameters(), lr=0.001)
         
         self.criterion_node = nn.CrossEntropyLoss()
@@ -96,12 +96,20 @@ class BaseTrainer:
     def train(self, num_epochs):
         training_bar = tqdm.tqdm(range(num_epochs))
         training_bar.set_description("Training")
+        
+        best_losses = {
+            "node_type_loss": float("inf"),
+            "edge_type_loss": float("inf"),
+            "edge_existence_loss": float("inf")
+        }
+        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss"])
+
 
         for epoch in training_bar:
             train_losses = []
             val_losses = []
 
-            for batch in self.train_loader:
+            for batch in tqdm.tqdm(self.train_loader, desc="Training Batches"):
                 train_losses.append(self.train_step(batch))
 
             for batch in self.val_loader:
@@ -129,8 +137,19 @@ class BaseTrainer:
 
             if avg_val_loss < self.best_val_loss:
                 self.best_val_loss = avg_val_loss
+                for loss_type in best_losses:
+                    best_losses[loss_type] = avg_val_losses[loss_type]
                 self.early_stopping_counter = 0
                 self.save_checkpoint(epoch, avg_val_loss)
+                
+                best_losses_table.add_data(
+                    epoch,
+                    best_losses["node_type_loss"],
+                    best_losses["edge_type_loss"],
+                    best_losses["edge_existence_loss"]
+                )
+                wandb.log({"Best_Losses": best_losses_table})
+    
             else:
                 self.early_stopping_counter += 1
 
@@ -139,6 +158,7 @@ class BaseTrainer:
                 break
         
         self.writer.close()
+        return self.best_val_loss
 
     def log_histograms(self, epoch):
         for name, param in self.model.named_parameters():

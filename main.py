@@ -10,7 +10,7 @@ def main(argv=None):
     logger = setup_logging("main", True)
     args = argparser.parse_args(argv)
     
-    setup_wandb(project_name="APEX-DAG")
+    setup_wandb(project_name="APEX-DAG-hyperparam-optimization")
 
     start_time = time.time()
     match args.experiment:

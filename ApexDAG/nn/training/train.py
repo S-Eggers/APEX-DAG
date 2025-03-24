@@ -74,36 +74,38 @@ class GraphEncoder:
         
         # for testing, remove if not needed downstream
         self.load_old_if_exist = load_encoded_old_if_exist
-
-    def encode_graphs(self, graphs, feature_to_encode):
-        """Encodes graphs and saves them to disk."""
+    
+    def reload_encoded_graphs(self):
         if self.encoded_checkpoint_path.exists() and self.load_old_if_exist:
             self.logger.info("Loading encoded graphs...")
-            self.encoded_graphs = [
+            return [
                 torch.load(self.encoded_checkpoint_path / path)
                 for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs")
             ]
-        else:
-            self.logger.info("Encoding graphs...")
-            os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
-            encoder = Encoder()
+        return False
 
-            for index, graph in tqdm.tqdm(enumerate(graphs), desc="Encoding graphs"):
-                if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
-                    continue  # skip small graphs
+    def encode_graphs(self, graphs, feature_to_encode):
+        """Encodes graphs and saves them to disk."""
+        self.logger.info("Encoding graphs...")
+        os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
+        encoder = Encoder()
 
-                try:
-                    encoded_graph = encoder.encode(graph, feature_to_encode)
-                    torch.save(encoded_graph, self.encoded_checkpoint_path / f"graph_{index}.pt")
-                    self.encoded_graphs.append(encoded_graph)
-                except KeyboardInterrupt:
-                    self.logger.warning("Encoding interrupted, continuing with next graph...")
-                    continue
-                except InsufficientNegativeEdgesException:
-                    self.logger.error(f"Insufficient negative edges in graph {index}")
-                    continue
-                except Exception:
-                    self.logger.error(f"Error in graph {index}")
+        for index, graph in tqdm.tqdm(enumerate(graphs), desc="Encoding graphs"):
+            if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
+                continue  # skip small graphs
+
+            try:
+                encoded_graph = encoder.encode(graph, feature_to_encode)
+                torch.save(encoded_graph, self.encoded_checkpoint_path / f"graph_{index}.pt")
+                self.encoded_graphs.append(encoded_graph)
+            except KeyboardInterrupt:
+                self.logger.warning("Encoding interrupted, continuing with next graph...")
+                continue
+            except InsufficientNegativeEdgesException:
+                self.logger.error(f"Insufficient negative edges in graph {index}")
+                continue
+            except Exception:
+                self.logger.error(f"Error in graph {index}")
 
 
         return self.encoded_graphs
@@ -127,7 +129,7 @@ class GATTrainer:
             val_size = len(dataset) - train_size
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         
-            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu", patience=self.config["patience"])
+            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu", patience=self.config["patience"], batch_size=self.config["batch_size"])
             
         elif mode == Modes.LINEAR_PROBING:
             self.logger.info("Training in linear probing mode")
@@ -139,11 +141,14 @@ class GATTrainer:
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size + test_size])
             val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
             
-            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device="cpu", patience=self.config["patience"])
-        trainer.train(num_epochs=self.config["num_epochs"])
+            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device="cpu", patience=self.config["patience"], batch_size=self.config["batch_size"])
+        best_loss = trainer.train(num_epochs=self.config["num_epochs"])
         
         for type_conf_matrix in trainer.conf_matrices_types:
             trainer.log_confusion_matrix(train_dataset, "Train", type_conf_matrix )
             trainer.log_confusion_matrix(val_dataset, "Val", type_conf_matrix)
             if mode == Modes.LINEAR_PROBING:
                 trainer.log_confusion_matrix(test_dataset, "Test", type_conf_matrix)
+                
+        wandb.finish()
+        return best_loss
