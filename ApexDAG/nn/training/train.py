@@ -44,7 +44,7 @@ class GraphProcessor:
 
         self.logger.info("Loading preprocessed graphs...")
         errors = 0
-        graph_files = list(self.checkpoint_path.iterdir())[:60000]
+        graph_files = list(self.checkpoint_path.iterdir())
         
         for graph_file in tqdm.tqdm(graph_files, desc="Loading graphs"):
             try:
@@ -85,7 +85,7 @@ class GraphEncoder:
             self.encoded_graphs = [
                 torch.load(self.encoded_checkpoint_path / path)
                 for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs")
-            ][:60000]
+            ][:10000]
         else:
             self.logger.info("Encoding graphs...")
             os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
@@ -105,8 +105,8 @@ class GraphEncoder:
                 except InsufficientNegativeEdgesException:
                     self.logger.error(f"Insufficient negative edges in graph {index}")
                     continue
-                # except Exception:
-                #     self.logger.error(f"Error in graph {index}")
+                except Exception:
+                    self.logger.error(f"Error in graph {index}")
 
 
         return self.encoded_graphs
