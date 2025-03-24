@@ -5,15 +5,18 @@ import logging
 from pathlib import Path
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
-
+from ApexDAG.util.training_utils import set_seed
 
 def create_model(config):
     return MultiTaskGAT(
             hidden_dim=config["hidden_dim"], 
+            dim_embed=config["dim_embed"],
             num_heads=config["num_heads"], 
             node_classes=config["node_classes"], 
-            edge_classes=config["edge_classes"]
-
+            edge_classes=config["edge_classes"],
+            residual=config["residual"],
+            dropout=config["dropout"],
+            number_gat_blocks=config["number_gat_blocks"]
         )
     
 def signal_handler(signum, frame):
@@ -29,9 +32,10 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
     mode = Modes.PRETRAINING
     
-    with open(args.config_path, "r") as f:
+    with open(args.get('config_path'), "r") as f:
         config = yaml.safe_load(f)
-
+        
+    set_seed(config["seed"])
 
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded"
@@ -46,13 +50,12 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
     trainer = GATTrainer(config, logger)
 
-    # load or mine graphs
-    graph_processor.load_preprocessed_graphs()
-
-    # encode graphs
-    encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="edge_type")
-
-    # train model
-    trainer.train(encoded_graphs, model, mode)
+    encoded_graphs = graph_encoder.reload_encoded_graphs()
     
+    if not encoded_graphs:
+        graph_processor.load_preprocessed_graphs()
+        encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="edge_type")
+
+    best_val_loss = trainer.train(encoded_graphs, model, mode)
+    return best_val_loss
     

@@ -176,3 +176,4 @@ models/*
 
 # weights and biases
 wandb/*
+hyperparam_optim/*
