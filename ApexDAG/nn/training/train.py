@@ -129,7 +129,7 @@ class GATTrainer:
             val_size = len(dataset) - train_size
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         
-            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu", patience=self.config["patience"], batch_size=self.config["batch_size"])
+            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device="cpu", patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'])
             
         elif mode == Modes.LINEAR_PROBING:
             self.logger.info("Training in linear probing mode")
@@ -141,7 +141,7 @@ class GATTrainer:
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size + test_size])
             val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
             
-            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device="cpu", patience=self.config["patience"], batch_size=self.config["batch_size"])
+            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device="cpu", patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'])
         best_loss = trainer.train(num_epochs=self.config["num_epochs"])
         
         for type_conf_matrix in trainer.conf_matrices_types:

@@ -3,15 +3,13 @@ import time
 import matplotlib
 
 from ApexDAG.argparser import argparser
-from ApexDAG.util.logging import setup_logging, setup_wandb
+from ApexDAG.util.logging import setup_logging
 
 
 def main(argv=None):
     logger = setup_logging("main", True)
     args = argparser.parse_args(argv)
     
-    setup_wandb(project_name="APEX-DAG-hyperparam-optimization")
-
     start_time = time.time()
     match args.experiment:
         case "ast_graph_test":

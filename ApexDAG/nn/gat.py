@@ -47,7 +47,7 @@ class MultiTaskGAT(nn.Module):
     def forward(self, data, task=None):
         x, edge_embeds, edge_index = data.x, data.edge_features, data.edge_index
 
-        # up-project node and edge embeddings
+        # up-project node and edge embeddings     
         x = self.up_projection(x)
         edge_embeds = self.up_projection(edge_embeds)
         

@@ -1,6 +1,8 @@
 import yaml
 import signal
 import logging
+import wandb
+import torch
 
 from pathlib import Path
 from ApexDAG.nn.gat import MultiTaskGAT
@@ -26,14 +28,27 @@ def signal_handler(signum, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
+def log_config(config_file):
+    artifact = wandb.Artifact("config_file", type="config")
+    artifact.add_file(config_file)
+    wandb.log_artifact(artifact)
+    
+    with open(config_file, "r") as f:
+        config = yaml.safe_load(f)
+        
+    wandb.config.update(config)
 
 def pretrain_gat(args, logger: logging.Logger) -> None:
     """Main entry point for pretraining the GAT model."""
     
     mode = Modes.PRETRAINING
     
-    with open(args.get('config_path'), "r") as f:
+    config_path = args.get('config_path')
+    log_config(config_path)
+    
+    with open(config_path, "r") as f:
         config = yaml.safe_load(f)
+    
         
     set_seed(config["seed"])
 
@@ -57,5 +72,8 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="edge_type")
 
     best_val_loss = trainer.train(encoded_graphs, model, mode)
+    
+    torch.cuda.empty_cache()
+    
     return best_val_loss
     
