@@ -12,7 +12,7 @@ def objective(trial):
     
     config = {
         "checkpoint_path": "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs",
-        "encoded_checkpoint_path": "data/raw/pytorch-embedded",
+        "encoded_checkpoint_path": "data/raw/",
         "node_classes": 8,
         "edge_classes": 6,
         "num_epochs": 50,
@@ -34,6 +34,7 @@ def objective(trial):
         "min_edges": 2,
 
         "load_encoded_old_if_exist": True,
+        "device": "cuda"
     }
 
     hash_value = hash(str(config))

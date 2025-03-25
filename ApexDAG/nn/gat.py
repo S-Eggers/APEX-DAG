@@ -29,9 +29,12 @@ class MultiTaskGAT(nn.Module):
         super().__init__()
         
         self.up_projection = nn.Linear(dim_embed, hidden_dim)
+        
         # GAT Blocks
-        self.gat_blocks = [GATBlock(hidden_dim, hidden_dim, num_heads, dropout, edge_dim=hidden_dim, residual=residual)
-                            for _ in range(number_gat_blocks)]
+        self.gat_blocks = nn.ModuleList([
+            GATBlock(hidden_dim, hidden_dim, num_heads, dropout, edge_dim=hidden_dim, residual=residual)
+            for _ in range(number_gat_blocks)
+        ])
 
         # Task-specific heads
         self.node_type_head = nn.Linear(hidden_dim, node_classes)

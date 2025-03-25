@@ -14,7 +14,7 @@ from sklearn.metrics import confusion_matrix
 
 
 class BaseTrainer:
-    def __init__(self, model, train_dataset, val_dataset, device="cpu", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10, batch_size=32, lr=0.001, weight_decay=0.00001):
+    def __init__(self, model, train_dataset, val_dataset, device="cuda", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10, batch_size=32, lr=0.001, weight_decay=0.00001):
         self.model = model.to(device)
         self.device = device
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)

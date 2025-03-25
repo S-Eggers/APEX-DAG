@@ -51,9 +51,8 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
         
     set_seed(config["seed"])
-
     checkpoint_path = Path(config["checkpoint_path"])
-    encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded"
+    encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])
 
     graph_processor = GraphProcessor(checkpoint_path, logger)
     graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, 
@@ -62,6 +61,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                                  config['load_encoded_old_if_exist'])
     
     model = create_model(config)
+    model.to(config['device'])
     
     trainer = GATTrainer(config, logger)
 
@@ -71,7 +71,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         graph_processor.load_preprocessed_graphs()
         encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="edge_type")
 
-    best_val_loss = trainer.train(encoded_graphs, model, mode)
+    best_val_loss = trainer.train(encoded_graphs, model, mode, device=config['device'])
     
     torch.cuda.empty_cache()
     

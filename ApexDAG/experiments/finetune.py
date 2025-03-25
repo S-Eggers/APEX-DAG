@@ -49,4 +49,4 @@ def finetune_gat(args, logger: logging.Logger) -> None:
     encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="domain_label")
 
     # train model
-    trainer.train(encoded_graphs, model, mode)
+    trainer.train(encoded_graphs, model, mode, device= config['device'])
