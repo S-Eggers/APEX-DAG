@@ -104,3 +104,46 @@ class Encoder:
             torch.tensor(edge_existence, dtype=torch.float32),
         )
 
+def swap_nodes_and_edges_in_data(data: Data) -> Data:
+    edge_id_to_node = {i: (int(u),int(v)) for i, (u, v) in enumerate(zip(data.edge_index[0], data.edge_index[1]))}
+    
+    node_pair_to_edge_id = {(int(u),int(v)): i for i, (u, v) in edge_id_to_node.items()}
+    node_pair_to_edge_id.update({(int(u),int(v)): i for i, (u, v) in edge_id_to_node.items()})  # Add reverse pairs
+
+    new_edge_index = []
+    new_edge_features = []  # store the new edges' features 
+    new_edge_types = []  #  store the new edges' types  
+    for edge_id_1, (u, v) in edge_id_to_node.items():
+        u = int(u)
+        v = int(v)
+        
+        neighbors_u = data.edge_index[1][data.edge_index[0] == u].tolist()
+        neighbors_v = data.edge_index[1][data.edge_index[0] == v].tolist()
+
+        for neighbor_u in neighbors_u:
+            if neighbor_u != v:  # Avoid self-loops
+                edge_id_2 = node_pair_to_edge_id.get((neighbor_u, u)) 
+                if edge_id_2 is not None:
+                    new_edge_index.append([edge_id_2, edge_id_1])
+                    new_edge_features.append(data.x[u])  # Use node u's features for the new edge
+                    new_edge_types.append(data.node_types[u]) 
+
+        for neighbor_v in neighbors_v:
+            if neighbor_v != u:  # Avoid self-loops
+                edge_id_2 = node_pair_to_edge_id.get((v, neighbor_v)) 
+                if edge_id_2 is not None:
+                    new_edge_index.append([edge_id_1, edge_id_2])
+                    new_edge_features.append(data.x[v])  # v's features for the new edge
+                    new_edge_types.append(data.node_types[v])
+
+    new_edge_index = torch.tensor(new_edge_index).t().contiguous()
+    new_edge_features = torch.stack(new_edge_features) 
+    new_edge_types = torch.tensor(new_edge_types)
+
+    return Data(
+        x=data.edge_features,                # Original node features are now edge features
+        node_types=data.edge_types,          # Edge types are now the original node types
+        edge_index=new_edge_index,          # New edge index defines the new connectivity
+        edge_types=new_edge_types,          # Edge types are now the original edge types
+        edge_features=new_edge_features,    # Edge features are now the original node features
+    )

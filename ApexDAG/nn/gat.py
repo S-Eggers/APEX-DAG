@@ -66,10 +66,4 @@ class MultiTaskGAT(nn.Module):
             edge_features = x[edge_index[0]]
             outputs["edge_type_preds"] = F.softmax(self.edge_type_head(edge_features), dim=-1)
 
-        if task == "edge_existence" or task is None:
-            source_embeddings = x[edge_index[0]]
-            target_embeddings = x[edge_index[1]]
-            combined_edge_embeddings = torch.cat([source_embeddings, target_embeddings], dim=-1)
-            outputs["edge_existence_preds"] = torch.sigmoid(self.edge_mlp(combined_edge_embeddings))
-
         return outputs

@@ -8,7 +8,7 @@ from pathlib import Path
 from torch.utils.data import random_split
 from enum import Enum
 
-from ApexDAG.encoder import Encoder
+from ApexDAG.encoder import Encoder, swap_nodes_and_edges_in_data
 from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer
@@ -75,13 +75,43 @@ class GraphEncoder:
         # for testing, remove if not needed downstream
         self.load_old_if_exist = load_encoded_old_if_exist
     
+    
     def reload_encoded_graphs(self):
         if self.encoded_checkpoint_path.exists() and self.load_old_if_exist:
-            self.logger.info("Loading encoded graphs...")
-            return [
-                torch.load(self.encoded_checkpoint_path / path)
-                for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs")
-            ]
+            swapped_graphs_directory = self.encoded_checkpoint_path.parent / 'pytorch-encoded-swapped'
+            if not swapped_graphs_directory.exists():
+                self.logger.info("Loading encoded graphs...")
+                swapped_graphs_directory.mkdir(parents=True, exist_ok=True)
+                
+                swapped_graph_paths = []
+                
+                for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs"):
+
+                    try:
+                        encoded_graph = torch.load(self.encoded_checkpoint_path / path, weights_only = False)
+                        swapped_data = swap_nodes_and_edges_in_data(encoded_graph)
+                        swapped_graph_path = swapped_graphs_directory / f"swapped_{path}"
+                        torch.save(swapped_data, swapped_graph_path)
+                    
+                        swapped_graph_paths.append(swapped_graph_path)
+                    except Exception as e:
+                        self.logger.error(f"Error in graph {path}")
+                        self.logger.error(traceback.format_exc())
+                        continue
+                
+                self.logger.info(f"Swapped graphs saved in {swapped_graphs_directory}")
+            
+            encoded_graphs = []
+            for path in tqdm.tqdm(os.listdir(swapped_graphs_directory), desc="Loading encoded graphs"):
+                try:
+                    encoded_graph = torch.load(swapped_graphs_directory / path)
+                    encoded_graphs.append(encoded_graph)
+                except Exception as e:
+                    self.logger.error(f"Error in graph {path}")
+                    self.logger.error(traceback.format_exc())
+
+            return encoded_graphs
+                
         return False
 
     def encode_graphs(self, graphs, feature_to_encode):

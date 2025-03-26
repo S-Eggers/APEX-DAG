@@ -13,8 +13,8 @@ def objective(trial):
     config = {
         "checkpoint_path": "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs",
         "encoded_checkpoint_path": "data/raw/",
-        "node_classes": 8,
-        "edge_classes": 6,
+        "node_classes": 6,
+        "edge_classes": 8,
         "num_epochs": 50,
         "train_split": 0.8,
         "patience": 10,
@@ -40,7 +40,7 @@ def objective(trial):
     hash_value = hash(str(config))
     os.makedirs("hyperparam_optim", exist_ok = True)
 
-    setup_wandb(project_name="APEX-DAG-hyperparam-optimization", name = hash_value)
+    setup_wandb(project_name="APEX-DAG-reversed-edges-and-nodes", name = hash_value)
     print(config)
 
     with open(f"hyperparam_optim/config_{hash_value}.yaml", "w") as f:

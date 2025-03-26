@@ -23,7 +23,6 @@ class BaseTrainer:
         
         self.criterion_node = nn.CrossEntropyLoss()
         self.criterion_edge_type = nn.CrossEntropyLoss()
-        self.criterion_edge_existence = nn.BCELoss()
         
         self.writer = SummaryWriter(log_dir=log_dir)
         self.checkpoint_dir = checkpoint_dir
@@ -63,9 +62,6 @@ class BaseTrainer:
                     valid_edge_mask = labels != -1
                     preds = preds[valid_edge_mask]
                     labels = labels[valid_edge_mask]
-                elif pred_type == "edge_existence_preds":
-                    labels = data.edge_existence.cpu().numpy()
-                    preds = (outputs[pred_type] > 0.5).cpu().numpy().astype(int)
                 elif pred_type == "node_type_preds":
                     preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
                     labels = data.node_types.cpu().numpy()
@@ -99,10 +95,9 @@ class BaseTrainer:
         
         best_losses = {
             "node_type_loss": float("inf"),
-            "edge_type_loss": float("inf"),
-            "edge_existence_loss": float("inf")
+            "edge_type_loss": float("inf")
         }
-        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss"])
+        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss"])
 
 
         for epoch in training_bar:
@@ -150,8 +145,7 @@ class BaseTrainer:
                 best_losses_table.add_data(
                     epoch,
                     best_losses["node_type_loss"],
-                    best_losses["edge_type_loss"],
-                    best_losses["edge_existence_loss"]
+                    best_losses["edge_type_loss"]
                 )
                 wandb.log({"Best_Losses": best_losses_table})
                 break
@@ -160,8 +154,7 @@ class BaseTrainer:
         best_losses_table.add_data(
                     epoch,
                     best_losses["node_type_loss"],
-                    best_losses["edge_type_loss"],
-                    best_losses["edge_existence_loss"]
+                    best_losses["edge_type_loss"]
                 )
         wandb.log({"Best_Losses": best_losses_table})
         return self.best_val_loss

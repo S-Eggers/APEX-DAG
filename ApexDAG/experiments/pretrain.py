@@ -1,5 +1,4 @@
 import yaml
-import signal
 import logging
 import wandb
 import torch
@@ -21,12 +20,6 @@ def create_model(config):
             number_gat_blocks=config["number_gat_blocks"]
         )
     
-def signal_handler(signum, frame):
-    """Handles interrupt signals (Ctrl+C)."""
-    global interrupted
-    interrupted = True
-
-signal.signal(signal.SIGINT, signal_handler)
 
 def log_config(config_file):
     artifact = wandb.Artifact("config_file", type="config")
