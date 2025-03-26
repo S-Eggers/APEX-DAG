@@ -15,26 +15,26 @@ def objective(trial):
         "encoded_checkpoint_path": "data/raw/",
         "node_classes": 6,
         "edge_classes": 8,
-        "num_epochs": 50,
+        "num_epochs": 5,
         "train_split": 0.8,
-        "patience": 10,
+        "patience": 5,
         'seed': 42,
         # hyperparameters
-        "residual": trial.suggest_categorical("residual", [True, False]),
-        "number_gat_blocks": trial.suggest_int("number_gat_blocks", 2, 4),
-        "batch_size": trial.suggest_categorical("batch_size", [32]),
-        "learning_rate": trial.suggest_categorical("learning_rate", [0.001, 0.005]),
-        "num_heads": trial.suggest_categorical("num_heads", [4, 8]),
-        "hidden_dim": trial.suggest_categorical("hidden_dim", [32, 64, 128, 256]),
-        "dropout": trial.suggest_categorical("dropout", [0.2, 0.4, 0.6]),
-        "weight_decay": trial.suggest_categorical("weight_decay", [0.00001, 0.0001]),
+        "residual": trial.suggest_categorical("residual", [True]),
+        "number_gat_blocks": trial.suggest_int("number_gat_blocks", 4, 4),
+        "batch_size": trial.suggest_categorical("batch_size", [24]),
+        "learning_rate": trial.suggest_categorical("learning_rate", [0.005]),
+        "num_heads": trial.suggest_categorical("num_heads", [8]),
+        "hidden_dim": trial.suggest_categorical("hidden_dim", [64]),
+        "dropout": trial.suggest_categorical("dropout", [0.2]),
+        "weight_decay": trial.suggest_categorical("weight_decay", [0.0001]),
         "dim_embed": 300,
 
         "min_nodes": 3,
         "min_edges": 2,
 
         "load_encoded_old_if_exist": True,
-        "device": "cuda"
+        "device": "cpu"
     }
 
     hash_value = hash(str(config))
