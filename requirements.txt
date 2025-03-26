@@ -17,3 +17,5 @@ pydantic==2.10.6
 wandb==0.19.8
 dotenv==0.9.9
 scikit-learn==1.6.1
+
+tensorboard
