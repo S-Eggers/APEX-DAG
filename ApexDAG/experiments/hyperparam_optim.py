@@ -12,7 +12,7 @@ def objective(trial):
     
     config = {
         "checkpoint_path": "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs",
-        "encoded_checkpoint_path": "data/raw/",
+        "encoded_checkpoint_path": "data/raw/pytorch-encoded",
         "node_classes": 6,
         "edge_classes": 8,
         "num_epochs": 5,
