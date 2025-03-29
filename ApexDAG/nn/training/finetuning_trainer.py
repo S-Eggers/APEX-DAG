@@ -1,6 +1,6 @@
 import os
 import torch
-
+import wandb
 from ApexDAG.nn.training.base_trainer import BaseTrainer
 from torch_geometric.loader import DataLoader
 
@@ -22,6 +22,10 @@ class FinetuningTrainer(BaseTrainer):
             'val_loss': val_loss
         }, checkpoint_path)
         
+        artifact = wandb.Artifact('model-checkpoints', type='model')
+        artifact.add_file(checkpoint_path)
+        wandb.log_artifact(artifact)
+        
 
     def train_step(self, data):
         self.model.train()
@@ -32,11 +36,7 @@ class FinetuningTrainer(BaseTrainer):
         losses = {}
         
         if "edge_type_preds" in outputs:
-            valid_edge_mask = data.edge_types != -1  # Mask for valid edges
-            if valid_edge_mask.any():  # Ensure there are valid edges
-                edge_type_preds = outputs["edge_type_preds"][valid_edge_mask]
-                edge_type_targets = data.edge_types[valid_edge_mask]
-                losses["edge_type_loss"] = self.criterion_edge_type(edge_type_preds, edge_type_targets)
+            losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
 
        
         total_loss = sum(losses.values())
@@ -55,11 +55,6 @@ class FinetuningTrainer(BaseTrainer):
         losses = {}
 
         if "edge_type_preds" in outputs:
-            valid_edge_mask = data.edge_types != -1  # Mask for valid edges
-            if valid_edge_mask.any():  # Ensure there are valid edges
-                edge_type_preds = outputs["edge_type_preds"][valid_edge_mask]
-                edge_type_targets = data.edge_types[valid_edge_mask]
-                losses["edge_type_loss"] = self.criterion_edge_type(edge_type_preds, edge_type_targets)
+            losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
 
-    
         return {k: v.item() for k, v in losses.items()}

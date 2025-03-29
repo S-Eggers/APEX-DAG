@@ -12,21 +12,21 @@ def objective(trial):
     
     config = {
         "checkpoint_path": "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs",
-        "encoded_checkpoint_path": "data/raw/",
-        "node_classes": 8,
-        "edge_classes": 6,
-        "num_epochs": 50,
+        "encoded_checkpoint_path": "data/raw/pytorch-encoded-swapped",
+        "node_classes": 6, # edges are represented as nodes!
+        "edge_classes": 8, # nodes are internally represented as edges!
+        "num_epochs": 40,
         "train_split": 0.8,
-        "patience": 10,
+        "patience": 4,
         'seed': 42,
         # hyperparameters
-        "residual": trial.suggest_categorical("residual", [True, False]),
-        "number_gat_blocks": trial.suggest_int("number_gat_blocks", 2, 4),
+        "residual": trial.suggest_categorical("residual", [True]),
+        "number_gat_blocks": trial.suggest_int("number_gat_blocks", 3, 5),
         "batch_size": trial.suggest_categorical("batch_size", [32]),
         "learning_rate": trial.suggest_categorical("learning_rate", [0.001, 0.005]),
         "num_heads": trial.suggest_categorical("num_heads", [4, 8]),
-        "hidden_dim": trial.suggest_categorical("hidden_dim", [32, 64, 128, 256]),
-        "dropout": trial.suggest_categorical("dropout", [0.2, 0.4, 0.6]),
+        "hidden_dim": trial.suggest_categorical("hidden_dim", [64, 128, 256]),
+        "dropout": trial.suggest_categorical("dropout", [0.2, 0.4]),
         "weight_decay": trial.suggest_categorical("weight_decay", [0.00001, 0.0001]),
         "dim_embed": 300,
 
@@ -34,13 +34,13 @@ def objective(trial):
         "min_edges": 2,
 
         "load_encoded_old_if_exist": True,
-        "device": "cuda"
+        "device": "cpu"
     }
 
     hash_value = hash(str(config))
     os.makedirs("hyperparam_optim", exist_ok = True)
 
-    setup_wandb(project_name="APEX-DAG-hyperparam-optimization", name = hash_value)
+    setup_wandb(project_name="APEX-DAG-reversed-nodes-edges-pretraining", name = hash_value)
     print(config)
 
     with open(f"hyperparam_optim/config_{hash_value}.yaml", "w") as f:

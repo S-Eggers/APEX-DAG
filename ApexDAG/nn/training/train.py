@@ -107,7 +107,6 @@ class GraphEncoder:
             except Exception:
                 self.logger.error(f"Error in graph {index}")
 
-
         return self.encoded_graphs
 
 
