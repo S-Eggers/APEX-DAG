@@ -24,7 +24,7 @@ def objective(trial):
         "number_gat_blocks": trial.suggest_int("number_gat_blocks", 3, 5),
         "batch_size": trial.suggest_categorical("batch_size", [32]),
         "learning_rate": trial.suggest_categorical("learning_rate", [0.001, 0.005]),
-        "num_heads": trial.suggest_categorical("num_heads", [4, 8]),
+        "num_heads": trial.suggest_categorical("num_heads", [4, 8, 16]),
         "hidden_dim": trial.suggest_categorical("hidden_dim", [64, 128, 256]),
         "dropout": trial.suggest_categorical("dropout", [0.2, 0.4]),
         "weight_decay": trial.suggest_categorical("weight_decay", [0.00001, 0.0001]),
