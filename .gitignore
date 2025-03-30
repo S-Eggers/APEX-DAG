@@ -172,3 +172,10 @@ data/*
 *.bin.gz
 runs/*
 checkpoints/*
+models/*
+
+# weights and biases
+wandb/*
+node_modules/*
+apex-dag-jupyter/src/app/data_flow_graph.json
+hyperparam_optim/*

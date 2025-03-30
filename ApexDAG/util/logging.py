@@ -1,4 +1,23 @@
 import logging
+import os
+import wandb
+from dotenv import load_dotenv
+
+load_dotenv()
+
+def setup_wandb(project_name: str, name: str = None):
+    """
+    Initialize wandb.
+
+    Args:
+        project_name (str): The name of the wandb project.
+    """
+    entity = os.getenv("WANDB_USER", "default_user")
+    
+    if name is None:
+        wandb.init(project=project_name, entity=entity)
+    else:
+        wandb.init(project=project_name, entity=entity, name = 'hash' + str(name).replace("-", "_"))
 
 def setup_logging(name: str, verbose: bool) -> logging.Logger:
     logger = logging.getLogger(name)

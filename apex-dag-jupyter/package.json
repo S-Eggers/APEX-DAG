@@ -1,0 +1,31 @@
+{
+  "name": "apex-dag-jupyter",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "chokidar": "^4.0.3",
+    "cytoscape": "^3.31.1",
+    "cytoscape-dagre": "^2.5.0",
+    "next": "15.2.3",
+    "react": "^19.0.0",
+    "react-cytoscapejs": "^2.0.0",
+    "react-dom": "^19.0.0",
+    "socket.io": "^4.8.1",
+    "ws": "^8.18.1"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.2.3",
+    "typescript": "^5"
+  }
+}

@@ -1,4 +1,5 @@
 # APEX-DAG: <ins>A</ins>utomating <ins>P</ins>ipeline <ins>EX</ins>traction with <ins>D</ins>ataflow, Static Code <ins>A</ins>nalysis, and <ins>G</ins>raph Attention Networks
+![translator_input_output(1)](https://github.com/user-attachments/assets/2f128811-38ea-4566-acc1-e6d8fd6f1005)
 
 ## Abstract
 
@@ -18,7 +19,7 @@ after an initial training phase, our system can identify pipelines
 that built with previously unseen libraries.
 
 ## Demo video
-You can find the demo video <a href="https://drive.google.com/file/d/1Al18W68A5X8hl3LfdGuOFVs1WUtNogjB/view?usp=sharing">here</a>.
+You can find the demo video <a href="https://drive.google.com/file/d/18GxG-fEuiqBnU4402_sEy2W1poDhLxGP/view?usp=sharing">here</a>.
 
 ## Environment setup with conda:
 

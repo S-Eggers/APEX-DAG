@@ -1,36 +1,46 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GATv2Conv, BatchNorm
+from torch_geometric.nn import GATv2Conv, LayerNorm
 
-class MultiTaskGAT(nn.Module):
-    def __init__(self, hidden_dim, num_heads=8, node_classes=8, edge_classes=6, dropout=0.2):
-        super(MultiTaskGAT, self).__init__()
-
-        # First GAT layer
-        self.gat1 = GATv2Conv(
-            in_channels=hidden_dim, 
-            out_channels=hidden_dim // num_heads, 
-            heads=num_heads, 
-            concat=True
+class GATBlock(nn.Module):
+    def __init__(self, in_dim, out_dim, num_heads, dropout, edge_dim, residual=False):
+        super().__init__()
+        self.gat = GATv2Conv(
+            in_channels=in_dim,
+            out_channels=out_dim // num_heads,
+            heads=num_heads,
+            concat=True,
+            edge_dim=edge_dim,
+            residual=residual
         )
-        self.bn1 = BatchNorm(hidden_dim)  # Batch Normalization
+        self.norm = LayerNorm(out_dim)
         self.dropout = nn.Dropout(dropout)
 
-        # Second GAT layer (deeper model)
-        self.gat2 = GATv2Conv(
-            in_channels=hidden_dim, 
-            out_channels=hidden_dim // num_heads, 
-            heads=num_heads, 
-            concat=True
-        )
-        self.bn2 = BatchNorm(hidden_dim)
+    def forward(self, x, edge_index, edge_attr):
+        x = self.gat(x, edge_index, edge_attr=edge_attr)
+        x = self.norm(x)
+        x = F.relu(x)
+        x = self.dropout(x)
+        return x
+
+class MultiTaskGAT(nn.Module):
+    def __init__(self, hidden_dim, dim_embed, num_heads=8, node_classes=8, edge_classes=6, dropout=0.2, number_gat_blocks = 2, residual = False):
+        super().__init__()
+        
+        self.up_projection = nn.Linear(dim_embed, hidden_dim)
+        
+        # GAT Blocks
+        self.gat_blocks = nn.ModuleList([
+            GATBlock(hidden_dim, hidden_dim, num_heads, dropout, edge_dim=hidden_dim, residual=residual)
+            for _ in range(number_gat_blocks)
+        ])
 
         # Task-specific heads
-        self.node_type_head = nn.Linear(hidden_dim, node_classes)  
-        self.edge_type_head = nn.Linear(hidden_dim, edge_classes)  
-        
-        # Edge existence prediction with additional transformation
+        self.node_type_head = nn.Linear(hidden_dim, node_classes)
+        self.edge_type_head = nn.Linear(hidden_dim, edge_classes)
+
+        # Edge existence prediction
         self.edge_mlp = nn.Sequential(
             nn.Linear(hidden_dim * 2, hidden_dim),
             nn.ReLU(),
@@ -38,23 +48,14 @@ class MultiTaskGAT(nn.Module):
         )
 
     def forward(self, data, task=None):
-        x, edge_index = data.x, data.edge_index
+        x, edge_embeds, edge_index = data.x, data.edge_features, data.edge_index
 
-        # First GAT layer with normalization and dropout
-        x_res = x  # Save residual connection
-        x = self.gat1(x, edge_index)
-        x = self.bn1(x)
-        x = F.relu(x)
-        x = self.dropout(x)
-
-        # Second GAT layer (Deeper Model)
-        x = self.gat2(x, edge_index)
-        x = self.bn2(x)
-        x = F.relu(x)
-        x = self.dropout(x)
-
-        # Residual connection
-        x = x + x_res
+        # up-project node and edge embeddings     
+        x = self.up_projection(x)
+        edge_embeds = self.up_projection(edge_embeds)
+        
+        for gat_block in self.gat_blocks:
+            x = gat_block(x, edge_index, edge_embeds)
 
         outputs = {}
 
@@ -70,45 +71,5 @@ class MultiTaskGAT(nn.Module):
             target_embeddings = x[edge_index[1]]
             combined_edge_embeddings = torch.cat([source_embeddings, target_embeddings], dim=-1)
             outputs["edge_existence_preds"] = torch.sigmoid(self.edge_mlp(combined_edge_embeddings))
-
-        return outputs
-
-
-class ExtendedMultiTaskGAT(MultiTaskGAT):
-    def __init__(self, hidden_dim, num_heads, node_classes, edge_classes, downstream_classes):
-        super(ExtendedMultiTaskGAT, self).__init__(hidden_dim, num_heads, node_classes, edge_classes)
-        # Add downstream task head
-        self.downstream_head = nn.Linear(hidden_dim * 2, downstream_classes)
-
-    def forward(self, data, task=None):
-        """
-        Perform forward pass for all tasks, emphasizing edge embeddings in the downstream task.
-
-        Args:
-            data (Data): PyTorch Geometric Data object.
-            task (str): Task to run. If None, all tasks are computed.
-
-        Returns:
-            dict: Predictions for the requested tasks.
-        """
-        outputs = super(ExtendedMultiTaskGAT, self).forward(data, task)
-
-        if task == "downstream_task" or task is None:
-            # Use both node and edge embeddings for downstream task
-            node_embeddings = data.x  # Node embeddings from the GAT layer
-            edge_index = data.edge_index
-            edge_embeddings = node_embeddings[edge_index[0]] + node_embeddings[edge_index[1]]  # Summing source and target
-
-            # Aggregate edge embeddings
-            edge_embeddings_agg = torch.mean(edge_embeddings, dim=0)  # Mean pooling for edges
-
-            # Aggregate node embeddings
-            node_embeddings_agg = torch.mean(node_embeddings, dim=0)  # Mean pooling for nodes
-
-            # Combine node and edge embeddings
-            combined_features = torch.cat([node_embeddings_agg, edge_embeddings_agg], dim=-1)
-
-            # Downstream prediction
-            outputs["downstream_preds"] = F.softmax(self.downstream_head(combined_features), dim=-1)
 
         return outputs
