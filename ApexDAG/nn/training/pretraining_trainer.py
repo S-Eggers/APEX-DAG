@@ -61,7 +61,7 @@ class PretrainingTrainer(BaseTrainer):
     
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
-            filename = f"model_epoch_pretrained_{epoch}.pt"
+            filename = f"model_epoch_pretrained.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
         torch.save({
             'epoch': epoch,

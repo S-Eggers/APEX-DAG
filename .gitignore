@@ -178,3 +178,4 @@ models/*
 wandb/*
 node_modules/*
 apex-dag-jupyter/src/app/data_flow_graph.json
+hyperparam_optim/*

@@ -6,9 +6,9 @@ from torch_geometric.loader import DataLoader
 
 
 class FinetuningTrainer(BaseTrainer):
-    def __init__(self, model, train_dataset, val_dataset, test_dataset, **kwargs):
+    def __init__(self, model, train_dataset, val_dataset, test_dataset, batch_size = 32, **kwargs):
         super().__init__(model, train_dataset, val_dataset, **kwargs)
-        self.test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+        self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
         self.conf_matrices_types = ["edge_type_preds"]
 
     def save_checkpoint(self, epoch, val_loss, filename=None):

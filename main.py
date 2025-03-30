@@ -3,13 +3,14 @@ import time
 import matplotlib
 
 from ApexDAG.argparser import argparser
-from ApexDAG.util.logging import setup_logging, setup_wandb
+from ApexDAG.util.logging import setup_logging
 
 
 def main(argv=None):
     logger = setup_logging("main", True)
     args = argparser.parse_args(argv)
 
+    
     start_time = time.time()
     match args.experiment:
         case "ast_graph_test":
@@ -29,11 +30,9 @@ def main(argv=None):
             watch(args, logger)
         case "pretrain":
             from ApexDAG.experiments.pretrain import pretrain_gat
-            setup_wandb(project_name="APEX-DAG")
             pretrain_gat(args, logger)
         case "finetune":
             from ApexDAG.experiments.finetune import finetune_gat
-            setup_wandb(project_name="APEX-DAG")
             finetune_gat(args, logger)
         case _:
             raise ValueError(f"Unknown experiment {args.experiment}")
