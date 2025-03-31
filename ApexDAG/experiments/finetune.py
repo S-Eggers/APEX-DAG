@@ -2,10 +2,9 @@ import yaml
 import logging
 import torch
 from pathlib import Path
-from ApexDAG.nn.gat import MultiTaskGAT
-
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
+from ApexDAG.util.logging import setup_wandb
 
 
 def create_model(config):
@@ -31,22 +30,33 @@ def finetune_gat(args, logger: logging.Logger) -> None:
 
     with open(args.config_path, "r") as f:
         config = yaml.safe_load(f)
+        
+    hash_value = hash(str(config))
+    setup_wandb(project_name="APEX-DAG-reversed-nodes-edges-finetuning", name = hash_value)
 
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded-finetune"
 
     graph_processor = GraphProcessor(checkpoint_path, logger)
-    graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, config['min_nodes'], config['min_edges'], config['load_encoded_old_if_exist'])
+    graph_encoder = GraphEncoder(encoded_checkpoint_path, 
+                                 logger, 
+                                 config['min_nodes'], 
+                                 config['min_edges'], 
+                                 config['load_encoded_old_if_exist'])
     
     model = create_model(config)
     
     trainer = GATTrainer(config, logger)
 
     # load or mine graphs
-    graph_processor.load_preprocessed_graphs()
+    encoded_graphs = graph_encoder.reload_encoded_graphs()
 
     # encode graphs
-    encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="domain_label")
+    if not encoded_graphs:
+        graph_processor.load_preprocessed_graphs()
+        encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="domain_label")
 
-    # train model
-    trainer.train(encoded_graphs, model, mode, device= config['device'])
+    best_val_loss = trainer.train(encoded_graphs, model, mode, device=config['device'])
+
+    torch.cuda.empty_cache()
+    return best_val_loss

@@ -33,6 +33,11 @@ class BaseTrainer:
         self.early_stopping_counter = 0
         
         self.conf_matrices_types = ["edge_type_preds"] # defined in subclasses
+        
+        self.best_losses = {
+                        "node_type_loss": float("inf"),
+                        "edge_type_loss": float("inf")
+        }
 
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
@@ -93,11 +98,8 @@ class BaseTrainer:
         training_bar = tqdm.tqdm(range(num_epochs))
         training_bar.set_description("Training")
         
-        best_losses = {
-            "node_type_loss": float("inf"),
-            "edge_type_loss": float("inf")
-        }
-        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss"])
+        best_losses = self.best_losses
+        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss"])
 
 
         for epoch in training_bar:
@@ -145,7 +147,7 @@ class BaseTrainer:
                 best_losses_table.add_data(
                     epoch,
                     best_losses["node_type_loss"],
-                    best_losses["edge_type_loss"]
+                    # best_losses["edge_type_loss"]
                 )
                 wandb.log({"Best_Losses": best_losses_table})
                 break
@@ -154,7 +156,7 @@ class BaseTrainer:
         best_losses_table.add_data(
                     epoch,
                     best_losses["node_type_loss"],
-                    best_losses["edge_type_loss"]
+                    # best_losses["edge_type_loss"]
                 )
         wandb.log({"Best_Losses": best_losses_table})
         return self.best_val_loss

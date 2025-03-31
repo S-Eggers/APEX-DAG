@@ -9,7 +9,10 @@ class FinetuningTrainer(BaseTrainer):
     def __init__(self, model, train_dataset, val_dataset, test_dataset, batch_size = 32, **kwargs):
         super().__init__(model, train_dataset, val_dataset, **kwargs)
         self.test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False)
-        self.conf_matrices_types = ["edge_type_preds"]
+        self.conf_matrices_types = ["node_type_preds"]
+        self.best_losses = {
+            "node_type_loss": float("inf")
+        }
 
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
@@ -35,8 +38,11 @@ class FinetuningTrainer(BaseTrainer):
 
         losses = {}
         
-        if "edge_type_preds" in outputs:
-            losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
+        if "node_type_preds" in outputs:
+            valid_mask = data.node_types != -1
+            node_types = data.node_types[valid_mask]
+            node_type_preds = outputs["node_type_preds"][valid_mask]
+            losses["node_type_loss"] = self.criterion_node(node_type_preds, node_types)
 
        
         total_loss = sum(losses.values())
@@ -54,7 +60,11 @@ class FinetuningTrainer(BaseTrainer):
 
         losses = {}
 
-        if "edge_type_preds" in outputs:
-            losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
+        if "node_type_preds" in outputs:
+            valid_mask = data.node_types != -1
+            node_types = data.node_types[valid_mask]
+            node_type_preds = outputs["node_type_preds"][valid_mask]
+            
+            losses["node_type_loss"] = self.criterion_node(node_type_preds, node_types)
 
         return {k: v.item() for k, v in losses.items()}
