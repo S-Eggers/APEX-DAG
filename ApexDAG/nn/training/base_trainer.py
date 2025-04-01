@@ -68,8 +68,9 @@ class BaseTrainer:
                     labels = data.edge_types.cpu().numpy()
                     preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
                 elif pred_type == "node_type_preds":
-                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
-                    labels = data.node_types.cpu().numpy()
+                    valid_mask = data.node_types != -1
+                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()[valid_mask]
+                    labels = data.node_types.cpu().numpy()[valid_mask]
                 
                 all_preds.extend(preds)
                 all_labels.extend(labels)
