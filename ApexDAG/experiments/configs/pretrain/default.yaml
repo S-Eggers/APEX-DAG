@@ -25,3 +25,5 @@ min_edges: 2
 
 # for testing, remove later on
 load_encoded_old_if_exist: True # if the graphs are encoded do not encode them once again.
+device: 'cpu'
+weight_decay: 0.00001
