@@ -6,6 +6,9 @@ from ApexDAG.nn.gat import MultiTaskGAT
 
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
+from ApexDAG.util.logging import setup_wandb
+from ApexDAG.experiments.pretrain import log_config
+
 
 
 def create_model(config):
@@ -31,6 +34,8 @@ def finetune_gat(args, logger: logging.Logger) -> None:
 
     with open(args.config_path, "r") as f:
         config = yaml.safe_load(f)
+    setup_wandb(project_name="APEX-DAG-finetuning", name = hash(str(config)))
+    log_config(args.config_path)
 
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded-finetune"

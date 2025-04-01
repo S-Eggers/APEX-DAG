@@ -1,5 +1,6 @@
 import os
 import torch
+import wandb
 
 from ApexDAG.nn.training.base_trainer import BaseTrainer
 
@@ -7,6 +8,8 @@ class PretrainingTrainer(BaseTrainer):
     def __init__(self, model, train_dataset, val_dataset, **kwargs):
         super().__init__(model, train_dataset, val_dataset, **kwargs)
         self.conf_matrices_types = ["node_type_preds", "edge_type_preds", "edge_existence_preds"]
+        self.best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Type_Loss", "Best_Edge_Type_Loss", "Edge_Existence_Loss"])
+
 
     def train_step(self, data):
         self.model.train()
@@ -61,7 +64,7 @@ class PretrainingTrainer(BaseTrainer):
     
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
-            filename = f"model_epoch_pretrained.pt"
+            filename = f"model_epoch_{epoch}_pretrained.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
         torch.save({
             'epoch': epoch,

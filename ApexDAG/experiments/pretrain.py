@@ -8,6 +8,7 @@ from pathlib import Path
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.util.training_utils import set_seed
+from ApexDAG.util.logging import setup_wandb
 
 def create_model(config):
     return MultiTaskGAT(
@@ -43,13 +44,14 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
     mode = Modes.PRETRAINING
     
-    config_path = args.get('config_path')
-    log_config(config_path)
+    config_path = args.config_path
     
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
     
-        
+    setup_wandb(project_name="APEX-DAG-pretraining", name = hash(str(config)))
+    log_config(config_path)
+
     set_seed(config["seed"])
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])

@@ -34,6 +34,11 @@ class BaseTrainer:
         self.early_stopping_counter = 0
         
         self.conf_matrices_types = ["edge_type_preds"] # defined in subclasses
+        self.default_best_losses = {
+            "node_type_loss": float("inf"),
+            "edge_type_loss": float("inf"),
+            "edge_existence_loss": float("inf")
+        }
 
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
@@ -92,18 +97,21 @@ class BaseTrainer:
 
     def validate_step(self, data):
         raise NotImplementedError("validate_step should be implemented in subclasses")
+    
+    def log_best_losses(self, epoch, best_losses):
+        self.best_losses_table.add_data(
+            epoch,
+            best_losses["node_type_loss"],
+            best_losses["edge_type_loss"],
+            best_losses["edge_existence_loss"]
+        )
+        wandb.log({"Best_Losses": self.best_losses_table})
 
     def train(self, num_epochs):
         training_bar = tqdm.tqdm(range(num_epochs))
         training_bar.set_description("Training")
         
-        best_losses = {
-            "node_type_loss": float("inf"),
-            "edge_type_loss": float("inf"),
-            "edge_existence_loss": float("inf")
-        }
-        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss"])
-
+        best_losses = self.default_best_losses
 
         for epoch in training_bar:
             train_losses = []
@@ -147,23 +155,11 @@ class BaseTrainer:
 
             if self.early_stopping_counter >= self.patience:
                 training_bar.write("Early stopping triggered!")
-                best_losses_table.add_data(
-                    epoch,
-                    best_losses["node_type_loss"],
-                    best_losses["edge_type_loss"],
-                    best_losses["edge_existence_loss"]
-                )
-                wandb.log({"Best_Losses": best_losses_table})
+                self.log_best_losses(epoch, best_losses)
                 break
         
         self.writer.close()
-        best_losses_table.add_data(
-                    epoch,
-                    best_losses["node_type_loss"],
-                    best_losses["edge_type_loss"],
-                    best_losses["edge_existence_loss"]
-                )
-        wandb.log({"Best_Losses": best_losses_table})
+        self.log_best_losses(epoch, best_losses)
         return self.best_val_loss
 
     def log_histograms(self, epoch):
