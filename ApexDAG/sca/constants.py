@@ -34,3 +34,4 @@ VERBOSE = False
 
 REVERSE_NODE_TYPES = {v: k for k, v in NODE_TYPES.items()}
 REVERSE_EDGE_TYPES = {v: k for k, v in EDGE_TYPES.items()}
+REVERSE_DOMAIN_EDGE_TYPES = {v: k for k, v in DOMAIN_EDGE_TYPES.items()}
