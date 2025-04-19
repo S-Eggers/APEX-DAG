@@ -138,7 +138,8 @@ class BaseTrainer:
             if avg_val_loss < self.best_val_loss:
                 self.best_val_loss = avg_val_loss
                 for loss_type in best_losses:
-                    best_losses[loss_type] = avg_val_losses[loss_type]
+                    if loss_type in avg_val_losses:
+                        best_losses[loss_type] = avg_val_losses[loss_type]
                 self.early_stopping_counter = 0
                 self.save_checkpoint(epoch, avg_val_loss)
     

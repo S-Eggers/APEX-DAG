@@ -19,6 +19,7 @@ from ApexDAG.util.training_utils import InsufficientNegativeEdgesException
 class Modes(Enum):
     PRETRAINING = "pretraining"
     LINEAR_PROBING = "linear_probing"
+    CLASSICAL_FINETUNING = "classical_finetuning"
     
 class GraphProcessor:
     """Handles loading and preprocessing of graphs."""
@@ -131,7 +132,7 @@ class GATTrainer:
         
             trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'])
             
-        elif mode == Modes.LINEAR_PROBING:
+        elif mode != Modes.PRETRAINING:
             self.logger.info("Training in linear probing mode")
             
             train_size = int(self.config["train_split"] * len(dataset))
@@ -147,7 +148,7 @@ class GATTrainer:
         for type_conf_matrix in trainer.conf_matrices_types:
             trainer.log_confusion_matrix(train_dataset, "Train", type_conf_matrix )
             trainer.log_confusion_matrix(val_dataset, "Val", type_conf_matrix)
-            if mode == Modes.LINEAR_PROBING:
+            if mode != Modes.PRETRAINING:
                 trainer.log_confusion_matrix(test_dataset, "Test", type_conf_matrix)
                 
         wandb.finish()

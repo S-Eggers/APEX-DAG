@@ -6,9 +6,10 @@ from ApexDAG.nn.gat import MultiTaskGAT
 
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
+from ApexDAG.util.logging import setup_logging, setup_wandb
 
 
-def create_model(config):
+def create_model(config, mode):
     model = create_pretrain_model(config)
 
     if config["pretrained_model_path"]:
@@ -18,27 +19,31 @@ def create_model(config):
         model_state_dict.update(filtered_state_dict)
         model.load_state_dict(model_state_dict)
         
-    for name, param in model.named_parameters():
-        if "head" not in name:
-            param.requires_grad = False
+    if mode == Modes.LINEAR_PROBING:
+        # Freeze all parameters except the last layer
+        for name, param in model.named_parameters():
+            if "head" not in name:
+                param.requires_grad = False
     
     return model
     
 def finetune_gat(args, logger: logging.Logger) -> None:
     """Main entry point for tinetuning the GAT model, linear probing of the last layers/heads."""
     
-    mode = Modes.LINEAR_PROBING
+    mode = Modes.CLASSICAL_FINETUNING
 
     with open(args.config_path, "r") as f:
         config = yaml.safe_load(f)
 
+    setup_wandb(project_name="APEX-DAG-finetune", name = "finetune")
+    
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded-finetune"
 
     graph_processor = GraphProcessor(checkpoint_path, logger)
     graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, config['min_nodes'], config['min_edges'], config['load_encoded_old_if_exist'])
     
-    model = create_model(config)
+    model = create_model(config, mode)
     
     trainer = GATTrainer(config, logger)
 
