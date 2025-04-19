@@ -2,11 +2,10 @@ import yaml
 import logging
 import torch
 from pathlib import Path
-from ApexDAG.nn.gat import MultiTaskGAT
 
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
-from ApexDAG.util.logging import setup_logging, setup_wandb
+from ApexDAG.util.logging import setup_wandb
 
 
 def create_model(config, mode):
