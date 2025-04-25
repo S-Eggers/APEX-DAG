@@ -97,7 +97,7 @@ class Encoder:
             node_types
         )
 
-    def _extract_edge_features(self, graph, negative_edges, feature_to_encode = "edge_type") -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    def _extract_edge_features(self, graph, negative_edges, feature_to_encode) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
         edge_features, edge_types, edge_existence = [], [], []
         # TODO: (from Nina) We need to change this since no negative edge sampling takes place
         def process_edge(attrs, is_positive):

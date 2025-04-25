@@ -1,6 +1,6 @@
 checkpoint_path: "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs/"
-encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune"
-pretrained_model_path: "checkpoints/model_epoch_pretrained_10.pt"
+encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-new"
+pretrained_model_path: "checkpoints/checkpoints-swapped/model_epoch_pretrained_10.pt"
 hidden_dim: 128
 num_heads: 4
 node_classes: 9 # reversed

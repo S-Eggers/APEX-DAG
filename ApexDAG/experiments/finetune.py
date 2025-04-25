@@ -18,8 +18,7 @@ def create_model(config):
         model.load_state_dict(model_state_dict)
         
     for name, param in model.named_parameters():
-        if "head" not in name:
-            param.requires_grad = False
+        param.requires_grad = True
     
     return model
     
@@ -35,7 +34,7 @@ def finetune_gat(args, logger: logging.Logger) -> None:
     setup_wandb(project_name="APEX-DAG-reversed-nodes-edges-finetuning", name = hash_value)
 
     checkpoint_path = Path(config["checkpoint_path"])
-    encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded-finetune"
+    encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded-finetune-swapped"
 
     graph_processor = GraphProcessor(checkpoint_path, logger)
     graph_encoder = GraphEncoder(encoded_checkpoint_path, 

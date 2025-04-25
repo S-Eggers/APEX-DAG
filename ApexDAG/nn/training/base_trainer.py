@@ -23,6 +23,7 @@ class BaseTrainer:
         
         self.criterion_node = nn.CrossEntropyLoss()
         self.criterion_edge_type = nn.CrossEntropyLoss()
+        self.criterion_edge_existence = nn.BCELoss()
         
         self.writer = SummaryWriter(log_dir=log_dir)
         self.checkpoint_dir = checkpoint_dir
@@ -32,12 +33,7 @@ class BaseTrainer:
         self.best_val_loss = float("inf")
         self.early_stopping_counter = 0
         
-        self.conf_matrices_types = ["edge_type_preds"] # defined in subclasses
-        
-        self.best_losses = {
-                        "node_type_loss": float("inf"),
-                        "edge_type_loss": float("inf")
-        }
+        self.conf_matrices_types = ["node_type_preds"] # defined in subclasses
 
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
@@ -49,28 +45,30 @@ class BaseTrainer:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'val_loss': val_loss
         }, checkpoint_path)
-        
-        artifact = wandb.Artifact('model-checkpoints', type='model')
-        artifact.add_file(checkpoint_path)
-        wandb.log_artifact(artifact)
 
     def log_confusion_matrix(self, loader, phase, pred_type = "edge_type_preds"):
-        self.model.eval()
+        self.model.eval().to('cpu')
         all_preds = []
         all_labels = []
         
         with torch.no_grad():
             for data in loader:
-                data = data.to(self.device)
+                data = data.to('cpu')
                 outputs = self.model(data)
                 
-                if pred_type == "edge_type_preds":
-                    labels = data.edge_types.cpu().numpy()
+                if pred_type == "node_type_preds":
+                    labels = data.node_types.cpu().numpy()
                     preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
-                elif pred_type == "node_type_preds":
-                    valid_mask = data.node_types != -1
-                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()[valid_mask]
-                    labels = data.node_types.cpu().numpy()[valid_mask]
+                    # if the label is -1 then omit  it with mask
+                    valid_edge_mask = labels != -1
+                    preds = preds[valid_edge_mask]
+                    labels = labels[valid_edge_mask]
+                elif pred_type == "edge_existence_preds":
+                    labels = data.edge_existence.cpu().numpy()
+                    preds = (outputs[pred_type] > 0.5).cpu().numpy().astype(int)
+                elif pred_type == "edge_type_preds":
+                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
+                    labels = data.edge_types.cpu().numpy()
                 
                 all_preds.extend(preds)
                 all_labels.extend(labels)
@@ -99,8 +97,12 @@ class BaseTrainer:
         training_bar = tqdm.tqdm(range(num_epochs))
         training_bar.set_description("Training")
         
-        best_losses = self.best_losses
-        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss"])
+        best_losses = {
+            "node_type_loss": float("inf"),
+            "edge_type_loss": float("inf"),
+            "edge_existence_loss": float("inf")
+        }
+        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss"])
 
 
         for epoch in training_bar:
@@ -136,7 +138,8 @@ class BaseTrainer:
             if avg_val_loss < self.best_val_loss:
                 self.best_val_loss = avg_val_loss
                 for loss_type in best_losses:
-                    best_losses[loss_type] = avg_val_losses[loss_type]
+                    if loss_type in avg_val_losses:
+                        best_losses[loss_type] = avg_val_losses[loss_type]
                 self.early_stopping_counter = 0
                 self.save_checkpoint(epoch, avg_val_loss)
     
@@ -148,7 +151,8 @@ class BaseTrainer:
                 best_losses_table.add_data(
                     epoch,
                     best_losses["node_type_loss"],
-                    # best_losses["edge_type_loss"]
+                    best_losses["edge_type_loss"],
+                    best_losses["edge_existence_loss"]
                 )
                 wandb.log({"Best_Losses": best_losses_table})
                 break
@@ -157,7 +161,8 @@ class BaseTrainer:
         best_losses_table.add_data(
                     epoch,
                     best_losses["node_type_loss"],
-                    # best_losses["edge_type_loss"]
+                    best_losses["edge_type_loss"],
+                    best_losses["edge_existence_loss"]
                 )
         wandb.log({"Best_Losses": best_losses_table})
         return self.best_val_loss
