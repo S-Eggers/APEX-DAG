@@ -5,6 +5,7 @@ from pathlib import Path
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
 from ApexDAG.util.logging import setup_wandb
+from ApexDAG.util.training_utils import set_seed
 
 
 def create_model(config):
@@ -31,6 +32,7 @@ def finetune_gat(args, logger: logging.Logger) -> None:
         config = yaml.safe_load(f)
         
     hash_value = hash(str(config))
+    set_seed(config["seed"])
     setup_wandb(project_name="APEX-DAG-reversed-nodes-edges-finetuning", name = hash_value)
 
     checkpoint_path = Path(config["checkpoint_path"])
