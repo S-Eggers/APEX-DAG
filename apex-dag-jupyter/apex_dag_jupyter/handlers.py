@@ -8,9 +8,6 @@ from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 
 
 class DataflowHandler(APIHandler):
-    def __init__(self, application, request, **kwargs):
-        super().__init__(application, request, **kwargs)
-
     @tornado.web.authenticated
     def post(self):
         input_data = self.get_json_body()
@@ -31,7 +28,6 @@ class DataflowHandler(APIHandler):
             dfg.optimize()
             graph_json = dfg.to_json()
 
-            # Do your Dataflow processing here
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
@@ -50,7 +46,6 @@ class LineageHandler(APIHandler):
     def post(self):
         input_data = self.get_json_body()
 
-        # Do your Lineage processing here
         result = {
             "message": "Processed lineage successfully!",
             "input": input_data
@@ -67,7 +62,6 @@ def setup_handlers(web_app):
     host_pattern = ".*$"
 
     base_url = web_app.settings["base_url"]
-    # Prepend the base_url so that it works in a JupyterHub setting
 
     dataflow_pattern = url_path_join(base_url, "apex-dag", "dataflow")
     lineage_pattern = url_path_join(base_url, "apex-dag", "lineage")

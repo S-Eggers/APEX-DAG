@@ -8,13 +8,14 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ILauncher } from '@jupyterlab/launcher';
 import { INotebookTracker, NotebookPanel } from '@jupyterlab/notebook';
 import { ICodeCellModel } from '@jupyterlab/cells';
+import { IMainMenu } from '@jupyterlab/mainmenu';
 
 import { GraphWidget } from './widget';
 import apexDagLogo from './apex_icon'
 import { callBackend } from './call_backend';
 
 namespace CommandIDs {
-  export const fullscreen = 'apex:open-fullscreen';
+  export const dataflow = 'apex-dag:dataflow';
 }
 
 /**
@@ -25,23 +26,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
   description: 'APEX-DAG Jupyter Frontend Extension.',
   autoStart: true,
   optional: [ISettingRegistry],
-  requires: [ICommandPalette, INotebookTracker, ILauncher],
-  activate: (app: JupyterFrontEnd, palette: ICommandPalette, tracker: INotebookTracker, launcher: ILauncher) => {
+  requires: [ICommandPalette, INotebookTracker, ILauncher, IMainMenu],
+  activate: (app: JupyterFrontEnd, palette: ICommandPalette, tracker: INotebookTracker, launcher: ILauncher, mainMenu: IMainMenu) => {
     console.log('JupyterLab extension apex-dag-jupyter is activated!');
     console.log('ICommandPalette:', palette);
     console.log('JupyterLab extension jupyterlab_apod is activated!');
 
-    const fullscreen: string = CommandIDs.fullscreen;
+    const fullscreen: string = CommandIDs.dataflow;
     let graphWidget: GraphWidget | null = null;
     app.commands.addCommand(fullscreen, {
-      caption: 'APEX-DAG: Fullscreen Widget',
-      label: 'APEX-DAG: Fullscreen Widget',
+      caption: 'Dataflow Widget',
+      label: 'Dataflow Widget',
       icon: args => (args['isPalette'] ? undefined : apexDagLogo),
       execute: () => {
         const content = new GraphWidget();
         const widget = new MainAreaWidget<GraphWidget>({ content });
-        widget.title.label = 'DAG: Fullscreen Widget';
+        widget.title.label = 'Dataflow Widget';
         widget.title.icon = apexDagLogo;
+        widget.title.closable = true;
         app.shell.add(widget, 'main');
         graphWidget = content;
       }
@@ -54,6 +56,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     }
     
     palette.addItem(fullscreenCommandItem);
+    mainMenu.fileMenu.newMenu.addGroup([fullscreenCommandItem]);
+
 
     if (launcher) {
       launcher.add(fullscreenCommandItem);
