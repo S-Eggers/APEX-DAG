@@ -1,6 +1,6 @@
 {
     "name": "apex-dag-jupyter",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "description": "APEX-DAG Jupyter Frontend Extension.",
     "keywords": [
         "jupyter",
@@ -107,7 +107,15 @@
     "jupyterlab": {
         "extension": true,
         "outputDir": "apex_dag_jupyter/labextension",
-        "schemaDir": "schema"
+        "schemaDir": "schema",
+        "discovery": {
+            "server": {
+              "managers": ["pip"],
+              "base": {
+                "name": "apex_dag_jupyter"
+              }
+            }
+        }
     },
     "eslintIgnore": [
         "node_modules",
