@@ -11,6 +11,7 @@ import { ICodeCellModel } from '@jupyterlab/cells';
 
 import { GraphWidget } from './widget';
 import apexDagLogo from './apex_icon'
+import { callBackend } from './call_backend';
 
 namespace CommandIDs {
   export const fullscreen = 'apex:open-fullscreen';
@@ -95,6 +96,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 }
             }
             console.log("Notebook content\n" + content)
+            callBackend('dataflow', { code: content })
+            .then(response => {
+                console.log('Received from server (dataflow):', response);
+            })
+            .catch(error => {
+                console.error('Error sending dataflow:', error);
+            });
         }
       });
     });
