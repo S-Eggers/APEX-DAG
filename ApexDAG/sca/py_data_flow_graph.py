@@ -1,6 +1,5 @@
 import re
 import ast
-import astpretty
 import networkx as nx
 from logging import Logger
 from typing import Optional
@@ -590,6 +589,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         draw = Draw(NODE_TYPES, EDGE_TYPES)
         G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
         draw.dfg_webrendering(G, save_path)
+
+    def to_json(self) -> str:
+        draw = Draw(NODE_TYPES, EDGE_TYPES)
+        G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
+        return draw.dfg_to_json(G)
 
     def save_dfg(self, path: str) -> None:
         G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)

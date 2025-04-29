@@ -32,6 +32,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     console.log('JupyterLab extension jupyterlab_apod is activated!');
 
     const fullscreen: string = CommandIDs.fullscreen;
+    let graphWidget: GraphWidget | null = null;
     app.commands.addCommand(fullscreen, {
       caption: 'APEX-DAG: Fullscreen Widget',
       label: 'APEX-DAG: Fullscreen Widget',
@@ -42,6 +43,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         widget.title.label = 'DAG: Fullscreen Widget';
         widget.title.icon = apexDagLogo;
         app.shell.add(widget, 'main');
+        graphWidget = content;
       }
     });
 
@@ -99,6 +101,9 @@ const plugin: JupyterFrontEndPlugin<void> = {
             callBackend('dataflow', { code: content })
             .then(response => {
                 console.log('Received from server (dataflow):', response);
+                if (graphWidget && response.success) {
+                  graphWidget.updateGraphData(response.dataflow);
+                }
             })
             .catch(error => {
                 console.error('Error sending dataflow:', error);
