@@ -1,6 +1,7 @@
-import React, {useEffect, useRef, useState} from 'react';
+import React, {useEffect, useRef, useState} from "react";
 import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
+
 
 cytoscape.use(dagre);
 
@@ -124,11 +125,11 @@ export default function Graph({ graphData = {elements: []} }) {
             cy.center();
         }
         cy.zoom(zoom);
-        cy.on('pan', () => {
+        cy.on("pan", () => {
             setPan(cy.pan());
         });
 
-        cy.on('zoom', () => {
+        cy.on("zoom", () => {
             setZoom(cy.zoom());
         });
 
@@ -142,8 +143,8 @@ export default function Graph({ graphData = {elements: []} }) {
 
     return (
         <>
-            <div id="cy" ref={graphRef}></div>
-            <ul className="legend">
+            <div id="cy" className={"cy"} ref={graphRef}></div>
+            <ul className={"legend"}>
                 {legendItems.map((item, index) => (
                 <li key={index}>
                     <div className={item.type} style={{ backgroundColor: item.color, borderColor: item.color, borderStyle: item.borderStyle }}></div> {item.label}

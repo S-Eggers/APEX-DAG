@@ -1,14 +1,15 @@
-import { ServerConnection } from '@jupyterlab/services';
+import { ServerConnection } from "@jupyterlab/services";
 
-export async function callBackend(endpoint: 'dataflow' | 'lineage', payload: object): Promise<any> {
+
+async function callBackend(endpoint: "dataflow" | "lineage", payload: object): Promise<any> {
     const settings = ServerConnection.makeSettings();
     const url = `${settings.baseUrl}apex-dag/${endpoint}`;
 
     const init: RequestInit = {
-        method: 'POST',
+        method: "POST",
         body: JSON.stringify(payload),
         headers: {
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json"
         }
     };
 
@@ -20,3 +21,5 @@ export async function callBackend(endpoint: 'dataflow' | 'lineage', payload: obj
 
     return response.json();
 }
+
+export default callBackend;
