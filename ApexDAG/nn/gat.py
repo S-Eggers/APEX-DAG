@@ -39,6 +39,7 @@ class MultiTaskGAT(nn.Module):
         # Task-specific heads
         self.node_type_head = nn.Linear(hidden_dim, node_classes)
         self.edge_type_head = nn.Linear(hidden_dim, edge_classes)
+        self.reconstruction_head = nn.Linear(hidden_dim, dim_embed)
 
         # Edge existence prediction
         self.edge_mlp = nn.Sequential(
@@ -47,23 +48,47 @@ class MultiTaskGAT(nn.Module):
             nn.Linear(hidden_dim, 1)
         )
 
-    def forward(self, data, task=None):
+    def forward(self, data, task=None, mask=None):
+        """
+        Forward pass for the MultiTaskGAT model.
+
+        Args:
+            data: Input graph data containing x (node features), edge_features, and edge_index.
+            task (str): Task to perform ("node_classification", "edge_classification", "edge_reconstruction").
+            mask (torch.Tensor): Binary mask indicating which edges are masked (for reconstruction).
+
+        Returns:
+            outputs (dict): Dictionary containing task-specific outputs.
+        """
         x, edge_embeds, edge_index = data.x, data.edge_features, data.edge_index
 
-        # up-project node and edge embeddings     
+        # Apply masking if provided
+        if mask is not None:
+            edge_embeds = edge_embeds.clone()
+            edge_embeds[mask] = 0  # Mask the edge features
+
+        # Up-project node and edge embeddings
         x = self.up_projection(x)
         edge_embeds = self.up_projection(edge_embeds)
-        
+
+        # Pass through GAT blocks
         for gat_block in self.gat_blocks:
             x = gat_block(x, edge_index, edge_embeds)
 
         outputs = {}
 
+        # Node classification
         if task == "node_classification" or task is None:
             outputs["node_type_preds"] = F.softmax(self.node_type_head(x), dim=-1)
 
+        # Edge classification
         if task == "edge_classification" or task is None:
             edge_features = x[edge_index[0]]
             outputs["edge_type_preds"] = F.softmax(self.edge_type_head(edge_features), dim=-1)
+
+        # Edge reconstruction
+        if task == "edge_reconstruction" or task is None:
+            edge_features = x[edge_index[0]]
+            outputs["edge_reconstruction"] = self.reconstruction_head(edge_features)  # Predict original edge features
 
         return outputs

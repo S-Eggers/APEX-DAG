@@ -13,7 +13,7 @@ from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer
 from ApexDAG.nn.training.finetuning_trainer import FinetuningTrainer
-from ApexDAG.util.training_utils import InsufficientNegativeEdgesException
+from ApexDAG.util.training_utils import InsufficientNegativeEdgesException, InsufficientPositiveEdgesException
 
 
 class Modes(Enum):
@@ -44,7 +44,7 @@ class GraphProcessor:
 
         self.logger.info("Loading preprocessed graphs...")
         errors = 0
-        graph_files = list(self.checkpoint_path.iterdir())
+        graph_files = list(self.checkpoint_path.iterdir())[:20000]
         
         for graph_file in tqdm.tqdm(graph_files, desc="Loading graphs"):
             try:
@@ -56,7 +56,6 @@ class GraphProcessor:
                 errors += 1
 
         self.logger.info(f"Loaded {len(self.graphs)} graphs with {errors} errors")
-
 class GraphEncoder:
     """Handles encoding of graphs into tensors for training."""
     def __init__(self, encoded_checkpoint_path: Path, 
@@ -104,8 +103,12 @@ class GraphEncoder:
             except InsufficientNegativeEdgesException:
                 self.logger.error(f"Insufficient negative edges in graph {index}")
                 continue
-            except Exception:
+            except InsufficientPositiveEdgesException:
+                self.logger.error(f"Insufficient positive edges in graph {index}")
+                continue
+            except Exception as e:
                 self.logger.error(f"Error in graph {index}")
+                continue
 
         return self.encoded_graphs
 

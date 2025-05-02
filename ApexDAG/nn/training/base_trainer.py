@@ -100,9 +100,10 @@ class BaseTrainer:
         best_losses = {
             "node_type_loss": float("inf"),
             "edge_type_loss": float("inf"),
+            "edge_reconstruction_loss": float("inf"),
             "edge_existence_loss": float("inf")
         }
-        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss"])
+        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss","Best_Edge_Existence_Loss"])
 
 
         for epoch in training_bar:
@@ -152,7 +153,8 @@ class BaseTrainer:
                     epoch,
                     best_losses["node_type_loss"],
                     best_losses["edge_type_loss"],
-                    best_losses["edge_existence_loss"]
+                    best_losses["edge_existence_loss"],
+                    best_losses["edge_reconstruction_loss"]
                 )
                 wandb.log({"Best_Losses": best_losses_table})
                 break
@@ -162,6 +164,7 @@ class BaseTrainer:
                     epoch,
                     best_losses["node_type_loss"],
                     best_losses["edge_type_loss"],
+                    best_losses["edge_reconstruction_loss"],
                     best_losses["edge_existence_loss"]
                 )
         wandb.log({"Best_Losses": best_losses_table})

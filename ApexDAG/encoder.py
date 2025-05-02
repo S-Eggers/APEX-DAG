@@ -3,7 +3,7 @@ import fasttext
 import networkx as nx
 import torch
 from torch_geometric.data import Data
-from ApexDAG.util.training_utils import InsufficientNegativeEdgesException
+from ApexDAG.util.training_utils import InsufficientPositiveEdgesException
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 
 class Encoder:
@@ -12,6 +12,7 @@ class Encoder:
         self._fasttext_model = fasttext.load_model("cc.en.300.bin")
         self.nude_num_types_pretrain = nude_num_types_pretrain
         self.edge_num_types_pretrain = edge_num_types_pretrain
+        self.min_edges = 2
         
     def encode(self, graph: nx.MultiDiGraph, feature_to_encode: str) -> Data:
         # Original edges become nodes
@@ -118,6 +119,9 @@ class Encoder:
 
         for u, v in negative_edges:
             process_edge({}, is_positive=False)
+            
+        if len(edge_features) < self.min_edges:
+            raise InsufficientPositiveEdgesException(f"Graph has insufficient positive edges: {len(edge_features)} < {self.min_edges}")
 
         return (
             torch.stack(edge_features),

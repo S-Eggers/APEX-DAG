@@ -3,23 +3,77 @@ import torch
 import wandb
 from ApexDAG.nn.training.base_trainer import BaseTrainer
 
+
+import torch.nn as nn
+
+def compute_masked_edge_loss(predictions, targets, mask):
+    """
+    Computes the reconstruction loss for masked edges.
+
+    Args:
+        predictions (torch.Tensor): Predicted edge features of shape (num_edges, feature_dim).
+        targets (torch.Tensor): Original edge features of shape (num_edges, feature_dim).
+        mask (torch.Tensor): Binary mask indicating which edges were masked.
+
+    Returns:
+        loss (torch.Tensor): Reconstruction loss for the masked edges.
+    """
+    loss_fn = nn.MSELoss()
+    masked_predictions = predictions[mask]
+    masked_targets = targets[mask]
+    return loss_fn(masked_predictions, masked_targets)
+
 class PretrainingTrainer(BaseTrainer):
     def __init__(self, model, train_dataset, val_dataset, **kwargs):
         super().__init__(model, train_dataset, val_dataset, **kwargs)
         self.conf_matrices_types = ["node_type_preds", "edge_type_preds"]
+    
+    def mask_edges(self, edge_features, mask_prob=0.15):
+        """
+        Masks a percentage of edge features.
+
+        Args:
+            edge_features (torch.Tensor): Edge feature tensor of shape (num_edges, feature_dim).
+            mask_prob (float): Probability of masking an edge.
+
+        Returns:
+            masked_edge_features (torch.Tensor): Edge features with some values masked.
+            mask (torch.Tensor): Binary mask indicating which edges were masked.
+        """
+        num_edges = edge_features.size(0)
+        mask = torch.rand(num_edges) < mask_prob  # Randomly select edges to mask
+        masked_edge_features = edge_features.clone()
+        masked_edge_features[mask] = 0  # Replace masked edge features with zeros (or a special token)
+        return masked_edge_features, mask
 
     def train_step(self, data):
         self.model.train()
         self.optimizer.zero_grad()
         data = data.to(self.device)
-        outputs = self.model(data)
 
+        # Mask edge features
+        masked_edge_features, mask = self.mask_edges(data.edge_features)
+        unmasked_edge_features = data.edge_features.clone()
+        data.edge_features = masked_edge_features
+        data.mask = mask
+
+        # Forward pass
+        outputs = self.model(data, task=None, mask=mask)
+
+        # Compute losses
         losses = {}
         if "node_type_preds" in outputs:
             losses["node_type_loss"] = self.criterion_node(outputs["node_type_preds"], data.node_types)
         if "edge_type_preds" in outputs:
             losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
 
+        # Compute masked edge reconstruction loss
+        if "edge_reconstruction" in outputs:
+            predictions = outputs["edge_reconstruction"]
+            targets = unmasked_edge_features  # Use the original edge features for reconstruction
+            losses["edge_reconstruction_loss"] = compute_masked_edge_loss(predictions, targets, mask)
+
+        # Backward pass and optimization
         total_loss = sum(losses.values())
         total_loss.backward()
         self.optimizer.step()
@@ -30,20 +84,33 @@ class PretrainingTrainer(BaseTrainer):
         self.model.eval()
         data = data.to(self.device)
 
-        with torch.no_grad():
-            outputs = self.model(data)
+        # Mask edge features
+        masked_edge_features, mask = self.mask_edges(data.edge_features)
+        unmasked_edge_features = data.edge_features.clone()
+        data.edge_features = masked_edge_features
+        data.mask = mask
 
+        with torch.no_grad():
+            outputs = self.model(data, task="edge_reconstruction", mask=mask)
+
+        # Compute losses
         losses = {}
         if "node_type_preds" in outputs:
             losses["node_type_loss"] = self.criterion_node(outputs["node_type_preds"], data.node_types)
         if "edge_type_preds" in outputs:
             losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
 
+        # Compute masked edge reconstruction loss
+        if "edge_reconstruction" in outputs:
+            predictions = outputs["edge_reconstruction"]
+            targets = unmasked_edge_features  # Use the original edge features for reconstruction
+            losses["edge_reconstruction_loss"] = compute_masked_edge_loss(predictions, targets, mask)
+
         return {k: v.item() for k, v in losses.items()}
     
     def save_checkpoint(self, epoch, val_loss, filename=None):
         if filename is None:
-            filename = f"model_epoch_pretrained_{epoch}.pt"
+            filename = f"model_epoch_pretrained_masked_{epoch}.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
         torch.save({
             'epoch': epoch,
