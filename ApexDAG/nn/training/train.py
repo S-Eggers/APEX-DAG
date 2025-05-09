@@ -44,7 +44,7 @@ class GraphProcessor:
 
         self.logger.info("Loading preprocessed graphs...")
         errors = 0
-        graph_files = list(self.checkpoint_path.iterdir())[:20000]
+        graph_files = list(self.checkpoint_path.iterdir())
         
         for graph_file in tqdm.tqdm(graph_files, desc="Loading graphs"):
             try:

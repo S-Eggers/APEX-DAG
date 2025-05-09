@@ -29,6 +29,8 @@ class MultiTaskGAT(nn.Module):
         super().__init__()
         
         self.up_projection = nn.Linear(dim_embed, hidden_dim)
+        self.mask_token = nn.Parameter(torch.randn(dim_embed))
+
         
         # GAT Blocks
         self.gat_blocks = nn.ModuleList([
@@ -54,7 +56,7 @@ class MultiTaskGAT(nn.Module):
 
         Args:
             data: Input graph data containing x (node features), edge_features, and edge_index.
-            task (str): Task to perform ("node_classification", "edge_classification", "edge_reconstruction").
+            task (str): Task to perform ("node_classification", "edge_classification", "node_reconstruction").
             mask (torch.Tensor): Binary mask indicating which edges are masked (for reconstruction).
 
         Returns:
@@ -64,8 +66,8 @@ class MultiTaskGAT(nn.Module):
 
         # Apply masking if provided
         if mask is not None:
-            edge_embeds = edge_embeds.clone()
-            edge_embeds[mask] = 0  # Mask the edge features
+            x = x.clone()
+            x[mask] = self.mask_token
 
         # Up-project node and edge embeddings
         x = self.up_projection(x)
@@ -87,8 +89,8 @@ class MultiTaskGAT(nn.Module):
             outputs["edge_type_preds"] = F.softmax(self.edge_type_head(edge_features), dim=-1)
 
         # Edge reconstruction
-        if task == "edge_reconstruction" or task is None:
-            edge_features = x[edge_index[0]]
-            outputs["edge_reconstruction"] = self.reconstruction_head(edge_features)  # Predict original edge features
+        if task == "node_reconstruction" or task is None:
+
+            outputs["node_reconstruction"] = self.reconstruction_head(x)  # Predict original edge features
 
         return outputs

@@ -63,7 +63,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
     trainer = GATTrainer(config, logger)
 
-    encoded_graphs = False #graph_encoder.reload_encoded_graphs()
+    encoded_graphs = graph_encoder.reload_encoded_graphs()
 
     if not encoded_graphs:
         graph_processor.load_preprocessed_graphs()

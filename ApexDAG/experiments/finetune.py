@@ -33,7 +33,7 @@ def finetune_gat(args, logger: logging.Logger) -> None:
         
     hash_value = hash(str(config))
     set_seed(config["seed"])
-    setup_wandb(project_name="APEX-DAG-reversed-nodes-edges-finetuning", name = hash_value)
+    setup_wandb(project_name="APEX-DAG-reversed-nodes-edges-masked-finetuning", name = hash_value)
 
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"]).parent / "pytorch-encoded-finetune-swapped"

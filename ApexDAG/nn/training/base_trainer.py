@@ -24,6 +24,7 @@ class BaseTrainer:
         self.criterion_node = nn.CrossEntropyLoss()
         self.criterion_edge_type = nn.CrossEntropyLoss()
         self.criterion_edge_existence = nn.BCELoss()
+        self.criterion_node_reconstruction = nn.MSELoss()
         
         self.writer = SummaryWriter(log_dir=log_dir)
         self.checkpoint_dir = checkpoint_dir
@@ -51,27 +52,35 @@ class BaseTrainer:
         all_preds = []
         all_labels = []
         
+        self.model.eval().to(self.device)
+        all_preds = []
+        all_labels = []
+
         with torch.no_grad():
-            for data in loader:
-                data = data.to('cpu')
+            for data in tqdm.tqdm(loader, desc="Processing Data for conf matrix", leave=False):
+                data = data.to(self.device)
                 outputs = self.model(data)
-                
+
                 if pred_type == "node_type_preds":
-                    labels = data.node_types.cpu().numpy()
-                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
-                    # if the label is -1 then omit  it with mask
+                    labels = data.node_types
+                    preds = torch.argmax(outputs[pred_type], dim=1)
                     valid_edge_mask = labels != -1
                     preds = preds[valid_edge_mask]
                     labels = labels[valid_edge_mask]
                 elif pred_type == "edge_existence_preds":
-                    labels = data.edge_existence.cpu().numpy()
-                    preds = (outputs[pred_type] > 0.5).cpu().numpy().astype(int)
+                    labels = data.edge_existence
+                    preds = (outputs[pred_type] > 0.5).int()
                 elif pred_type == "edge_type_preds":
-                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
-                    labels = data.edge_types.cpu().numpy()
-                
-                all_preds.extend(preds)
-                all_labels.extend(labels)
+                    preds = torch.argmax(outputs[pred_type], dim=1)
+                    labels = data.edge_types
+
+                all_preds.append(preds)
+                all_labels.append(labels)
+
+        # stack once
+        all_preds = torch.cat(all_preds).cpu().numpy()
+        all_labels = torch.cat(all_labels).cpu().numpy()
+
         
         cm = confusion_matrix(all_labels, all_preds)
         
@@ -100,7 +109,7 @@ class BaseTrainer:
         best_losses = {
             "node_type_loss": float("inf"),
             "edge_type_loss": float("inf"),
-            "edge_reconstruction_loss": float("inf"),
+            "node_reconstruction_loss": float("inf"),
             "edge_existence_loss": float("inf")
         }
         best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss","Best_Edge_Existence_Loss"])
@@ -154,7 +163,7 @@ class BaseTrainer:
                     best_losses["node_type_loss"],
                     best_losses["edge_type_loss"],
                     best_losses["edge_existence_loss"],
-                    best_losses["edge_reconstruction_loss"]
+                    best_losses["node_reconstruction_loss"]
                 )
                 wandb.log({"Best_Losses": best_losses_table})
                 break
@@ -164,7 +173,7 @@ class BaseTrainer:
                     epoch,
                     best_losses["node_type_loss"],
                     best_losses["edge_type_loss"],
-                    best_losses["edge_reconstruction_loss"],
+                    best_losses["node_reconstruction_loss"],
                     best_losses["edge_existence_loss"]
                 )
         wandb.log({"Best_Losses": best_losses_table})
