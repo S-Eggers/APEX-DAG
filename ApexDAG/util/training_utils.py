@@ -1,11 +1,25 @@
 import random
 import numpy as np
 import torch
+from enum import Enum
 
+
+class GraphTransformsMode(Enum):
+    """Modes for Experiments"""
+    REVERSED = "reversed"
+    ORIGINAL = "original"
+    REVERSED_MASKED = "reversed_masked"
+    ORIGINAL_MASKED = "original_masked"
+    
 class InsufficientNegativeEdgesException(Exception):
     def __init__(self, message="The graph does not have enough negative edges"):
         self.message = message
         super().__init__(self.message)
+
+class InsufficientPositiveEdgesException(Exception):
+    def __init__(self, message="The graph does not have enough negative edges"):
+        self.message = message
+        super().__init__(self.message)      
 
 def set_seed(seed: int) -> None:
     """Sets the random seed for reproducibility across multiple libraries."""

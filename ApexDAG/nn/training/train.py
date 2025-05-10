@@ -11,9 +11,9 @@ from enum import Enum
 from ApexDAG.encoder import Encoder
 from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.nn.dataset import GraphDataset
-from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer
+from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer, PretrainingTrainerMasked
 from ApexDAG.nn.training.finetuning_trainer import FinetuningTrainer
-from ApexDAG.util.training_utils import InsufficientNegativeEdgesException
+from ApexDAG.util.training_utils import InsufficientNegativeEdgesException, InsufficientPositiveEdgesException, GraphTransformsMode
 
 
 class Modes(Enum):
@@ -63,7 +63,14 @@ class GraphEncoder:
                  logger: logging.Logger, 
                  min_nodes: int, 
                  min_edges: int, 
-                 load_encoded_old_if_exist: bool):
+                 load_encoded_old_if_exist: bool,
+                 mode: str = "original",
+                 subsample: bool = False,
+                 bidirectional: bool = False): # add bidirectionality experiment!
+        
+        self.bidirectional = bidirectional
+        self.mode = mode
+        self.subsample = subsample # sumbsample the graphs with only the overrepresentaed class 
         self.encoded_checkpoint_path = encoded_checkpoint_path
         self.logger = logger
         self.encoded_graphs = []
@@ -84,6 +91,15 @@ class GraphEncoder:
             ]
         return False
 
+    def _make_bidirectional(self, graph):
+        """Makes the graph bidirectional by adding reverse edges.
+           - should improve message passing scheme.
+        """
+        for u, v in list(graph.edges()):
+            if not graph.has_edge(v, u):
+                graph.add_edge(v, u) 
+        return graph
+    
     def encode_graphs(self, graphs, feature_to_encode):
         """Encodes graphs and saves them to disk."""
         self.logger.info("Encoding graphs...")
@@ -93,9 +109,15 @@ class GraphEncoder:
         for index, graph in tqdm.tqdm(enumerate(graphs), desc="Encoding graphs"):
             if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
                 continue  # skip small graphs
-
+            
+            if self.bidirectional:
+                graph = self._make_bidirectional(graph)
+                                     
             try:
-                encoded_graph = encoder.encode(graph, feature_to_encode)
+                if self.mode in [GraphTransformsMode.REVERSED, GraphTransformsMode.REVERSED_MASKED]:
+                    encoded_graph = encoder.encode_reversed(graph, feature_to_encode)
+                else:
+                    encoded_graph = encoder.encode(graph, feature_to_encode)
                 torch.save(encoded_graph, self.encoded_checkpoint_path / f"graph_{index}.pt")
                 self.encoded_graphs.append(encoded_graph)
             except KeyboardInterrupt:
@@ -103,6 +125,9 @@ class GraphEncoder:
                 continue
             except InsufficientNegativeEdgesException:
                 self.logger.error(f"Insufficient negative edges in graph {index}")
+                continue
+            except InsufficientPositiveEdgesException:
+                self.logger.error(f"Insufficient positive edges in graph {index}")
                 continue
             except Exception:
                 self.logger.error(f"Error in graph {index}")
@@ -117,7 +142,7 @@ class GATTrainer:
         self.config = config
         self.logger = logger
 
-    def train(self, encoded_graphs, model, mode: Modes, device:str = "cuda"):
+    def train(self, encoded_graphs, model, mode: Modes, device:str = "cuda", graph_transform_mode:str = GraphTransformsMode.ORIGINAL):
         """Trains the GAT model."""
         wandb.watch(model, log="all")
         
@@ -129,8 +154,9 @@ class GATTrainer:
             val_size = len(dataset) - train_size
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         
-            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'])
-            
+            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode)
+            if graph_transform_mode in [GraphTransformsMode.REVERSED_MASKED, GraphTransformsMode.ORIGINAL_MASKED]:
+                trainer = PretrainingTrainerMasked(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode)
         elif mode == Modes.LINEAR_PROBING:
             self.logger.info("Training in linear probing mode")
             
@@ -141,7 +167,7 @@ class GATTrainer:
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size + test_size])
             val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
             
-            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'])
+            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode) 
         best_loss = trainer.train(num_epochs=self.config["num_epochs"])
         
         for type_conf_matrix in trainer.conf_matrices_types:

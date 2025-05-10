@@ -11,10 +11,10 @@ from datetime import datetime
 from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import confusion_matrix
-
+from ApexDAG.util.training_utils import GraphTransformsMode
 
 class BaseTrainer:
-    def __init__(self, model, train_dataset, val_dataset, device="cuda", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10, batch_size=32, lr=0.001, weight_decay=0.00001):
+    def __init__(self, model, train_dataset, val_dataset, device="cuda", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10, batch_size=32, lr=0.001, weight_decay=0.00001, graph_transform_mode = GraphTransformsMode.ORIGINAL):
         self.model = model.to(device)
         self.device = device
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -34,10 +34,11 @@ class BaseTrainer:
         self.early_stopping_counter = 0
         
         self.conf_matrices_types = ["edge_type_preds"] # defined in subclasses
+        self.graph_transform_mode = graph_transform_mode
 
-    def save_checkpoint(self, epoch, val_loss, filename=None):
+    def save_checkpoint(self, epoch, val_loss, suffix_name = "", filename=None):
         if filename is None:
-            filename = f"model_epoch_{epoch}.pt"
+            filename = f"model_epoch_{suffix_name}_{epoch}.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
         torch.save({
             'epoch': epoch,
@@ -45,33 +46,38 @@ class BaseTrainer:
             'optimizer_state_dict': self.optimizer.state_dict(),
             'val_loss': val_loss
         }, checkpoint_path)
+        
 
     def log_confusion_matrix(self, loader, phase, pred_type = "edge_type_preds"):
-        self.model.eval()
+        self.model.eval().to(self.device)
         all_preds = []
         all_labels = []
         
         with torch.no_grad():
-            for data in loader:
+            for data in  tqdm.tqdm(loader, desc="Processing Data for conf matrix", leave=False):
                 data = data.to(self.device)
                 outputs = self.model(data)
                 
+                if pred_type not in outputs:
+                    self.logger.warning(f"Prediction type '{pred_type}' not found in model outputs. Skipping.")
+                    return  # Skip logging for this pred_type
+                
                 if pred_type == "edge_type_preds":
-                    labels = data.edge_types.cpu().numpy()
-                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
+                    labels = data.edge_types
+                    preds = torch.argmax(outputs[pred_type], dim=1)
                     # if the label is -1 then omit  it with mask
                     valid_edge_mask = labels != -1
                     preds = preds[valid_edge_mask]
                     labels = labels[valid_edge_mask]
                 elif pred_type == "edge_existence_preds":
-                    labels = data.edge_existence.cpu().numpy()
-                    preds = (outputs[pred_type] > 0.5).cpu().numpy().astype(int)
+                    labels = data.edge_existence
+                    preds = (outputs[pred_type] > 0.5).astype(int)
                 elif pred_type == "node_type_preds":
-                    preds = torch.argmax(outputs[pred_type], dim=1).cpu().numpy()
-                    labels = data.node_types.cpu().numpy()
+                    preds = torch.argmax(outputs[pred_type], dim=1)
+                    labels = data.node_types
                 
-                all_preds.extend(preds)
-                all_labels.extend(labels)
+        all_preds = torch.cat(all_preds).cpu().numpy()
+        all_labels = torch.cat(all_labels).cpu().numpy()
         
         cm = confusion_matrix(all_labels, all_preds)
         
@@ -100,9 +106,10 @@ class BaseTrainer:
         best_losses = {
             "node_type_loss": float("inf"),
             "edge_type_loss": float("inf"),
+            "reconstruction_loss": float("inf"),
             "edge_existence_loss": float("inf")
         }
-        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Edge_Existence_Loss"])
+        best_losses_table = wandb.Table(columns=["Epoch", "Best_Node_Loss", "Best_Edge_Type_Loss", "Best_Reconstruction_Loss", "Best_Edge_Existence_Loss"])
 
 
         for epoch in training_bar:
@@ -140,7 +147,7 @@ class BaseTrainer:
                 for loss_type in best_losses:
                     best_losses[loss_type] = avg_val_losses[loss_type]
                 self.early_stopping_counter = 0
-                self.save_checkpoint(epoch, avg_val_loss)
+                self.save_checkpoint(epoch, avg_val_loss, suffix_name=self.graph_transform_mode)
     
             else:
                 self.early_stopping_counter += 1
@@ -151,6 +158,7 @@ class BaseTrainer:
                     epoch,
                     best_losses["node_type_loss"],
                     best_losses["edge_type_loss"],
+                    best_losses["reconstruction_loss"],
                     best_losses["edge_existence_loss"]
                 )
                 wandb.log({"Best_Losses": best_losses_table})
@@ -161,6 +169,7 @@ class BaseTrainer:
                     epoch,
                     best_losses["node_type_loss"],
                     best_losses["edge_type_loss"],
+                    best_losses["reconstruction_loss"],
                     best_losses["edge_existence_loss"]
                 )
         wandb.log({"Best_Losses": best_losses_table})

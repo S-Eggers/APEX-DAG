@@ -48,9 +48,9 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-    
+        config["mode"] = Modes[mode]
+        set_seed(config["seed"])
         
-    set_seed(config["seed"])
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])
 
@@ -58,7 +58,8 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, 
                                  config['min_nodes'], 
                                  config['min_edges'], 
-                                 config['load_encoded_old_if_exist'])
+                                 config['load_encoded_old_if_exist'],
+                                 mode = getattr(config, "mode"))
     
     model = create_model(config)
     model.to(config['device'])

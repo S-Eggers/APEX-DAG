@@ -17,7 +17,7 @@ def setup_wandb(project_name: str, name: str = None):
     if name is None:
         wandb.init(project=project_name, entity=entity)
     else:
-        wandb.init(project=project_name, entity=entity, name = 'hash' + str(name).replace("-", "_"))
+        wandb.init(project=project_name, entity=entity, name = 'hash_' + str(name).replace("-", "_"))
 
 def setup_logging(name: str, verbose: bool) -> logging.Logger:
     logger = logging.getLogger(name)

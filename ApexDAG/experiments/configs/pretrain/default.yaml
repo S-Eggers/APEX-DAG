@@ -1,7 +1,10 @@
 checkpoint_path: "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs"
 encoded_checkpoint_path: "data/raw/pytorch-embedded"
-node_classes: 8
-edge_classes: 6
+
+mode: 'REVERSED' # [REVERSED, ORIGINAL, REVERSED_MASKED]
+
+node_classes: 8 # params for original 
+edge_classes: 6 # params for original 
 
 num_epochs: 100
 train_split: 0.8
