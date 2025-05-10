@@ -4,6 +4,7 @@ import torch
 import logging
 import traceback
 import wandb
+import networkx as nx
 from pathlib import Path
 from torch.utils.data import random_split
 from enum import Enum
@@ -13,12 +14,12 @@ from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer, PretrainingTrainerMasked
 from ApexDAG.nn.training.finetuning_trainer import FinetuningTrainer
-from ApexDAG.util.training_utils import InsufficientNegativeEdgesException, InsufficientPositiveEdgesException, GraphTransformsMode
+from ApexDAG.util.training_utils import InsufficientNegativeEdgesException, InsufficientPositiveEdgesException, GraphTransformsMode, DOMAIN_LABEL_TO_SUBSAMPLE
 
 
 class Modes(Enum):
     PRETRAINING = "pretraining"
-    LINEAR_PROBING = "linear_probing"
+    FINETUNING = "finetune"
     
 class GraphProcessor:
     """Handles loading and preprocessing of graphs."""
@@ -112,7 +113,16 @@ class GraphEncoder:
             
             if self.bidirectional:
                 graph = self._make_bidirectional(graph)
-                                     
+                
+            if self.subsample:
+                # Skip graphs where all edges have the same domain_label (e.g., all are "X")
+                edge_labels = nx.get_edge_attributes(graph, "domain_label")
+                unique_labels = set(edge_labels.values())
+
+                if len(unique_labels) == 1 and DOMAIN_LABEL_TO_SUBSAMPLE in unique_labels:
+                    self.logger.info(f"Skipping graph {index} as it only contains edges with domain_label={unique_labels.pop()}.")
+                    continue
+                          
             try:
                 if self.mode in [GraphTransformsMode.REVERSED, GraphTransformsMode.REVERSED_MASKED]:
                     encoded_graph = encoder.encode_reversed(graph, feature_to_encode)
@@ -142,7 +152,7 @@ class GATTrainer:
         self.config = config
         self.logger = logger
 
-    def train(self, encoded_graphs, model, mode: Modes, device:str = "cuda", graph_transform_mode:str = GraphTransformsMode.ORIGINAL):
+    def train(self, encoded_graphs, model, mode: Modes, device:str = "cuda", graph_transform_mode: str = GraphTransformsMode.ORIGINAL):
         """Trains the GAT model."""
         wandb.watch(model, log="all")
         
@@ -157,7 +167,7 @@ class GATTrainer:
             trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode)
             if graph_transform_mode in [GraphTransformsMode.REVERSED_MASKED, GraphTransformsMode.ORIGINAL_MASKED]:
                 trainer = PretrainingTrainerMasked(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode)
-        elif mode == Modes.LINEAR_PROBING:
+        elif mode == Modes.FINETUNING:
             self.logger.info("Training in linear probing mode")
             
             train_size = int(self.config["train_split"] * len(dataset))
@@ -173,7 +183,7 @@ class GATTrainer:
         for type_conf_matrix in trainer.conf_matrices_types:
             trainer.log_confusion_matrix(train_dataset, "Train", type_conf_matrix )
             trainer.log_confusion_matrix(val_dataset, "Val", type_conf_matrix)
-            if mode == Modes.LINEAR_PROBING:
+            if mode == Modes.FINETUNING:
                 trainer.log_confusion_matrix(test_dataset, "Test", type_conf_matrix)
                 
         wandb.finish()

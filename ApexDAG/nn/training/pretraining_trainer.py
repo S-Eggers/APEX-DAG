@@ -111,7 +111,7 @@ class PretrainingTrainerMasked(PretrainingTrainer):
         """
         masked_predictions = predictions[mask]
         masked_targets = targets[mask]
-        return self.criterion_node_reconstruction(masked_predictions, masked_targets)
+        return self.criterion_reconstruction(masked_predictions, masked_targets)
 
     def train_step(self, data):
         self.model.train()
@@ -133,8 +133,8 @@ class PretrainingTrainerMasked(PretrainingTrainer):
             losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
 
         # compute masked edge reconstruction loss
-        if "node_reconstruction" in outputs:
-            predictions = outputs["node_reconstruction"]
+        if "reconstruction" in outputs:
+            predictions = outputs["reconstruction"]
             targets = data.x  # Use the original edge features for reconstruction
             losses["reconstruction_loss"] = self.compute_masked_node_loss(predictions, targets, mask)
 
@@ -164,8 +164,8 @@ class PretrainingTrainerMasked(PretrainingTrainer):
             losses["edge_type_loss"] = self.criterion_edge_type(outputs["edge_type_preds"], data.edge_types)
 
         # compute masked edge reconstruction loss
-        if "node_reconstruction" in outputs:
-            predictions = outputs["node_reconstruction"]
+        if "reconstruction" in outputs:
+            predictions = outputs["reconstruction"]
             targets = data.x  # Use the original edge features for reconstruction
             losses["reconstruction_loss"] = self.compute_masked_node_loss(predictions, targets, mask)
 

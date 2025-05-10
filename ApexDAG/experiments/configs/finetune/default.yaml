@@ -1,7 +1,9 @@
 # === Paths ===
-checkpoint_path: "/home/nzukowska/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs/"
-encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-masked"
-pretrained_model_path: "checkpoints/model_epoch_pretrained_masked_8.pt"
+checkpoint_path: "C:/Users/ismyn/UNI/TUB/data/jetbrains_dfg_100k_new_labeled/execution_graphs/"
+encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-reversed"
+# encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-normal"
+# encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-reversed-masked"
+pretrained_model_path: "checkpoints/checkpoints-swapped/model_epoch_pretrained_10.pt"
 
 # === Data Splits ===
 train_split: 0.75
@@ -14,7 +16,7 @@ subsample: True
 
 # === General Settings ===
 seed: 42
-device: "cuda:2"  # [cpu, cuda]
+device: "cuda"  # [cpu, cuda]
 load_encoded_old_if_exist: True  # if the graphs are encoded, do not encode them again
 
 # === Model Architecture ===
@@ -29,9 +31,9 @@ edge_classes: 8
 
 # === Training ===
 batch_size: 32
-learning_rate: 0.00001  # [0.001, 0.005, 0.01]
+learning_rate: 0.00005  # [0.001, 0.005, 0.01]
 min_nodes: 3
 min_edges: 2
-weight_decay: 0.000005  # [0.0001, 0.001, 0.01]
+weight_decay: 0.00001  # [0.0001, 0.001, 0.01]
 num_epochs: 2000 # 300
 patience: 30

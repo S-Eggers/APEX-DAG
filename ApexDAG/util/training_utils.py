@@ -4,6 +4,20 @@ import torch
 from enum import Enum
 
 
+DOMAIN_LABEL_TO_SUBSAMPLE = "DATA_TRANSFORM"
+
+TASKS_PER_GRAPH_TRANSFORM_MODE_FINETUNE = {
+    "reversed": ["node_classification"],
+    "original": ["edge_classification"],
+    "reversed_masked": ["node_classification", "reconstruction"],
+    "original_masked": ["edge_classification", "reconstruction"]
+}
+TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN = {
+    "reversed": ["node_classification", "edge_classification"],
+    "original": ["node_classification", "edge_classification", "edge_existence"],
+    "reversed_masked": ["node_classification", "edge_classification", "reconstruction"],
+    "original_masked": ["node_classification", "edge_classification", "reconstruction", "edge_existence"]
+}
 class GraphTransformsMode(Enum):
     """Modes for Experiments"""
     REVERSED = "reversed"

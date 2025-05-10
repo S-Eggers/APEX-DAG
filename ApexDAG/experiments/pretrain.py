@@ -7,9 +7,9 @@ import torch
 from pathlib import Path
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
-from ApexDAG.util.training_utils import set_seed
+from ApexDAG.util.training_utils import set_seed, TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN
 
-def create_model(config):
+def create_model(config, tasks):
     return MultiTaskGAT(
             hidden_dim=config["hidden_dim"], 
             dim_embed=config["dim_embed"],
@@ -18,7 +18,8 @@ def create_model(config):
             edge_classes=config["edge_classes"],
             residual=config["residual"],
             dropout=config["dropout"],
-            number_gat_blocks=config["number_gat_blocks"]
+            number_gat_blocks=config["number_gat_blocks"],
+            task = tasks
         )
     
 def signal_handler(signum, frame):
@@ -59,9 +60,9 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                                  config['min_nodes'], 
                                  config['min_edges'], 
                                  config['load_encoded_old_if_exist'],
-                                 mode = getattr(config, "mode"))
+                                 mode = config["mode"])
     
-    model = create_model(config)
+    model = create_model(config, tasks = TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN[config["mode"].value])
     model.to(config['device'])
     
     trainer = GATTrainer(config, logger)

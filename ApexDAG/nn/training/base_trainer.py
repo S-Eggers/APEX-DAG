@@ -24,6 +24,7 @@ class BaseTrainer:
         self.criterion_node = nn.CrossEntropyLoss()
         self.criterion_edge_type = nn.CrossEntropyLoss()
         self.criterion_edge_existence = nn.BCELoss()
+        self.criterion_reconstruction = nn.MSELoss()
         
         self.writer = SummaryWriter(log_dir=log_dir)
         self.checkpoint_dir = checkpoint_dir
@@ -75,6 +76,9 @@ class BaseTrainer:
                 elif pred_type == "node_type_preds":
                     preds = torch.argmax(outputs[pred_type], dim=1)
                     labels = data.node_types
+                
+                all_preds.append(preds)
+                all_labels.append(labels)
                 
         all_preds = torch.cat(all_preds).cpu().numpy()
         all_labels = torch.cat(all_labels).cpu().numpy()
@@ -145,7 +149,8 @@ class BaseTrainer:
             if avg_val_loss < self.best_val_loss:
                 self.best_val_loss = avg_val_loss
                 for loss_type in best_losses:
-                    best_losses[loss_type] = avg_val_losses[loss_type]
+                    if loss_type in avg_val_losses:
+                        best_losses[loss_type] = avg_val_losses[loss_type]
                 self.early_stopping_counter = 0
                 self.save_checkpoint(epoch, avg_val_loss, suffix_name=self.graph_transform_mode)
     
