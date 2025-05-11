@@ -9,13 +9,13 @@ from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
 from ApexDAG.util.training_utils import set_seed, TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN
 
-def create_model(config, tasks):
+def create_model(config, reversed, tasks):
     return MultiTaskGAT(
             hidden_dim=config["hidden_dim"], 
             dim_embed=config["dim_embed"],
             num_heads=config["num_heads"], 
-            node_classes=config["node_classes"], 
-            edge_classes=config["edge_classes"],
+            edge_classes=config["node_classes"] if reversed else config["edge_classes"],
+            node_classes=config["edge_classes"]if reversed else config["node_classes"],
             residual=config["residual"],
             dropout=config["dropout"],
             number_gat_blocks=config["number_gat_blocks"],
@@ -62,7 +62,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
                                  config['load_encoded_old_if_exist'],
                                  mode = config["mode"])
     
-    model = create_model(config, tasks = TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN[config["mode"].value])
+    model = create_model(config, reversed = ('reversed' in config["mode"].value), tasks = TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN[config["mode"].value])
     model.to(config['device'])
     
     trainer = GATTrainer(config, logger)

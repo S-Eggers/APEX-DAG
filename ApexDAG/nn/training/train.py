@@ -164,9 +164,9 @@ class GATTrainer:
             val_size = len(dataset) - train_size
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         
-            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode)
+            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
             if graph_transform_mode in [GraphTransformsMode.REVERSED_MASKED, GraphTransformsMode.ORIGINAL_MASKED]:
-                trainer = PretrainingTrainerMasked(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode)
+                trainer = PretrainingTrainerMasked(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
         elif mode == Modes.FINETUNING:
             self.logger.info("Training in linear probing mode")
             
@@ -177,7 +177,7 @@ class GATTrainer:
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size + test_size])
             val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
             
-            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode) 
+            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
         best_loss = trainer.train(num_epochs=self.config["num_epochs"])
         
         for type_conf_matrix in trainer.conf_matrices_types:

@@ -10,7 +10,7 @@ from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
 
 
 def create_model(config):
-    model = create_pretrain_model(config, tasks =TASKS_PER_GRAPH_TRANSFORM_MODE_FINETUNE[config["mode"].value])
+    model = create_pretrain_model(config, reversed = ('reversed' in config["mode"].value), tasks =TASKS_PER_GRAPH_TRANSFORM_MODE_FINETUNE[config["mode"].value])
 
     if config["pretrained_model_path"]:
         pretrained_state_dict = torch.load(config["pretrained_model_path"])

@@ -1,3 +1,4 @@
+import logging
 import os
 import tqdm
 import wandb
@@ -14,7 +15,7 @@ from sklearn.metrics import confusion_matrix
 from ApexDAG.util.training_utils import GraphTransformsMode
 
 class BaseTrainer:
-    def __init__(self, model, train_dataset, val_dataset, device="cuda", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10, batch_size=32, lr=0.001, weight_decay=0.00001, graph_transform_mode = GraphTransformsMode.ORIGINAL):
+    def __init__(self, model, train_dataset, val_dataset, device="cuda", log_dir="runs/", checkpoint_dir="checkpoints/", patience=10, batch_size=32, lr=0.001, weight_decay=0.00001, graph_transform_mode = GraphTransformsMode.ORIGINAL, logger=None):
         self.model = model.to(device)
         self.device = device
         self.train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
@@ -34,9 +35,18 @@ class BaseTrainer:
         self.best_val_loss = float("inf")
         self.early_stopping_counter = 0
         
-        self.conf_matrices_types = ["edge_type_preds"] # defined in subclasses
+        self.conf_matrices_types = ["edge_type_preds", "node_type_preds"] # defined in subclasses
         self.graph_transform_mode = graph_transform_mode
 
+        self.logger = logger # get dfault logger if it is none
+        if logger is None:
+            self.logger = logging.getLogger(__name__)
+            handler = logging.StreamHandler()
+            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
+            self.logger.setLevel(logging.INFO)
+            
     def save_checkpoint(self, epoch, val_loss, suffix_name = "", filename=None):
         if filename is None:
             filename = f"model_epoch_{suffix_name}_{epoch}.pt"
@@ -76,6 +86,9 @@ class BaseTrainer:
                 elif pred_type == "node_type_preds":
                     preds = torch.argmax(outputs[pred_type], dim=1)
                     labels = data.node_types
+                    valid_node_mask = labels != -1
+                    labels = data.node_types[valid_node_mask]
+                    preds = preds[valid_node_mask]
                 
                 all_preds.append(preds)
                 all_labels.append(labels)
@@ -139,9 +152,9 @@ class BaseTrainer:
 
             self.log_histograms(epoch)
 
-            if epoch % 10 == 0:
-                example_data = next(iter(self.train_loader)).to(self.device)
-                self.log_embeddings(epoch, example_data)
+            # if epoch % 10 == 0:
+                # example_data = next(iter(self.train_loader)).to(self.device)
+                # self.log_embeddings(epoch, example_data)
 
             training_bar.write(f"Train Losses: {avg_train_losses}")
             training_bar.write(f"Val Losses: {avg_val_losses}")
@@ -184,10 +197,10 @@ class BaseTrainer:
         for name, param in self.model.named_parameters():
             self.writer.add_histogram(name, param, epoch)
 
-    def log_embeddings(self, epoch, data):
+    def log_embeddings(self, epoch, data, attribute = "node_type_preds" ):
         self.model.eval()
         with torch.no_grad():
-            node_embeddings = self.model(data)["node_type_preds"]
+            node_embeddings = self.model(data)[attribute]
             metadata = [f"Node {i}" for i in range(node_embeddings.size(0))]
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             global_step = f"{epoch}_{timestamp}"
