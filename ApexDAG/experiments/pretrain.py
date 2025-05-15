@@ -65,7 +65,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     model = create_model(config, reversed = ('reversed' in config["mode"].value), tasks = TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN[config["mode"].value])
     model.to(config['device'])
     
-    trainer = GATTrainer(config, logger)
+    trainer = GATTrainer(config, logger, mode = mode)
 
     encoded_graphs = graph_encoder.reload_encoded_graphs()
     
@@ -73,7 +73,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         graph_processor.load_preprocessed_graphs()
         encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="edge_type")
 
-    best_val_loss = trainer.train(encoded_graphs, model, mode, device=config['device'])
+    best_val_loss = trainer.train(encoded_graphs, model, device=config['device'])
     
     torch.cuda.empty_cache()
     
