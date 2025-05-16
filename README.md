@@ -35,7 +35,6 @@ conda install --channel conda-forge pygraphviz // requires graphviz
 
 ## Progress
 
-- [x] Demonstration Paper (ACM SIGMOD/PODS 2025, Berlin, Germany)
 - [x] Translator (Dataflow Extraction, Tokenizing, Encoding Graph)
 - [x] Detector & Estimator (Graph Attention Network, Training Tasks, Dataset)
 - [x] Annotator (Graph Attention Network, Training Tasks, Dataset)
