@@ -1,0 +1,8 @@
+{
+  "jupyter.lab.shortcuts": [],
+  "title": "apex-dag-jupyter",
+  "description": "apex-dag-jupyter settings.",
+  "type": "object",
+  "properties": {},
+  "additionalProperties": false
+}

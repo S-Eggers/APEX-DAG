@@ -1,0 +1,7 @@
+{
+    "ServerApp": {
+      "jpserver_extensions": {
+        "apex_dag_jupyter": true
+      }
+    }
+  }
