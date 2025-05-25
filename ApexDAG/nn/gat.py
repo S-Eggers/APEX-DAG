@@ -25,9 +25,10 @@ class GATBlock(nn.Module):
         return x
 
 class MultiTaskGAT(nn.Module):
-    def __init__(self, hidden_dim, dim_embed, num_heads=8, node_classes=8, edge_classes=6, dropout=0.2, number_gat_blocks = 2, residual = False):
+    def __init__(self, hidden_dim, dim_embed, num_heads=8, node_classes=8, edge_classes=6, dropout=0.2, number_gat_blocks = 2, residual = False, task = None):
         super().__init__()
         
+        self.task = task
         self.up_projection = nn.Linear(dim_embed, hidden_dim)
         
         # GAT Blocks
@@ -39,6 +40,7 @@ class MultiTaskGAT(nn.Module):
         # Task-specific heads
         self.node_type_head = nn.Linear(hidden_dim, node_classes)
         self.edge_type_head = nn.Linear(hidden_dim, edge_classes)
+        self.reconstruction_head = nn.Linear(hidden_dim, dim_embed)
 
         # Edge existence prediction
         self.edge_mlp = nn.Sequential(
@@ -47,7 +49,7 @@ class MultiTaskGAT(nn.Module):
             nn.Linear(hidden_dim, 1)
         )
 
-    def forward(self, data, task=None):
+    def forward(self, data):
         x, edge_embeds, edge_index = data.x, data.edge_features, data.edge_index
 
         # up-project node and edge embeddings     
@@ -59,17 +61,21 @@ class MultiTaskGAT(nn.Module):
 
         outputs = {}
 
-        if task == "node_classification" or task is None:
+        if "node_classification" in self.task or self.task is None:
             outputs["node_type_preds"] = F.softmax(self.node_type_head(x), dim=-1)
 
-        if task == "edge_classification" or task is None:
+        if "edge_classification" in self.task or self.task is None:
             edge_features = x[edge_index[0]]
             outputs["edge_type_preds"] = F.softmax(self.edge_type_head(edge_features), dim=-1)
 
-        if task == "edge_existence" or task is None:
+        if "edge_existence" in self.task or self.task is None:
             source_embeddings = x[edge_index[0]]
             target_embeddings = x[edge_index[1]]
             combined_edge_embeddings = torch.cat([source_embeddings, target_embeddings], dim=-1)
             outputs["edge_existence_preds"] = torch.sigmoid(self.edge_mlp(combined_edge_embeddings))
+        
+                # Edge reconstruction
+        if "reconstruction" in self.task or self.task is None:
+            outputs["reconstruction"] = self.reconstruction_head(x)  # Predict original edge features
 
         return outputs

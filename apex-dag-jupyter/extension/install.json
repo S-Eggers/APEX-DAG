@@ -1,5 +1,0 @@
-{
-  "packageManager": "python",
-  "packageName": "apex_dag",
-  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package apex_dag"
-}

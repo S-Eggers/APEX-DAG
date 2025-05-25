@@ -20,6 +20,11 @@ class Draw:
         if not os.path.exists(directory):
             os.makedirs(directory, exist_ok=True)
 
+        # Save JSON
+        with open(os.path.join(directory, f"{file_name}.json"), "w") as f:
+            f.write(self.dfg_to_json(G))
+
+    def dfg_to_json(self, G: nx.DiGraph) -> str:
         elements = []
         # Convert nodes
         for node, data in G.nodes(data=True):
@@ -42,10 +47,8 @@ class Draw:
                 }
             })
 
-        # Save JSON
-        with open(os.path.join(directory, f"{file_name}.json"), "w") as f:
-            json.dump({"elements": elements}, f, indent=4)
-        
+        return json.dumps({"elements": elements})
+
     def dfg(self, G: nx.DiGraph, save_path: str=None):  
         file_name = os.path.basename(save_path) if save_path else "data_flow_graph"
         
