@@ -5,9 +5,11 @@ import wandb
 import torch
 
 from pathlib import Path
+
+from ApexDAG.util.logging import setup_wandb
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
-from ApexDAG.util.training_utils import set_seed, TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN
+from ApexDAG.util.training_utils import set_seed, TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN, GraphTransformsMode
 
 def create_model(config, reversed, tasks):
     return MultiTaskGAT(
@@ -44,13 +46,17 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
     
     mode = Modes.PRETRAINING
     
-    config_path = args.get('config_path')
-    log_config(config_path)
+    config_path = args.config_path
     
     with open(config_path, "r") as f:
         config = yaml.safe_load(f)
-        config["mode"] = Modes[mode]
+        graph_transform_mode = config.get("mode", "ORIGINAL")
+        config["mode"] = GraphTransformsMode[graph_transform_mode]
+        hash_value = hash(str(config))
+        
         set_seed(config["seed"])
+        setup_wandb(project_name=f"APEX-DAG-{config['mode']}-pretrain", name = hash_value)
+        log_config(config_path)
         
     checkpoint_path = Path(config["checkpoint_path"])
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])
@@ -73,7 +79,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
         graph_processor.load_preprocessed_graphs()
         encoded_graphs = graph_encoder.encode_graphs(graph_processor.graphs, feature_to_encode="edge_type")
 
-    best_val_loss = trainer.train(encoded_graphs, model, device=config['device'])
+    best_val_loss = trainer.train(encoded_graphs, model, device=config['device'], graph_transform_mode=graph_transform_mode)
     
     torch.cuda.empty_cache()
     

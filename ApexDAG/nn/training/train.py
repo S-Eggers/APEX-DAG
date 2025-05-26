@@ -142,6 +142,7 @@ class GATTrainer:
         self.logger = logger
         self.subsample_train = config.get("subsample", False)
         self.graph_transform_mode = config.get("mode", "ORIGINAL")
+        self.subsample_thereshold = self.config.get("subsample_thereshold", 0.999999)
         self.trainer = None
         
     def split_and_subsample(self, dataset, split_ratio, subsample = False):
@@ -154,12 +155,12 @@ class GATTrainer:
             if self.graph_transform_mode in [GraphTransformsMode.REVERSED, GraphTransformsMode.REVERSED_MASKED]:
                 filtered_indices = [
                     idx for idx in train_dataset.indices
-                    if not all(dataset[idx].node_types == index_to_subsample)
+                    if  sum(dataset[idx].node_types == index_to_subsample)/len(dataset[idx].node_types) < self.subsample_thereshold
                 ]
             elif self.graph_transform_mode in [GraphTransformsMode.ORIGINAL, GraphTransformsMode.ORIGINAL_MASKED]:
                 filtered_indices = [
                     idx for idx in train_dataset.indices
-                    if all(dataset[idx].edge_types == index_to_subsample)
+                    if sum(dataset[idx].edge_types == index_to_subsample)/len(dataset[idx].edge_types) < self.subsample_thereshold
                 ]
             train_dataset = Subset(dataset, filtered_indices)
 
@@ -199,5 +200,4 @@ class GATTrainer:
             if self.mode == Modes.FINETUNING:
                 self.trainer.log_confusion_matrix(test_dataset, "Test", type_conf_matrix)
                 
-        wandb.finish()
         return best_loss

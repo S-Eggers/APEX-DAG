@@ -168,7 +168,6 @@ class BaseTrainer:
                         best_losses[loss_type] = avg_val_losses[loss_type]
                 self.early_stopping_counter = 0
                 self.save_checkpoint(epoch, avg_val_loss, suffix_name=self.graph_transform_mode)
-    
             else:
                 self.early_stopping_counter += 1
 

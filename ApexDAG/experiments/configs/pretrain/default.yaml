@@ -1,7 +1,8 @@
-checkpoint_path: "/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs"
+checkpoint_path: "/home/nzukowska/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs"
 encoded_checkpoint_path: "data/raw/pytorch-embedded"
 
-mode: 'REVERSED' # [REVERSED, ORIGINAL, REVERSED_MASKED]
+mode: 'REVERSED_MASKED' # [REVERSED, ORIGINAL, REVERSED_MASKED]
+device: "cuda:5"  # [cpu, cuda]
 
 node_classes: 8 # params for original 
 edge_classes: 6 # params for original 
@@ -11,7 +12,6 @@ train_split: 0.8
 patience: 10
 seed: 42
 
-
 residual: True # [True, False]
 number_gat_blocks: 3 # [2, 3, 4, 5, 6]
 batch_size: 32 # [32, 64, 128]
@@ -20,7 +20,7 @@ num_heads: 4 # [4,8,16,32]
 hidden_dim: 128 # associated with fasttext embedding size, STABLE
 dropout: 0.5 # [0.2, 0.3, 0.4, 0.5, 0.6]
 dim_embed: 300
-
+weight_decay: 0.0001 # [0.0001, 0.001, 0.01]
 
 # hyperparameters for encoder
 min_nodes: 3

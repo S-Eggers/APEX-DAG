@@ -2,7 +2,7 @@ import random
 import numpy as np
 import torch
 from enum import Enum
-
+import os
 
 DOMAIN_LABEL_TO_SUBSAMPLE = "DATA_TRANSFORM"
 
@@ -36,10 +36,10 @@ class InsufficientPositiveEdgesException(Exception):
         super().__init__(self.message)      
 
 def set_seed(seed: int) -> None:
-    """Sets the random seed for reproducibility across multiple libraries."""
+    os.environ["PYTHONHASHSEED"] = str(seed)
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)  
-    torch.backends.cudnn.deterministic = True 
-    torch.backends.cudnn.benchmark = False 
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

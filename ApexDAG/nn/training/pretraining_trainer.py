@@ -60,9 +60,9 @@ class PretrainingTrainer(BaseTrainer):
 
         return {k: v.item() for k, v in losses.items()}
     
-    def save_checkpoint(self, epoch, val_loss, name_suffix = "", filename=None):
+    def save_checkpoint(self, epoch, val_loss, suffix_name = "", filename=None):
         if filename is None:
-            filename = f"model_epoch_pretrained_{name_suffix}_{epoch}.pt"
+            filename = f"model_epoch_pretrained_{suffix_name}_{epoch}.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
         torch.save({
             'epoch': epoch,
@@ -171,5 +171,5 @@ class PretrainingTrainerMasked(PretrainingTrainer):
 
         return {k: v.item() for k, v in losses.items()}
     
-    def save_checkpoint(self, epoch, val_loss, name_suffix = "masked_model", filename=None):
-        super().save_checkpoint(epoch, val_loss, name_suffix, filename)
+    def save_checkpoint(self, epoch, val_loss, suffix_name = "masked_model", filename=None):
+        super().save_checkpoint(epoch, val_loss, suffix_name, filename)
