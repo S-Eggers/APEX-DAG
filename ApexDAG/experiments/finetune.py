@@ -94,6 +94,9 @@ def finetune_gat(args, logger: logging.Logger) -> None:
 
     # train model
     trainer.train(encoded_graphs, model, device= config['device'], graph_transform_mode = config["mode"])
-    check_inference_duration(trainer, logger, encoded_graphs)
+    # check_inference_duration(trainer, logger, encoded_graphs)
+    # add config to wandb
+    config_artifact = wandb.Artifact("config_file", type="config")
+    config_artifact.add_file(args.config_path)
     wandb.finish()
     

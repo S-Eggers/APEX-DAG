@@ -13,12 +13,12 @@ val_split: 0.125
 
 # === Data and Graph Settings ===
 # mode: 'REVERSED' # [REVERSED, ORIGINAL, REVERSED_MASKED]
-mode: 'REVERSED_MASKED'
+mode: 'REVERSED'
 subsample: True
 
 # === General Settings ===
 seed: 42
-device: "cuda:6"  # [cpu, cuda]
+device: "cuda:0"  # [cpu, cuda]
 load_encoded_old_if_exist: True  # if the graphs are encoded, do not encode them again
 
 # === Model Architecture ===
@@ -39,4 +39,4 @@ min_edges: 2
 weight_decay: 0.00001  # [0.0001, 0.001, 0.01]
 num_epochs: 2000 # 300
 patience: 30
-subsample_thereshold: 0.90 # [0.99, 0.95, 0.9]
+subsample_thereshold: 0.95 # [0.99, 0.95, 0.9]

@@ -182,7 +182,7 @@ class GATTrainer:
             if graph_transform_mode in [GraphTransformsMode.REVERSED_MASKED, GraphTransformsMode.ORIGINAL_MASKED]:
                 self.trainer = PretrainingTrainerMasked(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
         elif self.mode == Modes.FINETUNING:
-            self.logger.info("Training in linear probing mode")
+            self.logger.info("Training in finetuning mode")
             
             train_size = int(self.config["train_split"] * len(dataset))
             test_size = int(self.config["test_split"] * len(dataset))
