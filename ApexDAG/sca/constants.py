@@ -28,7 +28,6 @@ DOMAIN_EDGE_TYPES = {
     "EDA": 3,
     "ENVIRONMENT": 4,
     "NOT_INTERESTING": 4,
-    "MISSING":4
 }
 
 VERBOSE = False
