@@ -9,12 +9,15 @@ except ImportError:
     __version__ = "dev"
 
 import yaml
+import torch
 import logging
 from pathlib import Path
 from ApexDAG.nn.gat import MultiTaskGAT
 from ApexDAG.nn.training import GraphEncoder, Modes
 from ApexDAG.util.training_utils import TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN
 from .handlers import setup_handlers
+from .config import APEXDAGConfig
+
 
 
 def _jupyter_labextension_paths():
@@ -42,27 +45,31 @@ def create_model(config, reversed, tasks):
             task = tasks
         )
 
-
 def load_apex_model(config, logger: logging.Logger):
-    print("APEX-DAG Plugin: Initializing ML Model...")
-    # Ersetzen Sie dies durch Ihre tatsächliche Modelllade-Logik
-    # z.B. model = joblib.load('path/to/your/model.pkl')
-    print(config)
-    return {"model": None, "graph_encoder": None}
-    """
+    logger.info("APEX-DAG Plugin: Initializing ML Model...")
+    config = yaml.safe_load(open("ApexDAG/experiments/configs/finetune/default_reversed.yaml", "r"))
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])
-    graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, 
-                                 config['min_nodes'], 
-                                 config['min_edges'], 
-                                 config['load_encoded_old_if_exist'],
-                                 mode = config["mode"])
     
-    model = create_model(config, reversed = ('reversed' in config["mode"].value), tasks = TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN[config["mode"].value])
-    model.to(config['device'])
+    graph_encoder = GraphEncoder(encoded_checkpoint_path, 
+                                 logger, 
+                                 min_nodes = 3, 
+                                 min_edges = 2, 
+                                 load_encoded_old_if_exist = True,
+                                 mode = 'REVERSED',
+    )
+    
+    model = create_model(
+        config=config,
+        reversed=True,
+        tasks=["node_classification"]
+    )
+    logger.info("APEX-DAG Plugin: Loading Model...")
+    checkpoint = torch.load("demo/checkpoints/model_epoch_finetuned_GraphTransformsMode.REVERSED_440.pt", map_location=torch.device('cpu'))
+    model.load_state_dict(checkpoint['model_state_dict'])
+    model.to('cpu')
+    model.eval()
 
-    artifacts = {"encoder": graph_encoder, "model": model}
-    return artifacts
-    """
+    return {"encoder": graph_encoder, "model": model}
 
 
 def _load_jupyter_server_extension(server_app):
@@ -74,7 +81,6 @@ def _load_jupyter_server_extension(server_app):
         JupyterLab application instance
     """
     apex_model_content = load_apex_model(server_app.config, server_app.log)
-
     setup_handlers(server_app.web_app, apex_model_content, server_app.config)
     name = "apex_dag_jupyter"
     server_app.log.info(f"Registered {name} server extension")

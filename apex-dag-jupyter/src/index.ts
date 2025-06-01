@@ -8,6 +8,7 @@ import { IMainMenu } from "@jupyterlab/mainmenu";
 import { GraphWidget } from "./components/widget/GraphWidget";
 import ApexIcon from "./utils/ApexIcon"
 import updateWidget from "./utils/updateWidget";
+import updateLineageWidget from "./utils/updateLineageWidget";
 import CommandIDs from "./types/CommandIDs";
 
 
@@ -46,9 +47,35 @@ const plugin: JupyterFrontEndPlugin<void> = {
       category: "APEX-DAG",
       rank: 1,
     }
+
+    const lineageWidget: string = CommandIDs.lineage;
+    let lineageGraphWidget: GraphWidget;
+    app.commands.addCommand(lineageWidget, {
+      caption: "Lineage Widget",
+      label: "Lineage Widget",
+      icon: args => (args["isPalette"] ? undefined : ApexIcon),
+      execute: () => {
+        const content = new GraphWidget();
+        const widget = new MainAreaWidget<GraphWidget>({ content });
+        widget.title.label = "Lineage Widget";
+        widget.title.icon = ApexIcon;
+        widget.title.closable = true;
+        app.shell.add(widget, "main");
+        lineageGraphWidget = content;
+      }
+    });
+
+    const lineageCommandItem = {
+      command: lineageWidget,
+      category: "APEX-DAG",
+      rank: 2,
+    }
+
     palette.addItem(dataflowCommandItem);
-    mainMenu.fileMenu.newMenu.addGroup([dataflowCommandItem]);
+    palette.addItem(lineageCommandItem);
+    mainMenu.fileMenu.newMenu.addGroup([dataflowCommandItem, lineageCommandItem]);
     launcher.add(dataflowCommandItem);
+    launcher.add(lineageCommandItem);
 
     tracker.currentChanged.connect(async (sender, notebookPanel: NotebookPanel | null) => {
       console.debug("Current notebook changed", notebookPanel);
@@ -68,11 +95,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       console.debug("Initial call to updateWidget on notebook open");
       updateWidget(dataflowGraphWidget, notebookPanel);
+      updateLineageWidget(lineageGraphWidget, notebookPanel);
 
       console.debug("Setting up listener for model changes");
       model.contentChanged.connect(() => {
         console.debug("Notebook model changed!");
         updateWidget(dataflowGraphWidget, notebookPanel);
+        updateLineageWidget(lineageGraphWidget, notebookPanel);
       });
     });
   }

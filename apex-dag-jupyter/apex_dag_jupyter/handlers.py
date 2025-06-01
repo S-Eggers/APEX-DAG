@@ -1,11 +1,11 @@
 import json
-
+import torch
 import tornado
 from jupyter_server.base.handlers import APIHandler
 from jupyter_server.utils import url_path_join
 
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
-
+from ApexDAG.sca.constants import REVERSE_DOMAIN_EDGE_TYPES
 
 
 class DataflowHandler(APIHandler):
@@ -69,12 +69,20 @@ class LineageHandler(APIHandler):
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
-            graph_json = dfg.to_json()
+            encoded_graphs = self.model["encoder"].encode_graphs([dfg.get_graph()], feature_to_encode="domain_label")
+            results = []
+            with torch.no_grad():
+                for i, graph_encoded in enumerate(encoded_graphs):
+                    output = self.model["model"](graph_encoded)
+                    labels = torch.argmax(output['node_type_preds'], dim=1)
+                    labels_names = [REVERSE_DOMAIN_EDGE_TYPES[label.item()] for label in labels]
+                    results.append(labels)
+                    print(f"Graph {i}: Output shape {len(labels)}")
+                    print(labels)
 
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
-                "dataflow": graph_json
             }
 
             self.finish(json.dumps(result))
