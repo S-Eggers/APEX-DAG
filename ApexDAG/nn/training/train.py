@@ -4,17 +4,16 @@ import torch
 import logging
 import traceback
 import wandb
-import networkx as nx
 from pathlib import Path
-from torch.utils.data import random_split
+from torch.utils.data import random_split, Subset
 from enum import Enum
-
 from ApexDAG.encoder import Encoder
 from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer, PretrainingTrainerMasked
 from ApexDAG.nn.training.finetuning_trainer import FinetuningTrainer
 from ApexDAG.util.training_utils import InsufficientNegativeEdgesException, InsufficientPositiveEdgesException, GraphTransformsMode, DOMAIN_LABEL_TO_SUBSAMPLE
+from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 
 
 class Modes(Enum):
@@ -66,12 +65,10 @@ class GraphEncoder:
                  min_edges: int, 
                  load_encoded_old_if_exist: bool,
                  mode: str = "original",
-                 subsample: bool = False,
                  bidirectional: bool = False): # add bidirectionality experiment!
         
         self.bidirectional = bidirectional
         self.mode = mode
-        self.subsample = subsample # sumbsample the graphs with only the overrepresentaed class 
         self.encoded_checkpoint_path = encoded_checkpoint_path
         self.logger = logger
         self.encoded_graphs = []
@@ -113,15 +110,6 @@ class GraphEncoder:
             
             if self.bidirectional:
                 graph = self._make_bidirectional(graph)
-                
-            if self.subsample:
-                # Skip graphs where all edges have the same domain_label (e.g., all are "X")
-                edge_labels = nx.get_edge_attributes(graph, "domain_label")
-                unique_labels = set(edge_labels.values())
-
-                if len(unique_labels) == 1 and DOMAIN_LABEL_TO_SUBSAMPLE in unique_labels:
-                    self.logger.info(f"Skipping graph {index} as it only contains edges with domain_label={unique_labels.pop()}.")
-                    continue
                           
             try:
                 if self.mode in [GraphTransformsMode.REVERSED, GraphTransformsMode.REVERSED_MASKED]:
@@ -148,43 +136,68 @@ class GraphEncoder:
 
 class GATTrainer:
     """Handles model training."""
-    def __init__(self, config, logger: logging.Logger):
+    def __init__(self, config, logger: logging.Logger, mode: Modes):
         self.config = config
+        self.mode = mode
         self.logger = logger
+        self.subsample_train = config.get("subsample", False)
+        self.graph_transform_mode = config.get("mode", "ORIGINAL")
+        self.subsample_thereshold = self.config.get("subsample_thereshold", 0.999999)
+        self.trainer = None
+        
+    def split_and_subsample(self, dataset, split_ratio, subsample = False):
+        """Splits the dataset into train and validation sets and subsamples the training set."""
+        train_dataset, val_dataset = random_split(dataset, split_ratio)
+        
+        if subsample and self.mode == Modes.FINETUNING:
+            index_to_subsample = DOMAIN_EDGE_TYPES[DOMAIN_LABEL_TO_SUBSAMPLE]
+            
+            if self.graph_transform_mode in [GraphTransformsMode.REVERSED, GraphTransformsMode.REVERSED_MASKED]:
+                filtered_indices = [
+                    idx for idx in train_dataset.indices
+                    if  sum(dataset[idx].node_types == index_to_subsample)/len(dataset[idx].node_types) < self.subsample_thereshold
+                ]
+            elif self.graph_transform_mode in [GraphTransformsMode.ORIGINAL, GraphTransformsMode.ORIGINAL_MASKED]:
+                filtered_indices = [
+                    idx for idx in train_dataset.indices
+                    if sum(dataset[idx].edge_types == index_to_subsample)/len(dataset[idx].edge_types) < self.subsample_thereshold
+                ]
+            train_dataset = Subset(dataset, filtered_indices)
 
-    def train(self, encoded_graphs, model, mode: Modes, device:str = "cuda", graph_transform_mode: str = GraphTransformsMode.ORIGINAL):
+        return train_dataset, val_dataset
+
+    def train(self, encoded_graphs, model, device:str = "cuda", graph_transform_mode: str = GraphTransformsMode.ORIGINAL):
         """Trains the GAT model."""
         wandb.watch(model, log="all")
         
         dataset = GraphDataset(encoded_graphs)
         
-        if mode == Modes.PRETRAINING:
+        if self.mode == Modes.PRETRAINING:
             self.logger.info("Training in pretraining mode")
             train_size = int(self.config["train_split"] * len(dataset))
             val_size = len(dataset) - train_size
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
         
-            trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
+            self.trainer = PretrainingTrainer(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
             if graph_transform_mode in [GraphTransformsMode.REVERSED_MASKED, GraphTransformsMode.ORIGINAL_MASKED]:
-                trainer = PretrainingTrainerMasked(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
-        elif mode == Modes.FINETUNING:
-            self.logger.info("Training in linear probing mode")
+                self.trainer = PretrainingTrainerMasked(model, train_dataset, val_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
+        elif self.mode == Modes.FINETUNING:
+            self.logger.info("Training in finetuning mode")
             
             train_size = int(self.config["train_split"] * len(dataset))
             test_size = int(self.config["test_split"] * len(dataset))
             val_size = len(dataset) - train_size - test_size
             
-            train_dataset, val_dataset = random_split(dataset, [train_size, val_size + test_size])
+            train_dataset, val_dataset = self.split_and_subsample(dataset, [train_size, val_size + test_size], subsample = self.subsample_train)
             val_dataset, test_dataset = random_split(val_dataset, [val_size, test_size])
             
-            trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
-        best_loss = trainer.train(num_epochs=self.config["num_epochs"])
+            self.trainer = FinetuningTrainer(model, train_dataset, val_dataset, test_dataset, device=device, patience=self.config["patience"], batch_size=self.config["batch_size"], lr = self.config['learning_rate'], weight_decay = self.config['weight_decay'], graph_transform_mode = graph_transform_mode, logger = self.logger)
+        best_loss = self.trainer.train(num_epochs=self.config["num_epochs"])
         
-        for type_conf_matrix in trainer.conf_matrices_types:
-            trainer.log_confusion_matrix(train_dataset, "Train", type_conf_matrix )
-            trainer.log_confusion_matrix(val_dataset, "Val", type_conf_matrix)
-            if mode == Modes.FINETUNING:
-                trainer.log_confusion_matrix(test_dataset, "Test", type_conf_matrix)
+        for type_conf_matrix in self.trainer.conf_matrices_types:
+            self.trainer.log_confusion_matrix(train_dataset, "Train", type_conf_matrix )
+            self.trainer.log_confusion_matrix(val_dataset, "Val", type_conf_matrix)
+            if self.mode == Modes.FINETUNING:
+                self.trainer.log_confusion_matrix(test_dataset, "Test", type_conf_matrix)
                 
-        wandb.finish()
         return best_loss
