@@ -69,12 +69,8 @@ def _load_jupyter_server_extension(server_app):
     server_app: jupyterlab.labapp.LabApp
         JupyterLab application instance
     """
-    global ML_MODEL_INSTANCE
-    if ML_MODEL_INSTANCE is None:
-        ML_MODEL_INSTANCE = load_apex_model(server_app.config, server_app.log)
-    else:
-        server_app.log.info("APEX-DAG Plugin: ML Model already loaded.")
+    apex_model_content = load_apex_model(server_app.config, server_app.log)
 
-    setup_handlers(server_app, ML_MODEL_INSTANCE, server_app.config)
+    setup_handlers(server_app, apex_model_content, server_app.config)
     name = "apex_dag_jupyter"
     server_app.log.info(f"Registered {name} server extension")

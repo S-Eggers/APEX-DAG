@@ -1,6 +1,6 @@
 {
     "name": "apex-dag-jupyter",
-    "version": "0.3.29",
+    "version": "0.3.32",
     "description": "APEX-DAG Jupyter Frontend Extension.",
     "keywords": [
         "jupyter",
