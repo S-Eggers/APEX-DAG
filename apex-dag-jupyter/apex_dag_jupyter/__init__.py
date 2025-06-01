@@ -46,7 +46,10 @@ def create_model(config, reversed, tasks):
 def load_apex_model(config, logger: logging.Logger):
     print("APEX-DAG Plugin: Initializing ML Model...")
     # Ersetzen Sie dies durch Ihre tatsächliche Modelllade-Logik
-    # z.B. model = joblib.load('path/to/your/model.pkl')        
+    # z.B. model = joblib.load('path/to/your/model.pkl')
+    print(config)
+    return {"model": None, "graph_encoder": None}
+    """
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])
     graph_encoder = GraphEncoder(encoded_checkpoint_path, logger, 
                                  config['min_nodes'], 
@@ -59,6 +62,7 @@ def load_apex_model(config, logger: logging.Logger):
 
     artifacts = {"encoder": graph_encoder, "model": model}
     return artifacts
+    """
 
 
 def _load_jupyter_server_extension(server_app):
@@ -71,6 +75,6 @@ def _load_jupyter_server_extension(server_app):
     """
     apex_model_content = load_apex_model(server_app.config, server_app.log)
 
-    setup_handlers(server_app, apex_model_content, server_app.config)
+    setup_handlers(server_app.web_app, apex_model_content, server_app.config)
     name = "apex_dag_jupyter"
     server_app.log.info(f"Registered {name} server extension")
