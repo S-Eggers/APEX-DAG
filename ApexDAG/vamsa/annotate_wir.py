@@ -22,10 +22,9 @@ class KB:
         {"Library": "catboost", "Module": None, "Caller": None, "API Name": "CatBoostClassifier", "Inputs": ["hyperparameter"], "Outputs": ["model"]},
         {"Library": "catboost", "Module": None, "Caller": "model", "API Name": "fit", "Inputs": ['features', 'labels'], "Outputs": ["trained model"]},
         {"Library": "sklearn", "Module": "model.selection", "Caller": None, "API Name": "train_test_split", "Inputs": ["features", "labels"], "Outputs": ["features", "validation features", "labels", "validation labels"]},
-        
         {"Library": "pandas", "Module": None, "Caller": None, "API Name": "read_csv", "Inputs": ["file_path"], "Outputs": ["data"]},
         {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "iloc", "Inputs": ["columns_range"], "Outputs": ["features"]},
-        {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "drop", "Inputs": ["columns_to_drop"], "Outputs": ["features"]},
+        {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "drop", "Inputs": ["features"], "Outputs": ["features"]},
         {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "filter", "Inputs": ["condition"], "Outputs": ["features"]},
         {"Library": "sklearn", "Module": "preprocessing", "Caller": None, "API Name": "StandardScaler", "Inputs": ["features"], "Outputs": ["features"]},
         {"Library": "sklearn", "Module": "preprocessing", "Caller": None, "API Name": "LabelEncoder", "Inputs": ["labels"], "Outputs": ["labels"]},
@@ -125,8 +124,8 @@ class AnnotationWIR:
             # DFS
             forward_stack = [vs]
             while forward_stack:
-                node = forward_stack.pop()  # Pop a process relation
-                pr = inputs, caller, process, outputs = self._extract_pr_elements(node)  # Extract PR = <I, c, p, O>
+                node = forward_stack.pop()  # pop a process relation
+                pr = inputs, caller, process, outputs = self._extract_pr_elements(node)  # extract PR = <I, c, p, O>
                 
                 if self.check_if_visited( process):
                     continue
