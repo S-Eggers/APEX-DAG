@@ -77,6 +77,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     launcher.add(dataflowCommandItem);
     launcher.add(lineageCommandItem);
 
+    let interval:  NodeJS.Timeout;
     tracker.currentChanged.connect(async (sender, notebookPanel: NotebookPanel | null) => {
       console.debug("Current notebook changed", notebookPanel);
       if (!notebookPanel) {
@@ -95,7 +96,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       console.debug("Initial call to updateWidget on notebook open");
       updateWidget(dataflowGraphWidget, notebookPanel);
-      updateLineageWidget(lineageGraphWidget, notebookPanel);
+
+      if (interval) {
+        clearTimeout(interval);
+      }
+      interval = setTimeout(() => {
+        updateLineageWidget(lineageGraphWidget, notebookPanel);
+      }, 200);
 
       console.debug("Setting up listener for model changes");
       model.contentChanged.connect(() => {

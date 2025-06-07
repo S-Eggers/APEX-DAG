@@ -5,43 +5,112 @@ import dagre from "cytoscape-dagre";
 
 cytoscape.use(dagre);
 
-export default function Graph({ graphData = {elements: []} }) {
+const colors = {
+    light_steel_blue: "#B0C4DE",
+    very_soft_blue: "#b3b0de",
+    pink: "#FFC0CB",
+    light_green: "#c4deb0",
+    very_soft_yellow: "#DEDAB0",
+    very_soft_purple: "#DEB0DE",
+    very_soft_lime_green: "#B0DEB9",
+    light_salmon: "#FFA07A",
+    pale_green: "#98FB98",
+    gray: "#d3d3d3",
+    powder_blue: "#B0E0E6",
+    peach_puff: "#FFDAB9",
+};
+
+interface LegendItemType {
+    type: "node" | "edge";
+    color: string;
+    label: string;
+    borderStyle: "solid" | "dashed";
+    numericType: number; // Corresponds to node_type or edge_type
+}
+
+const initialLegendItems: LegendItemType[] = [
+    { type: "node", color: colors.light_steel_blue, label: "Variable", borderStyle: "solid", numericType: 0 },
+    { type: "node", color: colors.very_soft_blue, label: "Intermediate", borderStyle: "solid", numericType: 4 },
+    { type: "node", color: colors.light_green, label: "Function", borderStyle: "solid", numericType: 3 },
+    { type: "node", color: colors.pink, label: "Import", borderStyle: "solid", numericType: 1 },
+    { type: "node", color: colors.very_soft_yellow, label: "If", borderStyle: "solid", numericType: 5 },
+    { type: "node", color: colors.very_soft_lime_green, label: "Loop", borderStyle: "solid", numericType: 6 },
+    { type: "node", color: colors.very_soft_purple, label: "Class", borderStyle: "solid", numericType: 7 },
+    { type: "edge", color: colors.light_salmon, label: "Caller", borderStyle: "solid", numericType: 0 },
+    { type: "edge", color: colors.gray, label: "Reassign", borderStyle: "dashed", numericType: 2 },
+    { type: "edge", color: colors.pale_green, label: "Input", borderStyle: "solid", numericType: 1 },
+    { type: "edge", color: colors.powder_blue, label: "Branch", borderStyle: "solid", numericType: 3 },
+    { type: "edge", color: colors.peach_puff, label: "Loop", borderStyle: "solid", numericType: 4 },
+    { type: "edge", color: colors.light_green, label: "Function", borderStyle: "solid", numericType: 5 }
+];
+
+const initialLegendItemsLineage: LegendItemType[] = [
+    { type: "node", color: colors.light_steel_blue, label: "Model Train/Eval", borderStyle: "solid", numericType: 0 },
+    { type: "node", color: colors.very_soft_blue, label: "Environment+Data Export", borderStyle: "solid", numericType: 4 },
+    { type: "node", color: colors.light_green, label: "EDA", borderStyle: "solid", numericType: 3 },
+    { type: "node", color: colors.pink, label: "Data Import", borderStyle: "solid", numericType: 1 },
+    { type: "node", color: colors.very_soft_lime_green, label: "Data Transform", borderStyle: "solid", numericType: 5 },
+];
+
+
+interface ElementData {
+    id: string;
+    label?: string;
+    node_type?: number;
+    edge_type?: number;
+    source?: string;
+    target?: string;
+}
+
+interface CytoscapeElement {
+    data: ElementData;
+    group: 'nodes' | 'edges';
+}
+
+interface GraphData {
+    elements: CytoscapeElement[];
+}
+
+interface GraphProps {
+    graphData?: GraphData;
+    mode?: string;
+}
+
+const filterLegendItems = (
+    elements: CytoscapeElement[],
+    allLegendItems: LegendItemType[]
+): LegendItemType[] => {
+    if (!elements || elements.length === 0) {
+        return []; // No elements in graph, so no legend items to show
+    }
+
+    const presentNodeTypes = new Set<number>();
+    const presentEdgeTypes = new Set<number>();
+
+    elements.forEach(element => {
+        if (element.data.node_type !== undefined && typeof element.data.node_type === 'number') {
+            presentNodeTypes.add(element.data.node_type);
+        } else if (element.data.edge_type !== undefined && typeof element.data.edge_type === 'number') {
+            presentEdgeTypes.add(element.data.edge_type);
+        }
+    });
+
+    return allLegendItems.filter(item => {
+        if (item.type === "node") {
+            return presentNodeTypes.has(item.numericType);
+        } else if (item.type === "edge") {
+            return presentEdgeTypes.has(item.numericType);
+        }
+        return false;
+    });
+};
+
+export default function Graph({ graphData = {elements: []}, mode = "dataflow" }: GraphProps) {
     const layout = {
         name: "dagre",
         rankDir: "TB",
     };
 
-    const colors = {
-        light_steel_blue: "#B0C4DE",
-        very_soft_blue: "#b3b0de",
-        pink: "#FFC0CB",
-        light_green: "#c4deb0",
-        very_soft_yellow: "#DEDAB0",
-        very_soft_purple: "#DEB0DE",
-        very_soft_lime_green: "#B0DEB9",
-        light_salmon: "#FFA07A",
-        pale_green: "#98FB98",
-        gray: "#d3d3d3",
-        powder_blue: "#B0E0E6",
-        peach_puff: "#FFDAB9",
-    };
-
-    const legendItems = [
-        { type: "node", color: colors.light_steel_blue, label: "Variable", borderStyle: "solid" },
-        { type: "node", color: colors.very_soft_blue, label: "Intermediate", borderStyle: "solid" },
-        { type: "node", color: colors.light_green, label: "Function", borderStyle: "solid" },
-        { type: "node", color: colors.pink, label: "Import", borderStyle: "solid" },
-        { type: "node", color: colors.very_soft_yellow, label: "If", borderStyle: "solid" },
-        { type: "node", color: colors.very_soft_lime_green, label: "Loop", borderStyle: "solid" },
-        { type: "node", color: colors.very_soft_purple, label: "Class", borderStyle: "solid" },
-        { type: "edge", color: colors.light_salmon, label: "Caller", borderStyle: "solid" },
-        { type: "edge", color: colors.gray, label: "Reassign", borderStyle: "dashed" },
-        { type: "edge", color: colors.pale_green, label: "Input", borderStyle: "solid" },
-        { type: "edge", color: colors.powder_blue, label: "Branch", borderStyle: "solid" },
-        { type: "edge", color: colors.peach_puff, label: "Loop", borderStyle: "solid" },
-        { type: "edge", color: colors.light_green, label: "Function", borderStyle: "solid" }
-    ];
-    
     const edgeType = (element: cytoscape.SingularElementReturnValue) => {
         const caseType = element.data("edge_type");
         switch (caseType) {
@@ -109,6 +178,7 @@ export default function Graph({ graphData = {elements: []} }) {
     const graphRef = useRef(null);
     const [pan, setPan] = useState<cytoscape.Position | null>(null);
     const [zoom, setZoom] = useState(1);
+    const [activeLegendItems, setActiveLegendItems] = useState<LegendItemType[]>(initialLegendItems);
 
     const drawGraph = () => {
         const cy = cytoscape({
@@ -136,18 +206,24 @@ export default function Graph({ graphData = {elements: []} }) {
         setPan(cy.pan());
         setZoom(cy.zoom());
     };
-       
+
     useEffect(() => {
         drawGraph()
+    }, [graphData]);
+
+    useEffect(() => {
+        const filtered = filterLegendItems(graphData.elements, mode === "dataflow" ? initialLegendItems : initialLegendItemsLineage);
+        console.log("Filtered legend items:", filtered);
+        setActiveLegendItems(filtered);
     }, [graphData]);
 
     return (
         <>
             <div id="cy" className={"cy"} ref={graphRef}></div>
             <ul className={"legend"}>
-                {legendItems.map((item, index) => (
+                {activeLegendItems.map((item, index) => (
                 <li key={index}>
-                    <div className={item.type} style={{ backgroundColor: item.color, borderColor: item.color, borderStyle: item.borderStyle }}></div> {item.label}
+                    <div className={item.type} style={{ backgroundColor: item.color, borderColor: item.color, borderStyle: item.borderStyle as 'solid' | 'dashed' }}></div> {item.label}
                 </li>
                 ))}
             </ul>

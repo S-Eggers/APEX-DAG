@@ -1,4 +1,5 @@
 import json
+import time
 import torch
 import tornado
 from jupyter_server.base.handlers import APIHandler
@@ -12,12 +13,19 @@ class DataflowHandler(APIHandler):
     def initialize(self, model, jupyter_server_app_config=None):
         self.model = model
         self.jupyter_server_app_config = jupyter_server_app_config
+        self.last_analysis_time = 0
+        self.last_analysis_results = {}
 
     @tornado.web.authenticated
     def post(self):
         input_data = self.get_json_body()
         code = input_data["code"]
-
+        if time.time() - self.last_analysis_time < 10:
+            result = self.last_analysis_results
+            self.finish(json.dumps(result))
+            return
+        self.last_analysis_time = time.time()
+    
         dfg = DataFlowGraph()
         try:
             dfg.parse_code(code)
@@ -38,7 +46,7 @@ class DataflowHandler(APIHandler):
                 "success": True,
                 "dataflow": graph_json
             }
-
+            self.last_analysis_results = result
             self.finish(json.dumps(result))
 
     def data_received(self, chunk):
@@ -50,11 +58,21 @@ class LineageHandler(APIHandler):
     def initialize(self, model, jupyter_server_app_config=None):
         self.model = model
         self.jupyter_server_app_config = jupyter_server_app_config
+        self.last_analysis_time = 0
+        self.last_analysis_results = {}
+
 
     @tornado.web.authenticated
     def post(self):
         input_data = self.get_json_body()
         code = input_data["code"]
+
+        if time.time() - self.last_analysis_time < 200:
+            result = self.last_analysis_results
+            print("Reusing results")
+            self.finish(json.dumps(result))
+            return
+        self.last_analysis_time = time.time()
 
         dfg = DataFlowGraph()
         try:
@@ -66,6 +84,8 @@ class LineageHandler(APIHandler):
                 "success": False,
                 "dataflow": {}
             }
+            self.last_analysis_results = result
+            self.last_analysis_time = time.time()
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
@@ -78,13 +98,14 @@ class LineageHandler(APIHandler):
                     labels_names = [REVERSE_DOMAIN_EDGE_TYPES[label.item()] for label in labels]
                     results.append(labels)
                     print(f"Graph {i}: Output shape {len(labels)}")
-                    print(labels)
+                    print(labels, labels_names)
 
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
             }
-
+            self.last_analysis_results = result
+            self.last_analysis_time = time.time()
             self.finish(json.dumps(result))
 
     def data_received(self, chunk):
