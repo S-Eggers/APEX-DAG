@@ -13,40 +13,32 @@ class DataflowHandler(APIHandler):
     def initialize(self, model, jupyter_server_app_config=None):
         self.model = model
         self.jupyter_server_app_config = jupyter_server_app_config
-        self.last_analysis_time = 0
         self.last_analysis_results = {}
 
     @tornado.web.authenticated
     def post(self):
         input_data = self.get_json_body()
         code = input_data["code"]
-        if time.time() - self.last_analysis_time < 10:
-            result = self.last_analysis_results
-            self.finish(json.dumps(result))
-            return
-        self.last_analysis_time = time.time()
-    
         dfg = DataFlowGraph()
         try:
             dfg.parse_code(code)
         except SyntaxError as e:
             print(f"SyntaxError: {e}")
             result = {
-                "message": "Cannot process dataflow!",
+                "message": "Cannot process dataflow! Returning last successful result.",
                 "success": False,
-                "dataflow": {}
+                "dataflow": self.last_analysis_results
             }
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
             graph_json = dfg.to_json()
-
+            self.last_analysis_results = graph_json
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
                 "dataflow": graph_json
             }
-            self.last_analysis_results = result
             self.finish(json.dumps(result))
 
     def data_received(self, chunk):
@@ -91,19 +83,45 @@ class LineageHandler(APIHandler):
             dfg.optimize()
             encoded_graphs = self.model["encoder"].encode_graphs([dfg.get_graph()], feature_to_encode="domain_label")
             results = []
+            edge_predictions_for_response = []
+
             with torch.no_grad():
                 for i, graph_encoded in enumerate(encoded_graphs):
                     output = self.model["model"](graph_encoded)
                     labels = torch.argmax(output['node_type_preds'], dim=1)
                     labels_names = [REVERSE_DOMAIN_EDGE_TYPES[label.item()] for label in labels]
                     results.append(labels)
-                    print(f"Graph {i}: Output shape {len(labels)}")
-                    print(labels, labels_names)
+
+                    self.log.info(f"Graph {i}: Predicted {len(labels)} edge domain labels.")
+
+                    nx_G = dfg.get_graph()
+                    graph_edges_list = list(nx_G.edges(keys=True, data=True))
+
+                    if len(labels) == len(graph_edges_list):
+                        for edge_idx, (u, v, key, edge_data) in enumerate(graph_edges_list):
+                            predicted_label_int = labels[edge_idx].item()
+                            predicted_label_name = REVERSE_DOMAIN_EDGE_TYPES[predicted_label_int]
+                            nx_G.edges[u, v, key]['predicted_domain_label'] = predicted_label_name
+                            
+                            edge_predictions_for_response.append({
+                                "source": str(u), "target": str(v), "key": key,
+                                "code": edge_data.get("code", ""),
+                                "predicted_domain": predicted_label_name
+                            })
+                        self.log.info(f"Successfully mapped {len(labels)} predictions to edges in graph {i}.")
+                    else:
+                        self.log.warning(
+                            f"Mismatch in graph {i}: Number of predictions ({len(labels)}) "
+                            f"does not match number of edges ({len(graph_edges_list)}). "
+                            "Cannot map labels to edges."
+                        )
 
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
+                "lineage_predictions": edge_predictions_for_response # Include mapped predictions
             }
+            print(result)
             self.last_analysis_results = result
             self.last_analysis_time = time.time()
             self.finish(json.dumps(result))
