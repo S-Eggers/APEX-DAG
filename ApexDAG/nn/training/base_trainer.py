@@ -156,8 +156,10 @@ class BaseTrainer:
                 # example_data = next(iter(self.train_loader)).to(self.device)
                 # self.log_embeddings(epoch, example_data)
 
-            training_bar.write(f"Train Losses: {avg_train_losses}")
-            training_bar.write(f"Val Losses: {avg_val_losses}")
+            training_bar.set_postfix({
+                "Train": {k: f"{v:.4f}" for k, v in avg_train_losses.items()},
+                "Val": {k: f"{v:.4f}" for k, v in avg_val_losses.items()}
+            })
 
             if avg_val_loss < self.best_val_loss:
                 self.best_val_loss = avg_val_loss
@@ -166,7 +168,6 @@ class BaseTrainer:
                         best_losses[loss_type] = avg_val_losses[loss_type]
                 self.early_stopping_counter = 0
                 self.save_checkpoint(epoch, avg_val_loss, suffix_name=self.graph_transform_mode)
-    
             else:
                 self.early_stopping_counter += 1
 
