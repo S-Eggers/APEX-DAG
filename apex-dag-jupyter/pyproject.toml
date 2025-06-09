@@ -39,7 +39,7 @@ exclude = [".github", "binder"]
 
 [tool.hatch.build.targets.wheel.shared-data]
 "apex_dag_jupyter/labextension" = "share/jupyter/labextensions/apex-dag-jupyter"
-"jupyter-config/server-config" = "etc/jupyter/jupyter_server_config.d"
+"jupyter-config/server-config/apex_dag_server_config.json" = "etc/jupyter/jupyter_server_config.d/apex_dag_server_config.json"
 
 [tool.hatch.build.hooks.version]
 path = "apex_dag_jupyter/_version.py"

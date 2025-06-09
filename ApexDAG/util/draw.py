@@ -32,7 +32,7 @@ class Draw:
                 "data": {
                     "id": str(node),
                     "label": data.get("label", str(node)),
-                    "node_type": data.get("node_type", "default")
+                    "node_type": data.get("node_type", "default"),
                 }
             })
 

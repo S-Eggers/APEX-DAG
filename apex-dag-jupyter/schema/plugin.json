@@ -3,6 +3,14 @@
   "title": "apex-dag-jupyter",
   "description": "apex-dag-jupyter settings.",
   "type": "object",
-  "properties": {},
+  "properties": {
+    "debounceDelay": {
+      "title": "Debounce Delay (ms)",
+      "description": "The time to wait in milliseconds after a user stops typing before updating the lineage widget. Requires a page reload to take effect.",
+      "type": "number",
+      "default": 500,
+      "minimum": -1
+    }
+  },
   "additionalProperties": false
 }
