@@ -4,7 +4,7 @@ checkpoint_path: "/home/nzukowska/data/apexdag_results/jetbrains_dfg_100k_new_la
 # encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-normal"
 encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-reversed-masked"
 # pretrained_model_path: "checkpoints/checkpoints-swapped/model_epoch_pretrained_10.pt"
-pretrained_model_path: "checkpoints/model_epoch_pretrained_masked_12.pt"
+pretrained_model_path: "checkpoints/model_epoch_pretrained_masked_93.pt"
 # pretrained_model_path: "checkpoints/model_epoch_pretrained.pt"
 # === Data Splits ===
 train_split: 0.75
@@ -39,4 +39,4 @@ min_edges: 2
 weight_decay: 0.00001  # [0.0001, 0.001, 0.01]
 num_epochs: 2000 # 300
 patience: 30
-subsample_thereshold: 0.95 # [0.99, 0.95, 0.9]
+subsample_thereshold: 0.9 # [0.99, 0.95, 0.9]

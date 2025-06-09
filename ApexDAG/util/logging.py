@@ -23,7 +23,7 @@ def setup_logging(name: str, verbose: bool) -> logging.Logger:
     logger = logging.getLogger(name)
     
     if verbose:
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.INFO)
     else:
         logger.setLevel(logging.ERROR)
     
