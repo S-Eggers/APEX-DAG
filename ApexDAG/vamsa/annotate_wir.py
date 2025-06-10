@@ -23,8 +23,12 @@ class KB:
         {"Library": "catboost", "Module": None, "Caller": "model", "API Name": "fit", "Inputs": ['features', 'labels'], "Outputs": ["trained model"]},
         {"Library": "sklearn", "Module": "model.selection", "Caller": None, "API Name": "train_test_split", "Inputs": ["features", "labels"], "Outputs": ["features", "validation features", "labels", "validation labels"]},
         {"Library": "pandas", "Module": None, "Caller": None, "API Name": "read_csv", "Inputs": ["file_path"], "Outputs": ["data"]},
+        {"Library": "pandas", "Module": None, "Caller": None, "API Name": "concat", "Inputs": ["data"], "Outputs": ["data"]},
+        {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "copy", "Inputs": [], "Outputs": ["data"]},
+        {"Library": "pandas", "Module": None, "Caller": None, "API Name": "get_dummies", "Inputs": ["features"], "Outputs": ["features"]},
         {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "iloc", "Inputs": ["columns_range"], "Outputs": ["features"]},
         {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "drop", "Inputs": ["features"], "Outputs": ["features"]},
+        {"Library": "pandas", "Module": None, "Caller": "features", "API Name": "drop", "Inputs": ["features"], "Outputs": ["features"]},
         {"Library": "pandas", "Module": None, "Caller": "data", "API Name": "filter", "Inputs": ["condition"], "Outputs": ["features"]},
         {"Library": "sklearn", "Module": "preprocessing", "Caller": None, "API Name": "StandardScaler", "Inputs": ["features"], "Outputs": ["features"]},
         {"Library": "sklearn", "Module": "preprocessing", "Caller": None, "API Name": "LabelEncoder", "Inputs": ["labels"], "Outputs": ["labels"]},
@@ -110,8 +114,10 @@ class AnnotationWIR:
         annotations = self.annotated_wir.nodes[node].get('annotations', [])
         # if more than 1 raise warning
         if len(annotations) > 1:
-            raise ValueError(f"Node {node} has multiple annotations: {annotations}")
-        return annotations[0] if annotations else None
+            # raise ValueError(f"Node {node} has multiple annotations: {annotations}")
+            # vamsa does not handle overwriting of variables, normally this should not happen unless the variable gets overwritten\
+            pass
+        return annotations if annotations else None
 
     def annotate(self):
         """Annotates the WIR using the PRS Algorithm Annotation."""
@@ -124,16 +130,21 @@ class AnnotationWIR:
             # DFS
             forward_stack = [vs]
             while forward_stack:
-                node = forward_stack.pop()  # pop a process relation
+                node = forward_stack.pop(0)  # pop a process relation
                 pr = inputs, caller, process, outputs = self._extract_pr_elements(node)  # extract PR = <I, c, p, O>
-                
+                # print(pr)
                 if self.check_if_visited( process):
                     continue
                 self.visit_node(process)
                 context = self._get_annotation(caller) # get annotation of caller
-
-                input_annotations, annotations_output = self.knowledge_base(library, module, context, process)
-                
+                if isinstance(context, list):
+                    for subcontext in context:
+                        input_annotations, annotations_output = self.knowledge_base(library, module, subcontext, process)
+                        # if non-empty break for-loop
+                        if input_annotations or annotations_output:
+                            break
+                else:
+                    input_annotations, annotations_output = self.knowledge_base(library, module, context, process)
                 for vo, annotation_output in zip(outputs, annotations_output):
                     self._annotate_node(vo, annotation_output)
                 
@@ -231,6 +242,8 @@ class AnnotationWIR:
         """Add an annotation to a node in the WIR."""
         if 'annotations' not in self.annotated_wir.nodes[node]:
             self.annotated_wir.nodes[node]['annotations'] = []
+        else:
+            pass # easier to debug
         self.annotated_wir.nodes[node]['annotations'].append(annotation)
         return (node, annotation)
         
