@@ -5,6 +5,7 @@ import numpy as np
 
 from ApexDAG.vamsa.utils import remove_comment_lines
 from ApexDAG.vamsa.generate_wir import GenWIR
+from ApexDAG.vamsa.track_provenance import track_provenance
 from ApexDAG.vamsa.annotate_wir import AnnotationWIR, KB
 from ApexDAG import Notebook
 
@@ -30,7 +31,7 @@ def traverse_competitions(competitions_path):
 if __name__ == '__main__':
     
     competition_name = 'titanic'
-    competition_path = "C:/Users/ismyn/UNI/TUB/notebook-dataset/notebooks/" + competition_name
+    competition_path = "/home/nina/projects/APEX-DAG-data/notebooks/" + competition_name
     notebooks = traverse_competitions(competition_path)
     notebook_code, notebook_names = list(zip(*notebooks))
 
@@ -38,7 +39,7 @@ if __name__ == '__main__':
     output_dir = os.path.join("data", f"{competition_name}_mvp_wir/")
     os.makedirs(output_dir, exist_ok=True)
     
-    for notebook_name, code in zip(notebook_names, notebook_code):
+    for notebook_name, code in list(zip(notebook_names, notebook_code)):
         
         print(f"Generating WIR for {competition_name}/{notebook_name}")
         
@@ -57,7 +58,17 @@ if __name__ == '__main__':
         annotated_wir.annotate()
         input_nodes, output_nodes, caller_nodes, operation_nodes = tuples
         annotated_wir.draw_graph(input_nodes, output_nodes, caller_nodes, operation_nodes, output_picture_annotated)
-            
+        
+        input_nodes, caller_nodes, operation_nodes, output_nodes= tuples
+
+        what_track = {'features'}  # 'labels' # Specify what to track
+        C_plus, C_minus = track_provenance(
+            annotated_wir,
+            prs[::-1],
+            what_track=what_track
+        )
+        print(f"Columns included in {what_track} (C_plus):", C_plus)
+        print(f"Columns excluded from {what_track} (C_minus):", C_minus)
         print("WIR written to", os.path.join(output_path,  'wir.png'))
         
     print("Notebooks written to", output_dir)

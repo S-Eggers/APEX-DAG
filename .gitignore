@@ -168,3 +168,6 @@ graph_*.png
 output/*.png
 output/*
 data/*
+
+checkpoints/* 
+hyperparam_optim/*

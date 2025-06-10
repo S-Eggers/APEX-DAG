@@ -55,6 +55,22 @@ def list_traversal(pr, tracker):
                 next_prs.append(nextpr)
     return next_prs
 
+def keyword_traversal(pr, tracker):
+    # check if the keyword is "labels"
+    
+    input_nodes, _, _, output_node = pr
+    if not 'label' in output_node:
+        # if the keyword is not "labels", we do not traverse further
+        return []
+    
+    next_prs = []
+    input_nodes = input_nodes if isinstance(input_nodes, list) else [input_nodes]
+    for var in input_nodes:
+        if var in tracker.var_to_pr:
+            for nextpr in tracker.var_to_pr[var]:
+                next_prs.append(nextpr)
+    return next_prs
+
 def iloc_traversal(pr, tracker):
     """
     Traversal rule for DataFrame.iloc operation:
@@ -109,6 +125,7 @@ KBC = {
     'Subscript': {'column_exclusion': False, 'traversal_rule': subscript_traversal},
     'Slice': {'column_exclusion': False, 'traversal_rule': slice_traversal},
     'List': {'column_exclusion': False, 'traversal_rule': list_traversal},
+    'keyword': {'column_exclusion': False, 'traversal_rule': keyword_traversal},
 }
 
 
@@ -195,9 +212,9 @@ class ProvenanceTracker:
         Recursive GuideEval operator (Figure 6 in VAMSA).
         It updates C_plus/C_minus based on constants or further traversals.
         """
-        input_nodes, _, operation_node, _ = pr
+        input_nodes, _, operation_node, out_nodes = pr
         input_nodes = input_nodes if isinstance(input_nodes, list) else [input_nodes]
-        if pr in self.visited_prs:
+        if pr in self.visited_prs and col_excl is None:
             return
         self.visited_prs.add(pr)
         op_name = get_name(operation_node)
@@ -209,11 +226,16 @@ class ProvenanceTracker:
         traversal_rule = entry['traversal_rule']
 
         constant_inputs = [var for var in input_nodes if is_constant(var, self.prs)]
+        if ('keyword' in op_name) and not ('label' in out_nodes): # patch
+            constant_inputs = []
         for cnst in constant_inputs:
-                if isinstance(cnst, (list, tuple)):
+                if isinstance(cnst, (list, tuple)): # TODO: if keyword is not labels - do not add anything!
                     for col in cnst:
                         if col_excl:
                             self.C_minus.add(col)
+                            # remove from C_plus if it was added before
+                            if col in self.C_plus:
+                                self.C_plus.remove(col)
                         else:
                             self.C_plus.add(col)
                 else:
@@ -223,6 +245,9 @@ class ProvenanceTracker:
                         col = cnst
                     if col_excl:
                         self.C_minus.add(col)
+                        # remove from C_plus if it was added before
+                        if col in self.C_plus:
+                            self.C_plus.remove(col)
                     else:
                         self.C_plus.add(col)
         if len(constant_inputs) == len(input_nodes):
