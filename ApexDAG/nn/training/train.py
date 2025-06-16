@@ -112,7 +112,7 @@ class GraphEncoder:
                 graph = self._make_bidirectional(graph)
                           
             try:
-                if self.mode in [GraphTransformsMode.REVERSED, GraphTransformsMode.REVERSED_MASKED]:
+                if self.mode in [GraphTransformsMode.REVERSED.value, GraphTransformsMode.REVERSED_MASKED.value]:
                     encoded_graph = encoder.encode_reversed(graph, feature_to_encode)
                 else:
                     encoded_graph = encoder.encode(graph, feature_to_encode)
