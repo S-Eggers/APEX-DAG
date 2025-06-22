@@ -184,3 +184,12 @@ apex-dag-jupyter/*.ipynb
 
 checkpoints/* 
 hyperparam_optim/*
+
+data/*
+
+.github/*
+*.github/
+temp/*
+.ipynb_checkpoints/*
+
+*.ipynb
