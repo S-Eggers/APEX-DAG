@@ -181,3 +181,6 @@ apex-dag-jupyter/src/app/data_flow_graph.json
 hyperparam_optim/
 apex-dag-jupyter/*.ipynb
 *.bak
+
+checkpoints/* 
+hyperparam_optim/*
