@@ -168,6 +168,19 @@ graph_*.png
 output/*.png
 output/*
 data/*
+*.bin
+*.bin.gz
+runs/*
+checkpoints/*
+models/*
+
+# weights and biases
+wandb/*
+node_modules/*
+apex-dag-jupyter/src/app/data_flow_graph.json
+hyperparam_optim/
+apex-dag-jupyter/*.ipynb
+*.bak
 
 checkpoints/* 
 hyperparam_optim/*

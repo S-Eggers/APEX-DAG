@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import logging
 import traceback
 import pandas as pd
 
@@ -9,8 +10,13 @@ from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 from ApexDAG.util.kaggle_dataset_iterator import KaggleDatasetIterator
 
 
-def mine_dataflows_on_kaggle_dataset(args, logger):
-    kaggle_iterator = KaggleDatasetIterator(os.path.join(os.getcwd(), "data", "raw", "notebooks"))
+def mine_dataflows_on_kaggle_dataset(args, logger: logging.Logger) -> None:
+    if args.checkpoint_path is not None:
+        main_folder = args.checkpoint_path
+    else:
+        main_folder = os.path.join(os.getcwd(), "data", "raw", "notebooks")
+
+    kaggle_iterator = KaggleDatasetIterator(main_folder)
     stats = {"notebook": [], "loc": [], "competition": [], "dfg_extract_time": [], "execution_graph_time": [], "exception": [], "stacktrace": []}
     for competition in kaggle_iterator:
         for notebook_file in competition["ipynb_files"]:
@@ -27,13 +33,13 @@ def mine_dataflows_on_kaggle_dataset(args, logger):
                 stats["loc"].append(notebook.loc())
 
                 dfg_start_time = time.time()
-                dfg = DataFlowGraph()
+                dfg = DataFlowGraph(notebook_file)
                 dfg.parse_notebook(notebook)
                 dfg.optimize()
                 dfg_end_time = time.time()
                 
                 if args.draw:
-                    dfg.draw(os.path.join("output", name, "dfg"))
+                    dfg.draw(os.path.join(os.getcwd(), "output", name, "dfg"))
                 
                 stats["dfg_extract_time"].append(dfg_end_time - dfg_start_time)
                 stats["stacktrace"].append(None)
@@ -46,7 +52,7 @@ def mine_dataflows_on_kaggle_dataset(args, logger):
                 kaggle_iterator.print(f"Error in notebook {notebook_path}")
                 stats["dfg_extract_time"].append(-float("inf"))
                 
-                folder = os.path.join("output", name, "stacktraces")
+                folder = os.path.join(os.getcwd(), "output", name, "stacktraces")
                 if not os.path.exists(folder):
                     os.makedirs(folder)
                 
@@ -59,9 +65,9 @@ def mine_dataflows_on_kaggle_dataset(args, logger):
                 notebook.save_code(os.path.join(folder, f"{name}.code"))
 
     stats_df = pd.DataFrame(stats)
-    if not os.path.exists("output"):
-        os.makedirs("output", exist_ok=True)
-    stats_df.to_csv(os.path.join("output", "dfg_experiment.csv"))
+    if not os.path.exists(os.path.join(os.getcwd(), "output")):
+        os.makedirs(os.path.join(os.getcwd(), "output"), exist_ok=True)
+    stats_df.to_csv(os.path.join(os.getcwd(), "output", "dfg_experiment.csv"))
     kaggle_iterator.print(f"Succesfully extracted dataflow graphs for {stats_df[stats_df['dfg_extract_time'] > float('-inf')].shape[0]}/{stats_df.shape[0]}")
     if stats_df[stats_df['dfg_extract_time'] > float('-inf')].shape[0] < stats_df.shape[0]:
         kaggle_iterator.print(f"Error types observed: {stats_df[stats_df['exception'].str.len()>0]['exception'].unique()}")

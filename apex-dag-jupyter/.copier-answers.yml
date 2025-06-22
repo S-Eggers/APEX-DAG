@@ -1,0 +1,14 @@
+# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
+_commit: v4.3.8
+_src_path: https://github.com/jupyterlab/extension-template
+author_email: sebastian.eggers@campus.tu-berlin.de
+author_name: Sebastian Eggers
+has_binder: false
+has_settings: true
+kind: frontend
+labextension_name: apex-dag-jupyter
+project_short_description: APEX-DAG Jupyter Frontend Extension.
+python_name: apex_dag_jupyter
+repository: https://github.com/S-Eggers/APEX-DAG
+test: false
+

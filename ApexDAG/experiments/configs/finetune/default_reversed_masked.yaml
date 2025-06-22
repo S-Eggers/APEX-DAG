@@ -1,0 +1,42 @@
+# === Paths ===
+checkpoint_path: "/home/nzukowska/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs"
+# encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-reversed"
+# encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-normal"
+encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-reversed-masked"
+# pretrained_model_path: "checkpoints/checkpoints-swapped/model_epoch_pretrained_10.pt"
+pretrained_model_path: "checkpoints/model_epoch_pretrained_masked_93.pt"
+# pretrained_model_path: "checkpoints/model_epoch_pretrained.pt"
+# === Data Splits ===
+train_split: 0.75
+test_split: 0.125
+val_split: 0.125
+
+# === Data and Graph Settings ===
+# mode: 'REVERSED' # [REVERSED, ORIGINAL, REVERSED_MASKED]
+mode: 'REVERSED_MASKED'
+subsample: True
+
+# === General Settings ===
+seed: 42
+device: "cuda:7"  # [cpu, cuda]
+load_encoded_old_if_exist: True  # if the graphs are encoded, do not encode them again
+
+# === Model Architecture ===
+dim_embed: 300  # associated with fasttext embedding size, STABLE
+hidden_dim: 128
+num_heads: 4  # [4, 8, 16, 32]
+number_gat_blocks: 3  # [2, 3, 4, 5, 6]
+dropout: 0.5  # [0.2, 0.3, 0.4, 0.5, 0.6]
+residual: True  # [True, False]
+node_classes: 100  # reversed
+edge_classes: 6
+
+# === Training ===
+batch_size: 32
+learning_rate: 0.00005  # [0.001, 0.005, 0.01]
+min_nodes: 3
+min_edges: 2
+weight_decay: 0.00001  # [0.0001, 0.001, 0.01]
+num_epochs: 2000 # 300
+patience: 30
+subsample_thereshold: 0.9 # [0.99, 0.95, 0.9]

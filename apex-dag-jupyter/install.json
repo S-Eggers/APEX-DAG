@@ -1,0 +1,5 @@
+{
+  "packageManager": "python",
+  "packageName": "apex_dag_jupyter",
+  "uninstallInstructions": "Use your Python package manager (pip, conda, etc.) to uninstall the package apex_dag_jupyter"
+}

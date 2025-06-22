@@ -1,4 +1,5 @@
 import os
+import json
 import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -10,7 +11,44 @@ class Draw:
     def __init__(self, node_types: dict, edge_types: dict) -> None:
         self.NODE_TYPES = node_types
         self.EDGE_TYPES = edge_types
-        
+
+    def dfg_webrendering(self, G: nx.DiGraph, save_path: str=None):
+        file_name = os.path.basename(save_path) if save_path else "data_flow_graph"
+        directory_name = os.path.dirname(save_path) if save_path else "output"
+        directory = os.path.join(os.getcwd(), directory_name)
+
+        if not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)
+
+        # Save JSON
+        with open(os.path.join(directory, f"{file_name}.json"), "w") as f:
+            f.write(self.dfg_to_json(G))
+
+    def dfg_to_json(self, G: nx.DiGraph) -> str:
+        elements = []
+        # Convert nodes
+        for node, data in G.nodes(data=True):
+            elements.append({
+                "data": {
+                    "id": str(node),
+                    "label": data.get("label", str(node)),
+                    "node_type": data.get("node_type", "default"),
+                }
+            })
+
+        # Convert edges
+        for src, tgt, data in G.edges(data=True):
+            elements.append({
+                "data": {
+                    "source": str(src),
+                    "target": str(tgt),
+                    "edge_type": data.get("edge_type", "default"),
+                    "label": data.get("code", "")  # Edge label
+                }
+            })
+
+        return json.dumps({"elements": elements})
+
     def dfg(self, G: nx.DiGraph, save_path: str=None):  
         file_name = os.path.basename(save_path) if save_path else "data_flow_graph"
         
@@ -143,14 +181,62 @@ class Draw:
         plt.savefig(os.path.join(directory, f"{file_name}.png"))
         plt.clf()
         plt.close()
+            
         
+    def labelled_dfg(self, G: nx.DiGraph, save_path: str = None):  
+        file_name = os.path.basename(save_path) if save_path else "data_flow_graph"
+        directory_name = os.path.dirname(save_path) if save_path else "output"
+        directory = os.path.join(os.getcwd(), directory_name)
+        
+        if not os.path.exists(directory):
+            os.makedirs(directory, exist_ok=True)    
+        
+        plt.figure(figsize=(32, 64))
+        nx.nx_agraph.write_dot(G, os.path.join(directory, f"{file_name}.dot"))
+        
+        pos = graphviz_layout(G, prog="dot")
+        
+        edge_labels = nx.get_edge_attributes(G, "code")
+        
+        # Define the domain label color map
+        domain_color_map = {
+            'MODEL_TRAIN': "#B0C4DE",
+            'MODEL_EVALUATION': "#b3b0de",
+            'HYPERPARAMETER_TUNING': "#FFC0CB",
+            'DATA_EXPORT': "#c4deb0",
+            'DATA_IMPORT_EXTRACTION': "#DEDAB0",
+            'DATA_TRANSFORM': "#B0DEB9",
+            'EDA': "#DEB0DE",
+            'ENVIRONMENT': "#FFA07A",
+            'NOT_INTERESTING': "#d3d3d3",
+        }
+        
+        edge_domain_labels = nx.get_edge_attributes(G, "domain_label")
+        node_labels = {node: str(node) for node in G.nodes} 
+        
+        edge_colors = [domain_color_map.get(edge_domain_labels.get(edge, "NOT_INTERESTING"), "black") for edge in G.edges]
+        
+        nx.draw_networkx_edges(G, pos, edge_color=edge_colors, width=2, arrows=True, arrowstyle="-|>", arrowsize=20)
+        nx.draw_networkx_nodes(G, pos, node_color="lightgrey", node_size=1000)  # Nodes are now a neutral color
+        nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=8, font_color="#454545")
+        nx.draw_networkx_labels(G, pos, labels=node_labels, font_size=10, font_color="black")  # Display node IDs
+        
+        edge_legend_elements = [Line2D([0], [0], color=color, lw=2, label=label) for label, color in domain_color_map.items()]
+        
+        plt.legend(handles=edge_legend_elements, loc="upper left", fontsize=12)
+        plt.axis('off')
+        plt.savefig(os.path.join(directory, f"{file_name}.png"))
+        plt.clf()
+        plt.close()
+
+
     def ast(self, G: nx.DiGraph, t2t_paths: list[list[int]]):
         if not os.path.exists("output"):
-            os.makedirs("output", exist_ok=True)
+            os.makedirs(os.getcwd(), "output", exist_ok=True)
 
         G = G.copy()
         plt.figure(figsize=(128, 32))
-        nx.nx_agraph.write_dot(G, os.path.join("output", "ast.dot"))
+        nx.nx_agraph.write_dot(G, os.path.join(os.getcwd(), "output", "ast.dot"))
         for node in G.nodes:
             G.nodes[node]["width"] = 0.9
         pos = graphviz_layout(G, prog="dot")
@@ -178,5 +264,5 @@ class Draw:
         node_colors = ["#eeeeee" for _ in range(len(G.nodes))]
 
         nx.draw(G, pos, labels=node_labels, with_labels=True, edge_color=edge_colors, font_size=10, font_color="#454545", node_color=node_colors, node_size=2500)
-        plt.savefig(os.path.join("output", f"ast_graph.png"))
+        plt.savefig(os.path.join(os.getcwd(), "output", f"ast_graph.png"))
         plt.clf()

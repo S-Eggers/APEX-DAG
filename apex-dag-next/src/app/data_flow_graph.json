@@ -1,0 +1,161 @@
+{
+    "elements": [
+        {
+            "data": {
+                "id": "df_3",
+                "label": "df_3",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "polars",
+                "label": "polars",
+                "node_type": 1
+            }
+        },
+        {
+            "data": {
+                "id": "df_4",
+                "label": "df_4",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_9",
+                "label": "df_9",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_11",
+                "label": "df_11",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_12",
+                "label": "df_12",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_13",
+                "label": "df_13",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_14",
+                "label": "df_14",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_15",
+                "label": "df_15",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_16",
+                "label": "df_16",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "id": "df_17",
+                "label": "df_17",
+                "node_type": 0
+            }
+        },
+        {
+            "data": {
+                "source": "df_3",
+                "target": "df_4",
+                "edge_type": 0,
+                "label": "with columns"
+            }
+        },
+        {
+            "data": {
+                "source": "polars",
+                "target": "df_3",
+                "edge_type": 0,
+                "label": "read csv"
+            }
+        },
+        {
+            "data": {
+                "source": "df_4",
+                "target": "df_9",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        },
+        {
+            "data": {
+                "source": "df_9",
+                "target": "df_11",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        },
+        {
+            "data": {
+                "source": "df_11",
+                "target": "df_12",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        },
+        {
+            "data": {
+                "source": "df_12",
+                "target": "df_13",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        },
+        {
+            "data": {
+                "source": "df_13",
+                "target": "df_14",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        },
+        {
+            "data": {
+                "source": "df_14",
+                "target": "df_15",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        },
+        {
+            "data": {
+                "source": "df_15",
+                "target": "df_16",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        },
+        {
+            "data": {
+                "source": "df_16",
+                "target": "df_17",
+                "edge_type": 0,
+                "label": "get dummies"
+            }
+        }
+    ]
+}
