@@ -188,6 +188,7 @@ hyperparam_optim/*
 data/*
 
 .github/*
+*.github/
 temp/*
 .ipynb_checkpoints/*
 
