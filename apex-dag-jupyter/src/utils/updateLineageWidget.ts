@@ -24,7 +24,7 @@ const updateWidget = (graphWidget: GraphWidget | null, notebookPanel: NotebookPa
       .then(response => {
           console.info("Dataflow received from server:", response);
           if (graphWidget && response.success) {
-            graphWidget.updateGraphData(response.dataflow);
+            graphWidget.updateGraphData(response.lineage_predictions);
           }
       })
       .catch(error => {

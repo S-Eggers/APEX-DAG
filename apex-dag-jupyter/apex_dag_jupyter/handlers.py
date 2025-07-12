@@ -76,21 +76,17 @@ class LineageHandler(APIHandler):
                 "success": False,
                 "dataflow": {}
             }
-            self.last_analysis_results = result
-            self.last_analysis_time = time.time()
+
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
             encoded_graphs = self.model["encoder"].encode_graphs([dfg.get_graph()], feature_to_encode="domain_label")
-            results = []
-            edge_predictions_for_response = []
 
             with torch.no_grad():
                 for i, graph_encoded in enumerate(encoded_graphs):
                     output = self.model["model"](graph_encoded)
                     labels = torch.argmax(output['node_type_preds'], dim=1)
                     labels_names = [REVERSE_DOMAIN_EDGE_TYPES[label.item()] for label in labels]
-                    results.append(labels)
 
                     self.log.info(f"Graph {i}: Predicted {len(labels)} edge domain labels.")
 
@@ -101,13 +97,11 @@ class LineageHandler(APIHandler):
                         for edge_idx, (u, v, key, edge_data) in enumerate(graph_edges_list):
                             predicted_label_int = labels[edge_idx].item()
                             predicted_label_name = REVERSE_DOMAIN_EDGE_TYPES[predicted_label_int]
-                            nx_G.edges[u, v, key]['predicted_domain_label'] = predicted_label_name
+                            dfg.set_domain_label(u, v, key, predicted_label_int)
                             
-                            edge_predictions_for_response.append({
-                                "source": str(u), "target": str(v), "key": key,
-                                "code": edge_data.get("code", ""),
-                                "predicted_domain": predicted_label_name
-                            })
+                            #for edge, label in zip(nx_G.edges, labels_names):
+                            #    print(f"Edge {edge} [{label}]: {edge[0]} - {nx_G.edges._adjdict[edge[0]][edge[1]]} -> {edge[1] }")
+
                         self.log.info(f"Successfully mapped {len(labels)} predictions to edges in graph {i}.")
                     else:
                         self.log.warning(
@@ -119,11 +113,9 @@ class LineageHandler(APIHandler):
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
-                "lineage_predictions": edge_predictions_for_response # Include mapped predictions
+                "lineage_predictions": dfg.to_json(), # Include mapped predictions
             }
             print(result)
-            self.last_analysis_results = result
-            self.last_analysis_time = time.time()
             self.finish(json.dumps(result))
 
     def data_received(self, chunk):

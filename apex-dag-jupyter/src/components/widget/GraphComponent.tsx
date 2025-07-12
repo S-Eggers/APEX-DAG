@@ -7,7 +7,7 @@ import GraphComponentProps from "../../types/GraphComponentProps";
  *
  * @returns The React component
  */
-const GraphComponent = ({ eventTarget }: GraphComponentProps): JSX.Element => {
+const GraphComponent = ({ eventTarget, mode = "dataflow" }: GraphComponentProps): JSX.Element => {
   const [graphData, setGraphData] = useState({ elements: [] });
 
   useEffect(() => {
@@ -27,7 +27,7 @@ const GraphComponent = ({ eventTarget }: GraphComponentProps): JSX.Element => {
 
   return (
     <div className={"apexDagPage"}>
-      <Graph graphData={graphData} />
+      <Graph graphData={graphData} mode={mode} />
     </div>
   );};
 

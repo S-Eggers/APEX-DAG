@@ -8,6 +8,7 @@ except ImportError:
     warnings.warn("Importing 'apex_dag_jupyter' outside a proper installation.")
     __version__ = "dev"
 
+import os
 import yaml
 import torch
 import logging
@@ -47,7 +48,7 @@ def create_model(config, reversed, tasks):
 
 def load_apex_model(config, logger: logging.Logger):
     logger.info("APEX-DAG Plugin: Initializing ML Model...")
-    config = yaml.safe_load(open("ApexDAG/experiments/configs/finetune/default_reversed.yaml", "r"))
+    config = yaml.safe_load(open(os.path.join("demo", "config", "default_reversed.yaml"), "r"))
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])
     
     graph_encoder = GraphEncoder(encoded_checkpoint_path, 
@@ -64,7 +65,7 @@ def load_apex_model(config, logger: logging.Logger):
         tasks=["node_classification"]
     )
     logger.info("APEX-DAG Plugin: Loading Model...")
-    checkpoint = torch.load("demo/checkpoints/model_epoch_finetuned_GraphTransformsMode.REVERSED_440.pt", map_location=torch.device('cpu'))
+    checkpoint = torch.load(os.path.join("demo", "checkpoints", "model_epoch_finetuned_GraphTransformsMode.REVERSED_440.pt"), map_location=torch.device('cpu'))
     model.load_state_dict(checkpoint['model_state_dict'])
     model.to('cpu')
     model.eval()

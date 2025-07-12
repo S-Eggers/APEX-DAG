@@ -43,7 +43,8 @@ class Draw:
                     "source": str(src),
                     "target": str(tgt),
                     "edge_type": data.get("edge_type", "default"),
-                    "label": data.get("code", "")  # Edge label
+                    "label": data.get("code", ""), # Edge label
+                    "predicted_label": data.get("predicted_label", "")  # Edge label
                 }
             })
 
