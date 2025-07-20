@@ -72,7 +72,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       label: 'Lineage Widget',
       icon: args => (args['isPalette'] ? undefined : ApexIcon),
       execute: () => {
-        const content = new GraphWidget();
+        const content = new GraphWidget("lineage");
         const widget = new MainAreaWidget<GraphWidget>({ content });
         widget.title.label = 'Lineage Widget';
         widget.title.icon = ApexIcon;

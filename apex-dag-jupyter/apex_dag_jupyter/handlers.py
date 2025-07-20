@@ -77,8 +77,7 @@ class LineageHandler(APIHandler):
                 "success": False,
                 "dataflow": {}
             }
-            self.last_analysis_results = result
-            self.last_analysis_time = time.time()
+
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
@@ -142,11 +141,9 @@ class LineageHandler(APIHandler):
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
-                "lineage_predictions": edge_predictions_for_response # Include mapped predictions
+                "lineage_predictions": dfg.to_json(), # Include mapped predictions
             }
             print(result)
-            self.last_analysis_results = result
-            self.last_analysis_time = time.time()
             self.finish(json.dumps(result))
 
     def data_received(self, chunk):
