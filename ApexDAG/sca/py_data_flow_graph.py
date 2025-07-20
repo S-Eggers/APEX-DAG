@@ -594,10 +594,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
         draw.dfg_webrendering(G, save_path)
 
-    def set_domain_label(self, u, v, key, label):
-        print(u, v, key, label)
-        self._current_state._G.edges[u, v, key]["predicted_label"] = label
-        print(self._current_state._G.edges[u, v, key])
+    def set_domain_label(self, attrs, name: str):
+        nx.set_edge_attributes(self._current_state._G, attrs, name=name)
 
     def to_json(self) -> str:
         draw = Draw(NODE_TYPES, EDGE_TYPES)

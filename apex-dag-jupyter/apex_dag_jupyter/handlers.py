@@ -102,7 +102,7 @@ class LineageHandler(APIHandler):
                         return
 
                     # Apply probability model / heuristics
-                    prob_model_start = torch.tensor([0, 0.5, 0, 0, 0.5], device=preds.device)
+                    prob_model_start = torch.tensor([0, 0.6, 0, 0, 0.4], device=preds.device)
                     prob_model_end = torch.tensor([0.25, 0.15, 0.20, 0.15, 0.25], device=preds.device)
                     in_degrees = nx_G.in_degree()
                     out_degrees = nx_G.out_degree()
@@ -117,24 +117,12 @@ class LineageHandler(APIHandler):
                     # Get final labels 
                     labels = torch.argmax(probabilities, dim=1)
                     self.log.info(f"Graph {i}: Predicted {len(labels)} edge domain labels.")
-                    predicted_label_names = [REVERSE_DOMAIN_EDGE_TYPES[l.item()] for l in labels]
+                    predicted_labels = labels.tolist()
 
                     # Update graph
                     edge_keys = [(u, v, key) for u, v, key, data in graph_edges_list]
-                    attrs_to_set = dict(zip(edge_keys, predicted_label_names))
-                    nx.set_edge_attributes(nx_G, attrs_to_set, name="predicted_domain_label")
-
-                    # Build response
-                    edge_predictions_for_response = [
-                        {
-                            "source": str(u),
-                            "target": str(v),
-                            "key": key,
-                            "code": edge_data.get("code", ""),
-                            "predicted_domain": predicted_label_names[edge_idx]
-                        }
-                        for edge_idx, (u, v, key, edge_data) in enumerate(graph_edges_list)
-                    ]
+                    attrs_to_set = dict(zip(edge_keys, predicted_labels))
+                    dfg.set_domain_label(attrs_to_set, name="predicted_label")
 
                     self.log.info(f"Successfully mapped {len(labels)} predictions to edges in graph {i}.")
 
