@@ -131,7 +131,6 @@ class LineageHandler(APIHandler):
                 "success": True,
                 "lineage_predictions": dfg.to_json(), # Include mapped predictions
             }
-            print(result)
             self.finish(json.dumps(result))
 
     def data_received(self, chunk):
