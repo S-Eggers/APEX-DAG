@@ -166,6 +166,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         return node
 
+    #def visit_List(self, node: ast.List) -> ast.List:
+    #    self.generic_visit(node)
+    #    return node
+
     def visit_Lambda(self, node: ast.Lambda) -> ast.Lambda:
         # ToDo: this method is executed twice
         if hasattr(node, "parent") and isinstance(node.parent, ast.Assign):
