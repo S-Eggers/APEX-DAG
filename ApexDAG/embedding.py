@@ -1,6 +1,7 @@
 import torch
 from enum import Enum
 from logging import Logger
+from typing import Optional
 
 
 class EmbeddingType(Enum):
@@ -35,6 +36,14 @@ class Embedding:
     def _get_sentence_vector_fast_text(self, sentence: str) -> torch.Tensor:
         return torch.tensor(self._model.get_sentence_vector(sentence), dtype=torch.float32)
 
+    def _get_sentence_vector_gemini(self, sentence: str, config: Optional[types.EmbedContentConfig] = None) -> torch.Tensor:
+        result = self._model.models.embed_content(
+            model=self._embedding_model,
+            contents=sequence,
+            config=config
+        )
+        return torch.tensor(result.embeddings, dtype=torch.float32)
+
     def embed(self, sequence: str) -> torch.Tensor:
         if "\n" in sentence:
             self.logger(f"ERROR: Sentence contains newline character: {sentence}")
@@ -44,18 +53,8 @@ class Embedding:
             case EmbeddingType.FASTTEXT:
                 return self._get_sentence_vector_fast_text(sequence)
             case EmbeddingType.GEMINI_STANDARD:
-                result = self._model.models.embed_content(
-                    model=self._embedding_model,
-                    contents=sequence,
-                    config=types.EmbedContentConfig(task_type="CLASSIFICATION")
-                )
-                return torch.tensor(result.embeddings, dtype=torch.float32)
+                return self._get_sentence_vector_gemini(sequence, types.EmbedContentConfig(task_type="CLASSIFICATION"))
             case EmbeddingType.GEMINI_CODE:
-                result = self._model.models.embed_content(
-                    model=self._embedding_model,
-                    contents=sequence,
-                    config=types.EmbedContentConfig(task_type="CODE_RETRIEVAL_QUERY")
-                )
-                return torch.tensor(result.embeddings, dtype=torch.float32)
+                return self._get_sentence_vector_gemini(sequence, types.EmbedContentConfig(task_type="CODE_RETRIEVAL_QUERY"))
             case _:
                 raise NotImplementedError(f"Embedding type {self.type} not implemented")
