@@ -129,7 +129,8 @@ class GraphEncoder:
                 continue
             except Exception:
                 self.logger.error(f"Error in graph {index}")
-
+                self.logger.error(traceback.format_exc())
+                continue
 
         return self.encoded_graphs
 
