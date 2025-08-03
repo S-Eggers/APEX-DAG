@@ -10,6 +10,12 @@
       "type": "number",
       "default": 500,
       "minimum": -1
+    },
+    "replaceDataflowInUDFs": {
+      "title": "Replace Dataflow in UDFs",
+      "description": "Replace user-defined function (UDF) calls with actual dataflow and connect with return value of function call. ",
+      "type": "boolean",
+      "default": false
     }
   },
   "additionalProperties": false

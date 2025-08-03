@@ -19,6 +19,7 @@ class LineageHandler(APIHandler):
     def post(self):
         input_data = self.get_json_body()
         code = input_data["code"]
+        replace_dataflow = input_data["replaceDataflowInUDFs"]
 
         if time.time() - self.last_analysis_time < 200:
             result = self.last_analysis_results
@@ -27,7 +28,7 @@ class LineageHandler(APIHandler):
             return
         self.last_analysis_time = time.time()
 
-        dfg = DataFlowGraph()
+        dfg = DataFlowGraph(replace_dataflow=replace_dataflow)
         try:
             dfg.parse_code(code)
         except SyntaxError as e:

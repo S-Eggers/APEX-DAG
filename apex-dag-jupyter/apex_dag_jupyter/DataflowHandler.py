@@ -16,7 +16,8 @@ class DataflowHandler(APIHandler):
     def post(self):
         input_data = self.get_json_body()
         code = input_data["code"]
-        dfg = DataFlowGraph()
+        replace_dataflow = input_data["replaceDataflowInUDFs"]
+        dfg = DataFlowGraph(replace_dataflow=replace_dataflow)
         try:
             dfg.parse_code(code)
         except SyntaxError as e:

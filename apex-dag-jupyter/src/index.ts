@@ -38,6 +38,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
     const settings = await settingRegistry?.load(plugin.id);
     const debounceDelay =
       (settings?.get('debounceDelay').composite as number) || 1000;
+    const replaceDataflowInUDFs =
+      (settings?.get('replaceDataflowInUDFs').composite as boolean) || false;
 
     console.debug('JupyterLab extension apex-dag-jupyter is activated!');
     console.debug('ICommandPalette:', palette);
@@ -72,7 +74,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       label: 'Lineage Widget',
       icon: args => (args['isPalette'] ? undefined : ApexIcon),
       execute: () => {
-        const content = new GraphWidget("lineage");
+        const content = new GraphWidget('lineage');
         const widget = new MainAreaWidget<GraphWidget>({ content });
         widget.title.label = 'Lineage Widget';
         widget.title.icon = ApexIcon;
@@ -119,12 +121,20 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         console.debug('Initial call to updateWidget on notebook open');
-        updateWidget(dataflowGraphWidget, notebookPanel);
-        updateLineageWidget(lineageGraphWidget, notebookPanel);
+        updateWidget(dataflowGraphWidget, replaceDataflowInUDFs, notebookPanel);
+        updateLineageWidget(
+          lineageGraphWidget,
+          replaceDataflowInUDFs,
+          notebookPanel
+        );
 
         model.contentChanged.connect(() => {
           console.debug('Notebook model changed!');
-          updateWidget(dataflowGraphWidget, notebookPanel);
+          updateWidget(
+            dataflowGraphWidget,
+            replaceDataflowInUDFs,
+            notebookPanel
+          );
 
           if (debounceDelay >= 0) {
             if (interval) {
@@ -133,7 +143,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
             interval = setTimeout(() => {
               console.debug('Executing debounced lineage update.');
-              updateLineageWidget(lineageGraphWidget, notebookPanel);
+              updateLineageWidget(
+                lineageGraphWidget,
+                replaceDataflowInUDFs,
+                notebookPanel
+              );
             }, debounceDelay);
           }
         });
@@ -141,7 +155,11 @@ const plugin: JupyterFrontEndPlugin<void> = {
         if (debounceDelay < 0) {
           NotebookActions.executed.connect((sender, { notebook, cell }) => {
             if (notebookPanel && notebookPanel.content === notebook) {
-              updateLineageWidget(lineageGraphWidget, notebookPanel);
+              updateLineageWidget(
+                lineageGraphWidget,
+                replaceDataflowInUDFs,
+                notebookPanel
+              );
             }
           });
         }
