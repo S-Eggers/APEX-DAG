@@ -62,7 +62,7 @@ class LineageHandler(APIHandler):
                         return
 
                     # Apply probability model / heuristics
-                    prob_model_start = torch.tensor([0, 0.6, 0, 0, 0.4], device=preds.device)
+                    prob_model_start = torch.tensor([0, 0.4, 0.3, 0, 0.3], device=preds.device)
                     prob_model_end = torch.tensor([0.25, 0.15, 0.20, 0.15, 0.25], device=preds.device)
                     in_degrees = nx_G.in_degree()
                     out_degrees = nx_G.out_degree()

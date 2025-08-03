@@ -39,7 +39,6 @@ def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbos
                     intermediate_node = f"{v}_intermediate_1"
                     new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])
                     if "predicted_label" in edge_data:
-                        print("TEST")
                         new_G.add_edge(u, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"], predicted_label=edge_data["predicted_label"])
                     else:
                         new_G.add_edge(u, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"])
@@ -49,7 +48,6 @@ def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbos
                     intermediate_node = f"{v}_intermediate_{i+1}"
                     new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])
                     if "predicted_label" in edge_data:
-                        print("TEST")
                         new_G.add_edge(intermediate_node_prev, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"], predicted_label=edge_data["predicted_label"])
                     else:
                         new_G.add_edge(intermediate_node_prev, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"])
@@ -57,7 +55,6 @@ def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbos
                     # Connect the last intermediate node to the original destination node
                     intermediate_node_prev = f"{v}_intermediate_{i}"
                     if "predicted_label" in edge_data:
-                        print("TEST")
                         new_G.add_edge(intermediate_node_prev, v, code=edge_data["code"], edge_type=edge_data["edge_type"], predicted_label=edge_data["predicted_label"])
                     else:
                         new_G.add_edge(intermediate_node_prev, v, code=edge_data["code"], edge_type=edge_data["edge_type"])

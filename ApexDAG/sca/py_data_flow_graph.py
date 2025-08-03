@@ -222,10 +222,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             "vararg": True if node.args.vararg else False,
         }
         self._state_stack.functions[function_name]["args"] = self._process_arguments(node.args)
+        self._current_state.add_node(context_name, NODE_TYPES["FUNCTION"])
+        print(self._current_state.get_graph().nodes)
 
         parent_context = self._current_state.context
         self._state_stack.create_child_state(context_name, parent_context)
         self._current_state = self._state_stack.get_current_state()
+
 
         for arg in self._state_stack.functions[function_name]["args"]["args"]:
             argument_node = f"{arg}_{node.lineno}"
@@ -274,7 +277,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         elif caller_object_name in self._state_stack.classes or function_name in self._state_stack.classes:
             self._process_class_call(node, caller_object_name, function_name)
         # we are calling a user defined function, e.g. a lambda function stored in a variable
-        elif not caller_object_name and function_name in self._state_stack.functions:
+        elif (not caller_object_name or caller_object_name == function_name) and function_name in self._state_stack.functions:
             self._process_function_call(node, function_name)
         # we are calling a method of a object, e.g. dataframe = dataframe.dropna()
         elif self._current_state.current_target:
@@ -705,7 +708,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             import_node,
             self._current_state.current_variable,
             tokens,
-            EDGE_TYPES["CALLER"],
+            EDGE_TYPES["FUNCTION_CALL"],
             node.lineno,
             node.col_offset,
             node.end_lineno,
@@ -771,64 +774,100 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         self._current_state.set_last_variable(class_node)
 
-    def _process_function_call(self, node: ast.Call, tokens: str=None) -> None:
+    def _process_function_call(self, node: ast.Call, tokens: str=None, replace_data_flow: bool=False) -> None:
         function_name = tokens
-        if self._state_stack.functions[function_name]["is_recursive"]:
-            return
 
-        function_context = self._state_stack.functions[function_name]["context"]
-        function_name_tokens = self._tokenize_method(function_name)
+        should_inline = not self._state_stack.functions[function_name]["is_recursive"] and replace_data_flow
 
-        arg_copy: list = self._state_stack.functions[function_name]["args"]["args"].copy()
-        mapping: dict = {}
-        unprocessable_keywords: list = []
-        for keyword in node.keywords:
-            mapping[self._get_base_name(keyword.value)] = keyword.arg
-            if keyword.arg in arg_copy:
-                arg_copy.remove(keyword.arg)
-            # dynamically unpacking dictionary arguments
-            elif isinstance(keyword.value, ast.Dict):
-                for key, value in zip(keyword.value.keys, keyword.value.values):
-                    key_base_name = self._get_base_name(key)
-                    value_base_name = self._get_base_name(value)
-                    if key_base_name in arg_copy:
-                        arg_copy.remove(key_base_name)
-                        mapping[key_base_name] = value_base_name
-                    else:
-                        unprocessable_keywords.append(value_base_name)
-            elif not keyword.arg:
-                base_name = self._get_base_name(keyword.value)
-                unprocessable_keywords.append(base_name)
-            elif self._state_stack.functions[function_name]["kwargs"]:
-                mapping[keyword.arg] = "kwargs"
-            elif keyword.arg is None:
-                unprocessable_keywords[keyword] = keyword.value
-            else:
-                mapping[keyword] = "args"
+        if should_inline:
+            function_context = self._state_stack.functions[function_name]["context"]
+            function_name_tokens = self._tokenize_method(function_name)
 
-        arg_mapping: dict = {}
-        for index, arg in enumerate(node.args):
-            arg_mapping[self._get_base_name(arg)] = index
+            arg_copy: list = self._state_stack.functions[function_name]["args"]["args"].copy()
+            mapping: dict = {}
+            unprocessable_keywords: list = []
+            for keyword in node.keywords:
+                mapping[self._get_base_name(keyword.value)] = keyword.arg
+                if keyword.arg in arg_copy:
+                    arg_copy.remove(keyword.arg)
+                # dynamically unpacking dictionary arguments
+                elif isinstance(keyword.value, ast.Dict):
+                    for key, value in zip(keyword.value.keys, keyword.value.values):
+                        key_base_name = self._get_base_name(key)
+                        value_base_name = self._get_base_name(value)
+                        if key_base_name in arg_copy:
+                            arg_copy.remove(key_base_name)
+                            mapping[key_base_name] = value_base_name
+                        else:
+                            unprocessable_keywords.append(value_base_name)
+                elif not keyword.arg:
+                    base_name = self._get_base_name(keyword.value)
+                    unprocessable_keywords.append(base_name)
+                elif self._state_stack.functions[function_name]["kwargs"]:
+                    mapping[keyword.arg] = "kwargs"
+                elif keyword.arg is None:
+                    unprocessable_keywords[keyword] = keyword.value
+                else:
+                    mapping[keyword] = "args"
 
-        for keyword in [*list(arg_mapping.keys()), *unprocessable_keywords]:
-            if len(arg_copy) > 0:
-                mapping[keyword] = arg_copy.pop(0)
-            elif self._state_stack.functions[function_name]["kwargs"]:
-                mapping[keyword] = "kwargs"
-            else:
-                mapping[keyword] = "args"
+            arg_mapping: dict = {}
+            for index, arg in enumerate(node.args):
+                arg_mapping[self._get_base_name(arg)] = index
 
-        current_context = self._current_state.context
-        self._state_stack.restore_state(function_context)
-        self._current_state = self._state_stack.get_current_state()
+            for keyword in [*list(arg_mapping.keys()), *unprocessable_keywords]:
+                if len(arg_copy) > 0:
+                    mapping[keyword] = arg_copy.pop(0)
+                elif self._state_stack.functions[function_name]["kwargs"]:
+                    mapping[keyword] = "kwargs"
+                else:
+                    mapping[keyword] = "args"
 
-        for key, value in mapping.items():
-            if key in self._current_state.variable_versions:
-                self._current_state.variable_versions[value] = self._current_state.variable_versions[key]
-                del self._current_state.variable_versions[key]
+            current_context = self._current_state.context
+            self._state_stack.restore_state(function_context)
+            self._current_state = self._state_stack.get_current_state()
 
-        self._state_stack.merge_states(current_context, [(self._current_state, function_name_tokens, EDGE_TYPES["FUNCTION_CALL"])])
-        self._current_state = self._state_stack.get_current_state()
+            for key, value in mapping.items():
+                if key in self._current_state.variable_versions:
+                    self._current_state.variable_versions[value] = self._current_state.variable_versions[key]
+                    del self._current_state.variable_versions[key]
+
+            self._state_stack.merge_states(current_context, [(self._current_state, function_name_tokens, EDGE_TYPES["FUNCTION_CALL"])])
+            self._current_state = self._state_stack.get_current_state()
+        else:
+            function_def_node = self._state_stack.functions[function_name]["node"]
+
+            if self._current_state.current_variable:
+                self._current_state.add_edge(
+                    function_def_node,
+                    self._current_state.current_variable, 
+                    self._tokenize_method(function_name),
+                    EDGE_TYPES["FUNCTION_CALL"], # Using a specific edge type is good practice
+                    node.lineno,
+                    node.col_offset,
+                    node.end_lineno,
+                    node.end_col_offset
+                )
+
+                for arg in node.args:
+                    if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
+                        arg_name = self._get_names(arg)
+                        # Handle nested names like a.b
+                        arg_name = flatten_list(arg_name) if arg_name else None
+                        arg_name = arg_name[0] if isinstance(arg_name, list) else arg_name
+
+                        if arg_name:
+                            arg_version = self._get_last_variable_version(arg_name)
+                            if arg_version:
+                                self._current_state.add_edge(
+                                    arg_version,
+                                    self._current_state.current_variable,
+                                    self._tokenize_method(str(arg_name)),
+                                    EDGE_TYPES["INPUT"],
+                                    node.lineno,
+                                    node.col_offset,
+                                    node.end_lineno,
+                                    node.end_col_offset
+                                )
 
     def _process_library_attr(self, node: ast.Attribute, caller_object_name: str) -> None:
         # Add the import node and connect it
