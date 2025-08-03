@@ -55,7 +55,7 @@ def load_apex_model(config, logger: logging.Logger):
                                  logger, 
                                  min_nodes = 3, 
                                  min_edges = 2, 
-                                 load_encoded_old_if_exist = True,
+                                 load_encoded_old_if_exist = False,
                                  mode = 'REVERSED',
     )
     

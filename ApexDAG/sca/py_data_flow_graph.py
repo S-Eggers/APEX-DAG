@@ -259,7 +259,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         }
         self._state_stack.functions[function_name]["args"] = self._process_arguments(node.args)
         self._current_state.add_node(context_name, NODE_TYPES["FUNCTION"])
-        print(self._current_state.get_graph().nodes)
+        # print(self._current_state.get_graph().nodes)
 
         parent_context = self._current_state.context
         self._state_stack.create_child_state(context_name, parent_context)
@@ -633,9 +633,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             draw.dfg(G, save_path)
             self._current_state.set_graph(G_copy)
         else:
-            print("Drawing full graph")
             G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
-            print("Drawing full graph")
+            #print("Drawing full graph")
             draw.dfg(G, save_path)
 
     def webrender(self, save_path: str = None) -> None:
