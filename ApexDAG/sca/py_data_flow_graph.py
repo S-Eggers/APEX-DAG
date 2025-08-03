@@ -22,7 +22,7 @@ from ApexDAG.sca import (
 
 
 class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
-    def __init__(self, notebook_path: str = "", replace_dataflow: bool = True) -> None:
+    def __init__(self, notebook_path: str = "", replace_dataflow: bool = False) -> None:
         super().__init__()
         self._replace_dataflow = replace_dataflow
         self._logger: Logger = setup_logging(f"py_data_flow_graph {notebook_path}", VERBOSE)
@@ -105,31 +105,38 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_AugAssign(self, node: ast.AugAssign) -> ast.AugAssign:
-        # get operator
-        try:
-            operator =  node.op.__class__.__name__.lower()
-        except AttributeError:
-            code = ast.get_source_segment(self.code, node)
-            self._logger.debug("Could not get operator for %s", code)
-            operator = None
-
         target = node.target
-        base_name = self._get_base_name(target)
-        current_target = self._get_versioned_name(base_name, node.lineno)
-        self._current_state.add_node(current_target, NODE_TYPES["VARIABLE"])
-        self._current_state.add_edge(
-            self._get_last_variable_version(base_name),
-            current_target,
-            operator,
-            EDGE_TYPES["CALLER"],
-            node.lineno,
-            node.col_offset,
-            node.end_lineno,
-            node.end_col_offset
-        )
+        value = node.value
+        operator = node.op.__class__.__name__.lower()
 
-        node.targets = [target]
-        self.visit_Assign(node)
+        target_base_name = self._get_base_name(target)
+        new_target_version = self._get_versioned_name(target_base_name, node.lineno)
+        self._current_state.set_current_variable(new_target_version)
+        self._current_state.add_node(new_target_version, NODE_TYPES["VARIABLE"])
+
+        old_target_version = self._get_last_variable_version(target_base_name)
+        if old_target_version:
+            self._current_state.add_edge(
+                old_target_version, 
+                new_target_version, 
+                operator,
+                EDGE_TYPES["CALLER"],
+                node.lineno,
+                node.col_offset,
+                node.end_lineno,
+                node.end_col_offset
+            )
+
+        self.visit(value)
+
+        # Update variable version tracking
+        if target_base_name not in self._current_state.variable_versions:
+            self._current_state.variable_versions[target_base_name] = []
+        self._current_state.variable_versions[target_base_name].append(new_target_version)
+
+        # Reset state
+        self._current_state.set_current_variable(None)
+        
         return node
     
     def visit_AnnAssign(self, node) -> ast.AnnAssign:
@@ -370,44 +377,27 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
                 
     def visit_Compare(self, node: ast.Compare) -> ast.Compare:
-        left_var, right_var = self._get_lr_values(node.left, node.comparators[0])
         node.left.parent = node
-        node.comparators[0].parent = node
-
         self.visit(node.left)
-        self.visit(node.comparators[0])
+        left_operand = node.left
 
-        # get operator
-        operator = get_operator_description(node)
-        if not operator:
-            code = ast.get_source_segment(self.code, node)
-            self._logger.debug("Could not get operator for %s", code)
+        for i, op in enumerate(node.ops):
+            right_operand = node.comparators[i]
+            right_operand.parent = node
+            self.visit(right_operand)
 
-        if self._current_state.current_variable and operator:
-            if left_var:
-                left_version = self._get_last_variable_version(left_var)
-                self._current_state.add_edge(
-                    left_version,
-                    self._current_state.current_variable,
-                    operator,
-                    EDGE_TYPES["CALLER"],
-                    node.lineno,
-                    node.col_offset,
-                    node.end_lineno,
-                    node.end_col_offset
-                )
-            if right_var:
-                right_version = self._get_last_variable_version(right_var)
-                self._current_state.add_edge(
-                    right_version,
-                    self._current_state.current_variable,
-                    operator,
-                    EDGE_TYPES["CALLER"],
-                    node.lineno,
-                    node.col_offset,
-                    node.end_lineno,
-                    node.end_col_offset
-                )
+            left_var, right_var = self._get_lr_values(left_operand, right_operand)
+            operator = get_operator_description(op)
+
+            if self._current_state.current_variable and operator:
+                if left_var:
+                    left_version = self._get_last_variable_version(left_var)
+                    self._current_state.add_edge(left_version, self._current_state.current_variable, ...)
+                if right_var:
+                    right_version = self._get_last_variable_version(right_var)
+                    self._current_state.add_edge(right_version, self._current_state.current_variable, ...)
+
+            left_operand = right_operand
 
         return node
 
