@@ -35,11 +35,30 @@ const plugin: JupyterFrontEndPlugin<void> = {
     mainMenu: IMainMenu,
     settingRegistry: ISettingRegistry | null
   ) => {
-    const settings = await settingRegistry?.load(plugin.id);
-    const debounceDelay =
-      (settings?.get('debounceDelay').composite as number) || 1000;
-    const replaceDataflowInUDFs =
-      (settings?.get('replaceDataflowInUDFs').composite as boolean) || false;
+    let debounceDelay: number = 1000;
+    let replaceDataflowInUDFs: boolean = false;
+
+    if (settingRegistry) {
+      const settings = await settingRegistry.load(plugin.id);
+
+      const onSettingsChanged = (
+        newSettings: ISettingRegistry.ISettings
+      ): void => {
+        debounceDelay =
+          (newSettings.get('debounceDelay').composite as number) ?? 1000;
+        replaceDataflowInUDFs =
+          (newSettings.get('replaceDataflowInUDFs').composite as boolean) ??
+          false;
+        console.debug('APEX-DAG settings updated:', {
+          debounceDelay,
+          replaceDataflowInUDFs
+        });
+      }; // Load initial settings
+
+      onSettingsChanged(settings); // Listen for future changes
+
+      settings.changed.connect(onSettingsChanged);
+    }
 
     console.debug('JupyterLab extension apex-dag-jupyter is activated!');
     console.debug('ICommandPalette:', palette);

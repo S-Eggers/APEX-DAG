@@ -11,7 +11,6 @@ class LineageHandler(APIHandler):
     def initialize(self, model, jupyter_server_app_config=None):
         self.model = model
         self.jupyter_server_app_config = jupyter_server_app_config
-        self.last_analysis_time = 0
         self.last_analysis_results = {}
 
 
@@ -20,25 +19,16 @@ class LineageHandler(APIHandler):
         input_data = self.get_json_body()
         code = input_data["code"]
         replace_dataflow = input_data["replaceDataflowInUDFs"]
-
-        if time.time() - self.last_analysis_time < 200:
-            result = self.last_analysis_results
-            print("Reusing results")
-            self.finish(json.dumps(result))
-            return
-        self.last_analysis_time = time.time()
-
         dfg = DataFlowGraph(replace_dataflow=replace_dataflow)
         try:
             dfg.parse_code(code)
         except SyntaxError as e:
             print(f"SyntaxError: {e}")
             result = {
-                "message": "Cannot process dataflow!",
+                "message": "Cannot process lineage! Returning last successful result.",
                 "success": False,
-                "dataflow": {}
+                "dataflow": self.last_analysis_results
             }
-
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
@@ -87,10 +77,11 @@ class LineageHandler(APIHandler):
 
                     self.log.info(f"Successfully mapped {len(labels)} predictions to edges in graph {i}.")
 
+            self.last_analysis_results = dfg.to_json()
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
-                "lineage_predictions": dfg.to_json(), # Include mapped predictions
+                "lineage_predictions": self.last_analysis_results, # Include mapped predictions
             }
             self.finish(json.dumps(result))
 
