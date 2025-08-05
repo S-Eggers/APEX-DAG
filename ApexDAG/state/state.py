@@ -3,7 +3,7 @@ from typing import Optional
 from networkx import Graph, MultiDiGraph
 
 from ApexDAG.util.logging import setup_logging
-from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES, VERBOSE
+from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES, VERBOSE, DOMAIN_EDGE_TYPES
 
 
 class State:
@@ -233,6 +233,24 @@ class State:
                 self._G.add_edge(source, target, code=code, key=key, edge_type=edge_type, count=1, **position)
         else:
             self._logger.debug("Ignoring edge %s -> %s with code %s", source, target, code)
+
+    def filter_relevant(self) -> None:
+        nodes_to_remove = set()
+        component_generator = nx.weakly_connected_components(self._G)
+
+        for component in component_generator:
+            has_special_edge = False
+            subgraph = self._G.subgraph(component)
+
+            for _, _, data in subgraph.edges(data=True):
+                if data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]:
+                    has_special_edge = True
+                    break
+
+            if not has_special_edge:
+                nodes_to_remove.update(component)
+        
+        self._G.remove_nodes_from(nodes_to_remove)
 
     def optimize(self) -> None:
         edges_to_remove = []

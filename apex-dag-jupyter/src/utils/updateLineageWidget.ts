@@ -1,12 +1,13 @@
 import { NotebookPanel } from '@jupyterlab/notebook';
-import { ICodeCellModel } from '@jupyterlab/cells';
-
 import { GraphWidget } from '../components/widget/GraphWidget';
 import callBackend from './callBackend';
+import { getNotebookCode } from './getNotebookCode';
 
 const updateWidget = (
   graphWidget: GraphWidget | null,
   replaceDataflowInUDFs: boolean,
+  highlightRelevantSubgraphs: boolean,
+  greedyNotebookExtraction: boolean,
   notebookPanel: NotebookPanel
 ) => {
   if (!graphWidget) {
@@ -14,16 +15,13 @@ const updateWidget = (
   }
   const cells = notebookPanel.content.model?.cells;
   if (cells) {
-    let content: string = '';
-    for (let i = 0; i < cells.length; i++) {
-      const cell = cells.get(i);
-      if (cell.type === 'code') {
-        const codeCell = cell as ICodeCellModel;
-        content += codeCell.toJSON().source + '\n';
-      }
-    }
+    let content = getNotebookCode(cells, greedyNotebookExtraction)
     console.debug('Notebook content\n' + content);
-    callBackend('lineage', { code: content, replaceDataflowInUDFs })
+    callBackend('lineage', {
+      code: content,
+      replaceDataflowInUDFs,
+      highlightRelevantSubgraphs
+    })
       .then(response => {
         console.info('Dataflow received from server:', response);
         if (graphWidget && response.success) {

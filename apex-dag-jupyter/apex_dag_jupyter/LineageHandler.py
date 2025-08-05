@@ -19,6 +19,7 @@ class LineageHandler(APIHandler):
         input_data = self.get_json_body()
         code = input_data["code"]
         replace_dataflow = input_data["replaceDataflowInUDFs"]
+        hightlight_relevant = input_data["highlightRelevantSubgraphs"]
         dfg = DataFlowGraph(replace_dataflow=replace_dataflow)
         try:
             dfg.parse_code(code)
@@ -78,6 +79,9 @@ class LineageHandler(APIHandler):
                 dfg.set_domain_label(attrs_to_set, name="predicted_label")
 
                 self.log.info(f"Successfully mapped {len(labels)} predictions to edges in graph {i}.")
+
+            if hightlight_relevant:
+                dfg.filter_relevant()
 
             self.last_analysis_results = dfg.to_json()
             result = {

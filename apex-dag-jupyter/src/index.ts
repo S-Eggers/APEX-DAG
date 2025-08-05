@@ -35,8 +35,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
     mainMenu: IMainMenu,
     settingRegistry: ISettingRegistry | null
   ) => {
-    let debounceDelay: number = 1000;
+    let debounceDelay: number = -1;
     let replaceDataflowInUDFs: boolean = false;
+    let highlightRelevantSubgraphs: boolean = false;
+    let greedyNotebookExtraction: boolean = true;
 
     if (settingRegistry) {
       const settings = await settingRegistry.load(plugin.id);
@@ -49,9 +51,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         replaceDataflowInUDFs =
           (newSettings.get('replaceDataflowInUDFs').composite as boolean) ??
           false;
+        highlightRelevantSubgraphs =
+          (newSettings.get('highlightRelevantSubgraphs')
+            .composite as boolean) ?? false;
+        greedyNotebookExtraction =
+          (newSettings.get('greedyNotebookExtraction').composite as boolean) ??
+          true;
         console.debug('APEX-DAG settings updated:', {
           debounceDelay,
-          replaceDataflowInUDFs
+          replaceDataflowInUDFs,
+          highlightRelevantSubgraphs
         });
       }; // Load initial settings
 
@@ -140,10 +149,12 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         console.debug('Initial call to updateWidget on notebook open');
-        updateWidget(dataflowGraphWidget, replaceDataflowInUDFs, notebookPanel);
+        updateWidget(dataflowGraphWidget, replaceDataflowInUDFs, greedyNotebookExtraction, notebookPanel);
         updateLineageWidget(
           lineageGraphWidget,
           replaceDataflowInUDFs,
+          highlightRelevantSubgraphs,
+          greedyNotebookExtraction,
           notebookPanel
         );
 
@@ -152,6 +163,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           updateWidget(
             dataflowGraphWidget,
             replaceDataflowInUDFs,
+            greedyNotebookExtraction,
             notebookPanel
           );
 
@@ -165,6 +177,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
               updateLineageWidget(
                 lineageGraphWidget,
                 replaceDataflowInUDFs,
+                highlightRelevantSubgraphs,
+                greedyNotebookExtraction,
                 notebookPanel
               );
             }, debounceDelay);
@@ -177,6 +191,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
               updateLineageWidget(
                 lineageGraphWidget,
                 replaceDataflowInUDFs,
+                highlightRelevantSubgraphs,
+                greedyNotebookExtraction,
                 notebookPanel
               );
             }

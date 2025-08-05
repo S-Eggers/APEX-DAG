@@ -8,7 +8,7 @@
       "title": "Debounce Delay (ms)",
       "description": "The time to wait in milliseconds after a user stops typing before updating the lineage widget. Requires a page reload to take effect.",
       "type": "number",
-      "default": 500,
+      "default": -1,
       "minimum": -1
     },
     "replaceDataflowInUDFs": {
@@ -16,6 +16,18 @@
       "description": "Replace user-defined function (UDF) calls with actual dataflow and connect with return value of function call. ",
       "type": "boolean",
       "default": false
+    },
+    "highlightRelevantSubgraphs": {
+      "title": "Highlight Relevant Subgraphs",
+      "description": "Highlight relevant subgraphs and remove non-data paths.",
+      "type": "boolean",
+      "default": false
+    },
+    "greedyNotebookExtraction": {
+      "title": "Greedy Notebook Extraction",
+      "description": "Extract all the code from top to bottom and ignore cell execution order (if turned false, code gets ordered by execution number and ignored if no execution at all)",
+      "type": "boolean",
+      "default": true
     }
   },
   "additionalProperties": false

@@ -661,6 +661,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def optimize(self) -> None:
         self._current_state.optimize()
 
+    def filter_relevant(self) -> None:
+        self._current_state.filter_relevant()
+
     def get_graph(self) -> nx.Graph:
         return self._current_state.get_graph()
 
