@@ -193,3 +193,7 @@ temp/*
 .ipynb_checkpoints/*
 
 *.ipynb
+
+demo/data/reparyx/*
+demo/customer_clean.json
+demo/old_notebooks/*

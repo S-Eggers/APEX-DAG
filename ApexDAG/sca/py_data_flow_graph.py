@@ -1057,6 +1057,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             # no error, however, we dont want to process them (probably within Expr aka having a look into the variable context)
             case (ast.BinOp() | ast.Compare() | ast.BoolOp() | ast.UnaryOp() | ast.IfExp() | ast.JoinedStr() | ast.Constant()):
                 return None
+            case ast.Dict() | ast.Set() | ast.List() | ast.Tuple():
+                return [node.__class__.__name__]
             case _:
                 code = ast.get_source_segment(self.code, node)
                 self._logger.error("Could not get names for %s", code)
