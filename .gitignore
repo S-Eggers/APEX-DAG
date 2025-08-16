@@ -197,3 +197,7 @@ temp/*
 demo/data/reparyx/*
 demo/customer_clean.json
 demo/old_notebooks/*
+
+web_path.json
+test_path.dot
+test_path.png
