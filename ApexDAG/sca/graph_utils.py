@@ -1,7 +1,5 @@
 import os
 import sys
-print(f"graph_utils.py: sys.path = {sys.path}")
-print(f"graph_utils.py: sys.executable = {sys.executable}")
 import networkx as nx
 from ApexDAG.util.draw import Draw
 from ApexDAG.util.logging import setup_logging

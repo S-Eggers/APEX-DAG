@@ -236,20 +236,29 @@ class State:
 
     def filter_relevant(self) -> None:
         nodes_to_remove = set()
-        component_generator = nx.weakly_connected_components(self._G)
 
-        for component in component_generator:
-            has_special_edge = False
-            subgraph = self._G.subgraph(component)
+        # filter irrelevant dataflow 
+        for node in self.node_iterator():
+            if self._G.out_degree(node) == 0 \
+                and self._G.in_degree(node) == 1 \
+                and self._G.nodes[next(iter(self._G.predecessors(node)))]["node_type"] == NODE_TYPES["IMPORT"]:
+                nodes_to_remove.add(node)
 
-            for _, _, data in subgraph.edges(data=True):
-                if data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]:
-                    has_special_edge = True
-                    break
+        # filter non-data parts of the pipeline
+        if any("predicted_label" in data for _, _, data in self._G.edges(data=True)):
+            component_generator = nx.weakly_connected_components(self._G)
+            for component in component_generator:
+                has_special_edge = False
+                subgraph = self._G.subgraph(component)
 
-            if not has_special_edge:
-                nodes_to_remove.update(component)
-        
+                for _, _, data in subgraph.edges(data=True):
+                    if data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]:
+                        has_special_edge = True
+                        break
+
+                if not has_special_edge:
+                    nodes_to_remove.update(component)
+
         self._G.remove_nodes_from(nodes_to_remove)
 
     def optimize(self) -> None:

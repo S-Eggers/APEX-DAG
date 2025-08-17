@@ -130,7 +130,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self.visit(value)
         self._current_state.set_current_variable(original_current_var)
 
-
         # Update variable version tracking
         if target_base_name not in self._current_state.variable_versions:
             self._current_state.variable_versions[target_base_name] = []

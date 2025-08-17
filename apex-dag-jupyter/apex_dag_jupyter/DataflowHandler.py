@@ -17,6 +17,7 @@ class DataflowHandler(APIHandler):
         input_data = self.get_json_body()
         code = input_data["code"]
         replace_dataflow = input_data["replaceDataflowInUDFs"]
+        hightlight_relevant = input_data["highlightRelevantSubgraphs"]
         dfg = DataFlowGraph(replace_dataflow=replace_dataflow)
         try:
             dfg.parse_code(code)
@@ -30,6 +31,7 @@ class DataflowHandler(APIHandler):
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
+            dfg.filter_relevant()
             graph_json = dfg.to_json()
             self.last_analysis_results = graph_json
             result = {

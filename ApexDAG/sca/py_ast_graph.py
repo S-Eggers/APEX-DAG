@@ -1,7 +1,5 @@
 import ast
 import sys
-print(f"py_ast_graph.py: sys.path = {sys.path}")
-print(f"py_ast_graph.py: sys.executable = {sys.executable}")
 from typing import List
 from ApexDAG.notebook import Notebook
 

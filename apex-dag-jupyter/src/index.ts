@@ -149,7 +149,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
         }
 
         console.debug('Initial call to updateWidget on notebook open');
-        updateWidget(dataflowGraphWidget, replaceDataflowInUDFs, greedyNotebookExtraction, notebookPanel);
+        updateWidget(
+          dataflowGraphWidget,
+          replaceDataflowInUDFs,
+          greedyNotebookExtraction,
+          highlightRelevantSubgraphs,
+          notebookPanel
+        );
         updateLineageWidget(
           lineageGraphWidget,
           replaceDataflowInUDFs,
@@ -164,6 +170,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
             dataflowGraphWidget,
             replaceDataflowInUDFs,
             greedyNotebookExtraction,
+            highlightRelevantSubgraphs,
             notebookPanel
           );
 

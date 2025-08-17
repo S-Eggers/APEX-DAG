@@ -8,6 +8,7 @@ const updateWidget = (
   graphWidget: GraphWidget | null,
   replaceDataflowInUDFs: boolean,
   greedyNotebookExtraction: boolean,
+  highlightRelevantSubgraphs: boolean,
   notebookPanel: NotebookPanel
 ) => {
   if (!graphWidget) {
@@ -15,9 +16,13 @@ const updateWidget = (
   }
   const cells = notebookPanel.content.model?.cells;
   if (cells) {
-    let content = getNotebookCode(cells, greedyNotebookExtraction)
+    let content = getNotebookCode(cells, greedyNotebookExtraction);
     console.debug('Notebook content\n' + content);
-    callBackend('dataflow', { code: content, replaceDataflowInUDFs })
+    callBackend('dataflow', {
+      code: content,
+      replaceDataflowInUDFs,
+      highlightRelevantSubgraphs
+    })
       .then(response => {
         console.info('Dataflow received from server:', response);
         if (graphWidget && response.success) {
