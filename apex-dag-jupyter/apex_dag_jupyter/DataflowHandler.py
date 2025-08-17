@@ -30,8 +30,9 @@ class DataflowHandler(APIHandler):
             }
             self.finish(json.dumps(result))
         else:
+            if hightlight_relevant:
+                dfg.filter_relevant()
             dfg.optimize()
-            dfg.filter_relevant()
             graph_json = dfg.to_json()
             self.last_analysis_results = graph_json
             result = {

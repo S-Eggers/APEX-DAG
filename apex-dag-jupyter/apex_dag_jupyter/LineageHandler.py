@@ -82,6 +82,7 @@ class LineageHandler(APIHandler):
 
             if hightlight_relevant:
                 dfg.filter_relevant()
+            dfg.optimize()
 
             self.last_analysis_results = dfg.to_json()
             result = {
