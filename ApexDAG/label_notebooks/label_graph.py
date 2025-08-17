@@ -206,9 +206,9 @@ class GraphLabeler:
             )
 
         start_time = time.time()
-        retry_attempts = 1
-        retry_delay = 1
-        success_delay = 1
+        retry_attempts = self.config.retry_attempts
+        retry_delay = self.config.retry_delay
+        success_delay = self.config.success_delay
         allow_all_code = True
         resp = None
 
@@ -370,7 +370,7 @@ X_train, X_test, y_train, y_test = train_test_split(df.drop('target', axis=1), d
     with open(demo_code_path, "w") as f:
         f.write(code)
 
-    config = Config("gemini-2.5-flash", 2, 2, llm_provider="google")
+    config = Config("gemini-2.5-flash", 0, 4, llm_provider="google", retry_attempts=2, retry_delay=0, success_delay=0)
     labeler = GraphLabeler(config, demo_graph_path, demo_code_path)
     G, G_with_context = labeler.label_graph()
 
