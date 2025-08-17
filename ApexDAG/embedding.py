@@ -31,11 +31,12 @@ class EmbeddingType(Enum):
 
 
 class Embedding:
-    def __init__(self, type: EmbeddingType, logger: Logger):
+    def __init__(self, type: EmbeddingType, logger: Logger, max_output_dim=768):
         self.type = type
         self.logger = logger
         self._model = None
         self._embedding_model_name = ""
+        self._max_output_dim = max_output_dim
         self._initialize_model()
 
     def _initialize_model(self):
@@ -89,10 +90,10 @@ class Embedding:
             case EmbeddingType.FASTTEXT:
                 return self._get_sentence_vector_fast_text(sequence)
             case EmbeddingType.GEMINI_STANDARD:
-                config = types.EmbedContentConfig(task_type="CLASSIFICATION")
+                config = types.EmbedContentConfig(task_type="CLASSIFICATION", output_dimensionality=self._max_output_dim)
                 return self._get_sentence_vector_gemini(sequence, config)
             case EmbeddingType.GEMINI_CODE:
-                config = types.EmbedContentConfig(task_type="RETRIEVAL_QUERY")
+                config = types.EmbedContentConfig(task_type="RETRIEVAL_QUERY", output_dimensionality=self._max_output_dim)
                 return self._get_sentence_vector_gemini(sequence, config)
             case _:
                 raise NotImplementedError(f"Embedding type {self.type} not implemented")
