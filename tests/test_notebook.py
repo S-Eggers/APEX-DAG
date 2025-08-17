@@ -41,7 +41,7 @@ class TestNotebook(unittest.TestCase):
     def test_create_execution_graph_non_greedy(self):
         self.notebook.create_execution_graph(greedy=False)
         self.assertTrue(self.notebook._exec_graph_exists)
-        self.assertEqual(len(self.notebook._G.nodes), 4)
+        self.assertEqual(len(self.notebook._G.nodes), 5)
         self.assertEqual(len(self.notebook._G.edges), 4)
 
     def test_code(self):

@@ -1,4 +1,7 @@
 import os
+import sys
+print(f"graph_utils.py: sys.path = {sys.path}")
+print(f"graph_utils.py: sys.executable = {sys.executable}")
 import networkx as nx
 from ApexDAG.util.draw import Draw
 from ApexDAG.util.logging import setup_logging
@@ -117,16 +120,16 @@ def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_t
     modified_nodes = {node for node in set(G.nodes).intersection(set(prev_G.nodes)) if G.nodes[node]["node_type"] != prev_G.nodes[node]["node_type"]}
     
     # Highlight changes in the previous graph
-    for u, v, key in added_edges:
-        prev_G.add_edge(u, v, key, edge_type=-1, code=f"added -> {G[u][v][key]['code']}")
+    for u, v in added_edges:
+        prev_G.add_edge(u, v, edge_type=-1, code=f"added -> {G[u][v]['code']}")
     
-    for u, v, key in modified_edges:
-        prev_G[u][v][key]['edge_type'] = -2
-        prev_G[u][v][key]['code'] = f"modified -> {G[u][v][key]['code']}"
+    for u, v in modified_edges:
+        prev_G[u][v]['edge_type'] = -2
+        prev_G[u][v]['code'] = f"modified -> {G[u][v]['code']}"
     
-    for u, v, key in removed_edges:
-        prev_G[u][v][key]['edge_type'] = -3
-        prev_G[u][v][key]['code'] = f"deleted -> {prev_G[u][v][key]['code']}"
+    for u, v in removed_edges:
+        prev_G[u][v]['edge_type'] = -3
+        prev_G[u][v]['code'] = f"deleted -> {prev_G[u][v]['code']}"
     
     for node in added_nodes:
         prev_G.add_node(node, label=G.nodes[node]['label'], node_type=-1)
@@ -137,17 +140,17 @@ def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_t
     for node in removed_nodes:
         prev_G.nodes[node]['node_type'] = -3
 
-    logger.debug(f"Added edges: {added_edges}")
-    logger.debug(f"Removed edges: {removed_edges}")
-    logger.debug(f"Modified edges: {modified_edges}")
-    logger.debug(f"Added nodes: {added_nodes}")
-    logger.debug(f"Removed nodes: {removed_nodes}")
-    logger.debug(f"Modified nodes: {modified_nodes}")
-
     if save_prev: 
         logger.debug("Saving debug graph")
         Draw(node_types, edge_types).dfg(prev_G, "debug_graph")
         save_graph(G, new_graph_path)    
+
+    logger.debug(f"Added edges: {sorted(list(added_edges))}")
+    logger.debug(f"Removed edges: {sorted(list(removed_edges))}")
+    logger.debug(f"Modified edges: {sorted(list(modified_edges))}")
+    logger.debug(f"Added nodes: {sorted(list(added_nodes))}")
+    logger.debug(f"Removed nodes: {sorted(list(removed_nodes))}")
+    logger.debug(f"Modified nodes: {sorted(list(modified_nodes))}")    
 
 def save_graph(G: nx.DiGraph, path: str) -> None:
     nx.write_gml(G, os.path.join(os.getcwd(), path))

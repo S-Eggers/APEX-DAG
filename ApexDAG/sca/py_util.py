@@ -3,7 +3,13 @@ from typing import Optional
 
 def get_operator_description(node: ast.AST) -> Optional[str]:
     try:
-        operator =  node.ops[0].__class__.__name__.lower()
+        if isinstance(node, ast.Compare):
+            operator = node.ops[0].__class__.__name__.lower()
+        elif isinstance(node, ast.BoolOp):
+            operator = node.op.__class__.__name__.lower()
+        else:
+            return None # Or raise an error, depending on desired behavior for unhandled types
+
         operator_translation = {
             "eq": "equal",
             "not_eq": "not equal",
@@ -23,27 +29,17 @@ def get_operator_description(node: ast.AST) -> Optional[str]:
             "or": "or"
         }
         operator = operator_translation[operator]
-        
-    except AttributeError:
+
+    except (AttributeError, KeyError):
         operator = None
-        
+
     return operator
 
 def flatten_list(input_list):
     result = []
-    
-    def process_element(element):
-        if isinstance(element, list):
-            if len(element) == 1: 
-                # Melt down single-element lists
-                process_element(element[0])
-            else:  
-                # Preserve lists with more than one element
-                result.append([process_element(e) for e in element])
-        else:
-            result.append(element)
-
     for item in input_list:
-        process_element(item)
-    
+        if isinstance(item, list):
+            result.extend(flatten_list(item))
+        else:
+            result.append(item)
     return result

@@ -16,7 +16,9 @@ class TestEncoder(unittest.TestCase):
         graph = nx.MultiDiGraph()
         graph.add_node(0, label="a_var", node_type=1)
         graph.add_node(1, label="b_var", node_type=2)
+        graph.add_node(2, label="c_var", node_type=3)
         graph.add_edge(0, 1, code="a = b", edge_type="assignment")
+        graph.add_edge(1, 2, code="b = c", edge_type="assignment")
         return graph
 
     def test_init(self):
@@ -71,8 +73,8 @@ class TestEncoder(unittest.TestCase):
         node_features, node_types = self.encoder._extract_node_features(graph)
 
         self.assertIsInstance(node_features, torch.Tensor)
-        self.assertEqual(node_features.shape, (2, 300))
-        self.assertEqual(node_types, [1, 2])
+        self.assertEqual(node_features.shape, (3, 300))
+        self.assertEqual(node_types, [1, 2, 3])
 
     @patch('ApexDAG.encoder.Embedding')
     def test_extract_edge_features(self, mock_embedding):
@@ -81,7 +83,7 @@ class TestEncoder(unittest.TestCase):
         edge_features, edge_types, edge_existence = self.encoder._extract_edge_features(graph, [], "edge_type")
 
         self.assertIsInstance(edge_features, torch.Tensor)
-        self.assertEqual(edge_features.shape, (1, 300))
+        self.assertEqual(edge_features.shape, (2, 300))
         self.assertIsInstance(edge_types, torch.Tensor)
         self.assertIsInstance(edge_existence, torch.Tensor)
 

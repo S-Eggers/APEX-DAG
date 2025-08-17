@@ -7,7 +7,7 @@ class TestStack(unittest.TestCase):
 
     def setUp(self):
         self.mock_logger = MagicMock()
-        patcher = patch('ApexDAG.util.logging.setup_logging', return_value=self.mock_logger)
+        patcher = patch('ApexDAG.state.stack.setup_logging', return_value=self.mock_logger)
         self.mock_setup_logging = patcher.start()
         self.addCleanup(patcher.stop)
 

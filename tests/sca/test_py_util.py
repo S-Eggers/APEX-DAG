@@ -25,13 +25,11 @@ class TestPyUtil(unittest.TestCase):
         self.assertIsNone(get_operator_description(node))
 
     def test_get_operator_description_unsupported_operator(self):
-        # This will raise a KeyError with the current implementation.
-        # If the function should handle this gracefully, the implementation needs to be changed.
+        # The function now handles unsupported operators gracefully by returning None.
         class CustomOp(ast.AST):
             _fields = ()
         node = ast.Compare(left=ast.Name(id='a', ctx=ast.Load()), ops=[CustomOp()], comparators=[ast.Constant(value=1)])
-        with self.assertRaises(KeyError):
-            get_operator_description(node)
+        self.assertIsNone(get_operator_description(node))
 
     def test_flatten_list_simple(self):
         self.assertEqual(flatten_list([1, 2, 3]), [1, 2, 3])
@@ -40,10 +38,10 @@ class TestPyUtil(unittest.TestCase):
         self.assertEqual(flatten_list([1, [2], 3]), [1, 2, 3])
 
     def test_flatten_list_nested_multi_element(self):
-        self.assertEqual(flatten_list([1, [2, 3], 4]), [1, [2, 3], 4])
+        self.assertEqual(flatten_list([1, [2, 3], 4]), [1, 2, 3, 4])
 
     def test_flatten_list_mixed_nesting(self):
-        self.assertEqual(flatten_list([1, [2, [3]], 4, [5, 6]]), [1, 2, 3, 4, [5, 6]])
+        self.assertEqual(flatten_list([1, [2, [3]], 4, [5, 6]]), [1, 2, 3, 4, 5, 6])
 
     def test_flatten_list_empty(self):
         self.assertEqual(flatten_list([]), [])

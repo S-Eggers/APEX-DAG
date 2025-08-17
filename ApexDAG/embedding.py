@@ -27,11 +27,11 @@ class Embedding:
                 self._model = client = genai.Client()
                 self._embedding_model = "gemini-embedding-001"
             case EmbeddingType.GRAPHCODEBERT:
-                pass
+                self._model = None
             case EmbeddingType.CODEBERT:
-                pass
+                self._model = None
             case _:
-                pass
+                self._model = None
     
     def _get_sentence_vector_fast_text(self, sequence: str) -> torch.Tensor:
         return torch.tensor(self._model.get_sentence_vector(sequence), dtype=torch.float32)

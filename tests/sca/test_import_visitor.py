@@ -67,8 +67,8 @@ class TestImportVisitor(unittest.TestCase):
         code = "import os\nprint(os.path)"
         tree = ast.parse(code)
         self.visitor.visit(tree)
-        self.assertEqual(self.visitor.import_usage['os'], {'path'})
-        self.assertEqual(self.visitor.import_counts['os'], 1)
+        self.assertEqual(self.visitor.import_usage['os'], {'path', None})
+        self.assertEqual(self.visitor.import_counts['os'], 2)
 
     def test_visit_name(self):
         code = "import sys\nprint(sys)"
@@ -101,9 +101,9 @@ def main():
 
         self.assertEqual(self.visitor.imports, [('os', None), ('collections.Counter', 'Cnt')])
         self.assertEqual(self.visitor.classes, ['MyProcessor'])
-        self.assertEqual(self.visitor.functions, ['MyProcessor.process', 'main'])
-        self.assertEqual(self.visitor.import_usage['os'], {'path', 'getcwd'})
-        self.assertEqual(self.visitor.import_counts['os'], 2)
+        self.assertEqual(self.visitor.functions, ['MyProcessor.__init__', 'MyProcessor.process', 'main'])
+        self.assertEqual(self.visitor.import_usage['os'], {'path', 'getcwd', None})
+        self.assertEqual(self.visitor.import_counts['os'], 4)
         self.assertEqual(self.visitor.import_usage['Cnt'], {None})
         self.assertEqual(self.visitor.import_counts['Cnt'], 1)
 

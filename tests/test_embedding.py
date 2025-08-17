@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 import torch
+from google.genai import types
 from ApexDAG.embedding import Embedding, EmbeddingType
 
 class TestEmbedding(unittest.TestCase):
@@ -23,16 +24,17 @@ class TestEmbedding(unittest.TestCase):
         mock_load_model.assert_called_once_with("cc.en.300.bin")
         self.assertEqual(embedding._embedding_model, "cc.en.300.bin")
 
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_gemini_init(self, mock_genai_client):
         mock_client_instance = MagicMock()
         mock_genai_client.return_value = mock_client_instance
-        
+        # No need to mock embed_content here, as it's mocked in the individual embed tests
+
         embedding_standard = Embedding(EmbeddingType.GEMINI_STANDARD, self.mock_logger)
-        self.assertEqual(embedding_standard._embedding_model, "models/embedding-001")
+        self.assertEqual(embedding_standard._embedding_model, "gemini-embedding-001")
 
         embedding_code = Embedding(EmbeddingType.GEMINI_CODE, self.mock_logger)
-        self.assertEqual(embedding_code._embedding_model, "models/embedding-001")
+        self.assertEqual(embedding_code._embedding_model, "gemini-embedding-001")
 
     def test_unimplemented_embedding_type_init(self):
         embedding = Embedding(EmbeddingType.GRAPHCODEBERT, self.mock_logger)
@@ -51,29 +53,29 @@ class TestEmbedding(unittest.TestCase):
         self.assertIsInstance(result, torch.Tensor)
         self.assertTrue(torch.equal(result, torch.tensor([0.1, 0.2, 0.3], dtype=torch.float32)))
 
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_embed_gemini_standard(self, mock_genai_client):
         mock_model = MagicMock()
-        mock_model.embed_content.return_value = MagicMock(embedding=[0.4, 0.5, 0.6])
         mock_genai_client.return_value = mock_model
+        mock_model.models.embed_content.return_value = MagicMock(embeddings=[0.4, 0.5, 0.6]) # Note: 'embeddings' not 'embedding'
 
         embedding = Embedding(EmbeddingType.GEMINI_STANDARD, self.mock_logger)
         result = embedding.embed("test sequence")
 
-        mock_model.embed_content.assert_called_once_with(content="test sequence")
+        mock_model.models.embed_content.assert_called_once_with(model="gemini-embedding-001", contents="test sequence", config=types.EmbedContentConfig(task_type="CLASSIFICATION"))
         self.assertIsInstance(result, torch.Tensor)
         self.assertTrue(torch.equal(result, torch.tensor([0.4, 0.5, 0.6], dtype=torch.float32)))
 
-    @patch('google.generativeai.GenerativeModel')
+    @patch('google.genai.Client')
     def test_embed_gemini_code(self, mock_genai_client):
         mock_model = MagicMock()
-        mock_model.embed_content.return_value = MagicMock(embedding=[0.7, 0.8, 0.9])
         mock_genai_client.return_value = mock_model
+        mock_model.models.embed_content.return_value = MagicMock(embeddings=[0.7, 0.8, 0.9]) # Note: 'embeddings' not 'embedding'
 
         embedding = Embedding(EmbeddingType.GEMINI_CODE, self.mock_logger)
         result = embedding.embed("test sequence")
 
-        mock_model.embed_content.assert_called_once_with(content="test sequence")
+        mock_model.models.embed_content.assert_called_once_with(model="gemini-embedding-001", contents="test sequence", config=types.EmbedContentConfig(task_type="CODE_RETRIEVAL_QUERY"))
         self.assertIsInstance(result, torch.Tensor)
         self.assertTrue(torch.equal(result, torch.tensor([0.7, 0.8, 0.9], dtype=torch.float32)))
 

@@ -51,7 +51,7 @@ class Draw:
         return json.dumps({"elements": elements})
 
     def dfg(self, G: nx.DiGraph, save_path: str=None):  
-        file_name = os.path.basename(save_path) if save_path else "data_flow_graph"
+        file_name = os.path.splitext(os.path.basename(save_path))[0] if save_path else "data_flow_graph"
         
         directory_name = os.path.dirname(save_path) if save_path else "output"
         directory = os.path.join(os.getcwd(), directory_name)
@@ -185,7 +185,7 @@ class Draw:
             
         
     def labelled_dfg(self, G: nx.DiGraph, save_path: str = None):  
-        file_name = os.path.basename(save_path) if save_path else "data_flow_graph"
+        file_name = os.path.splitext(os.path.basename(save_path))[0] if save_path else "data_flow_graph"
         directory_name = os.path.dirname(save_path) if save_path else "output"
         directory = os.path.join(os.getcwd(), directory_name)
         
@@ -232,8 +232,8 @@ class Draw:
 
 
     def ast(self, G: nx.DiGraph, t2t_paths: list[list[int]]):
-        if not os.path.exists("output"):
-            os.makedirs(os.getcwd(), "output", exist_ok=True)
+        if not os.path.exists(os.path.join(os.getcwd(), "output")):
+            os.makedirs(os.path.join(os.getcwd(), "output"), exist_ok=True)
 
         G = G.copy()
         plt.figure(figsize=(128, 32))
@@ -246,7 +246,8 @@ class Draw:
 
         node_labels = {}
         for key, label in labels.items():
-            node_labels[key] = f"{label}\n{code[key]}"
+            node_code = code.get(key, "")
+            node_labels[key] = f"{label}\n{node_code}"
         
         edge_colors = []
         edge_to_index = {}
