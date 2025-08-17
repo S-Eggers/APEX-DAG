@@ -13,8 +13,8 @@ class State:
         self.variable_versions: dict = {}
         self.imported_names: dict = {}
         self.import_from_modules: dict = {}
-        self.classes:dict = {}
-        self.functions:dict = {}
+        self.classes: dict = {}
+        self.functions: dict = {}
         self.current_target: str = None
         self.current_variable: str = None
         self.last_variable: str = None
@@ -95,7 +95,9 @@ class State:
         self.last_variable = value
 
     def merge(self, *args: tuple):
-        new_variable_versions = {key: value[:] for key, value in self.variable_versions.items()}
+        new_variable_versions = {
+            key: value[:] for key, value in self.variable_versions.items()
+        }
         branched_variables = {}
         looped_variables = {}
 
@@ -156,16 +158,12 @@ class State:
     def node_iterator(self):
         for node in self._G.nodes:
             yield node
-     
+
     def adjacent_node_iterator(self, node_identifier: str):
         for node in self._G[node_identifier]:
             yield node
 
-    def add_node(
-        self,
-        node: str,
-        node_type: int
-     ):
+    def add_node(self, node: str, node_type: int):
         if node not in self._G:
             self._G.add_node(node, label=node, node_type=node_type)
         else:
@@ -185,7 +183,7 @@ class State:
         for node in self._G.successors(node_identifier):
             yield node
 
-    def has_edge(self, source: str, target: str, key: Optional[str]=None) -> bool:
+    def has_edge(self, source: str, target: str, key: Optional[str] = None) -> bool:
         if key:
             return self._G.has_edge(source, target, key=key)
         else:
@@ -212,10 +210,10 @@ class State:
         target: str,
         code: str,
         edge_type: int,
-        lineno: int=-1,
-        col_offset: int=-1,
-        end_lineno: int=-1,
-        end_col_offset: int=-1
+        lineno: int = -1,
+        col_offset: int = -1,
+        end_lineno: int = -1,
+        end_col_offset: int = -1,
     ):
         if source and target and source != target and len(code) > 0:
             key = f"{source}_{target}_{code}"
@@ -230,18 +228,31 @@ class State:
                     "end_lineno": end_lineno,
                     "end_col_offset": end_col_offset,
                 }
-                self._G.add_edge(source, target, code=code, key=key, edge_type=edge_type, count=1, **position)
+                self._G.add_edge(
+                    source,
+                    target,
+                    code=code,
+                    key=key,
+                    edge_type=edge_type,
+                    count=1,
+                    **position,
+                )
         else:
-            self._logger.debug("Ignoring edge %s -> %s with code %s", source, target, code)
+            self._logger.debug(
+                "Ignoring edge %s -> %s with code %s", source, target, code
+            )
 
     def filter_relevant(self) -> None:
         nodes_to_remove = set()
 
-        # filter irrelevant dataflow 
+        # filter irrelevant dataflow
         for node in self.node_iterator():
-            if self._G.out_degree(node) == 0 \
-                and self._G.in_degree(node) == 1 \
-                and self._G.nodes[next(iter(self._G.predecessors(node)))]["node_type"] == NODE_TYPES["IMPORT"]:
+            if (
+                self._G.out_degree(node) == 0
+                and self._G.in_degree(node) == 1
+                and self._G.nodes[next(iter(self._G.predecessors(node)))]["node_type"]
+                == NODE_TYPES["IMPORT"]
+            ):
                 nodes_to_remove.add(node)
 
         # filter non-data parts of the pipeline
@@ -252,7 +263,10 @@ class State:
                 subgraph = self._G.subgraph(component)
 
                 for _, _, data in subgraph.edges(data=True):
-                    if data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]:
+                    if (
+                        data.get("predicted_label")
+                        == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]
+                    ):
                         has_special_edge = True
                         break
 
@@ -276,13 +290,23 @@ class State:
             # reconnect and remove end_if nodes
             if node_type_x == NODE_TYPES["IF"]:
                 optimize = True
-                new_edges = []        
+                new_edges = []
                 for next_node in self.successor_node_iterator(node_x):
-                    for prev_node in self.predecessor_node_iterator(node_x):                       
+                    for prev_node in self.predecessor_node_iterator(node_x):
                         for _, attributes in self.get_edge_iterator(node_x, next_node):
-                            if attributes["edge_type"] in [EDGE_TYPES["LOOP"], EDGE_TYPES["BRANCH"]]:
+                            if attributes["edge_type"] in [
+                                EDGE_TYPES["LOOP"],
+                                EDGE_TYPES["BRANCH"],
+                            ]:
                                 optimize = False
-                            new_edges.append((prev_node, next_node, attributes["code"], attributes["edge_type"]))
+                            new_edges.append(
+                                (
+                                    prev_node,
+                                    next_node,
+                                    attributes["code"],
+                                    attributes["edge_type"],
+                                )
+                            )
                 # we need the intermediate node for branches that follow directly after that node
                 if optimize:
                     nodes_to_remove.append(node_x)
@@ -295,8 +319,16 @@ class State:
 
                 if len(edges_between_nodes) > 1:
                     for key, edge_data in edges_between_nodes:
-                        if (edge_data["code"] in node_x.lower() or edge_data["code"].replace(" ", "_") in node_x.lower()) and edge_data["edge_type"] == EDGE_TYPES["INPUT"]:
-                            self._logger.debug("Removing edge %s -> %s with code %s as it is redundant", node_x, node_y, edge_data['code'])
+                        if (
+                            edge_data["code"] in node_x.lower()
+                            or edge_data["code"].replace(" ", "_") in node_x.lower()
+                        ) and edge_data["edge_type"] == EDGE_TYPES["INPUT"]:
+                            self._logger.debug(
+                                "Removing edge %s -> %s with code %s as it is redundant",
+                                node_x,
+                                node_y,
+                                edge_data["code"],
+                            )
                             edges_to_remove.append((node_x, node_y, key))
         # remove nodes and edges
         for node in nodes_to_remove:
@@ -306,5 +338,5 @@ class State:
             self.remove_edge(node_x, node_y, key)
 
         # add new edges
-        for node_x, node_y, code, edge_type in edges_to_add:           
+        for node_x, node_y, code, edge_type in edges_to_add:
             self.add_edge(node_x, node_y, code, edge_type)

@@ -1,5 +1,4 @@
 import json
-import time
 import torch
 import tornado
 from jupyter_server.base.handlers import APIHandler
@@ -12,7 +11,6 @@ class LineageHandler(APIHandler):
         self.model = model
         self.jupyter_server_app_config = jupyter_server_app_config
         self.last_analysis_results = {}
-
 
     @tornado.web.authenticated
     def post(self):
@@ -28,13 +26,17 @@ class LineageHandler(APIHandler):
             result = {
                 "message": "Cannot process lineage! Returning last successful result.",
                 "success": False,
-                "dataflow": self.last_analysis_results
+                "dataflow": self.last_analysis_results,
             }
             self.finish(json.dumps(result))
         else:
             dfg.optimize()
-            self.log.info(f"Optimized DFG graph has {len(dfg.get_graph().nodes)} nodes and {len(dfg.get_graph().edges)} edges.")
-            encoded_graphs = self.model["encoder"].encode_graphs([dfg.get_graph()], feature_to_encode="domain_label")
+            self.log.info(
+                f"Optimized DFG graph has {len(dfg.get_graph().nodes)} nodes and {len(dfg.get_graph().edges)} edges."
+            )
+            encoded_graphs = self.model["encoder"].encode_graphs(
+                [dfg.get_graph()], feature_to_encode="domain_label"
+            )
             edge_predictions_for_response = []
 
             with torch.no_grad():
@@ -56,19 +58,29 @@ class LineageHandler(APIHandler):
                     return
 
                 # Apply probability model / heuristics
-                prob_model_start = torch.tensor([0, 0.4, 0.3, 0, 0.3], device=preds.device)
-                prob_model_end = torch.tensor([0.25, 0.15, 0.20, 0.15, 0.25], device=preds.device)
+                prob_model_start = torch.tensor(
+                    [0, 0.4, 0.3, 0, 0.3], device=preds.device
+                )
+                prob_model_end = torch.tensor(
+                    [0.25, 0.15, 0.20, 0.15, 0.25], device=preds.device
+                )
                 in_degrees = nx_G.in_degree()
                 out_degrees = nx_G.out_degree()
-                start_mask = torch.tensor([in_degrees[u] == 0 for u, v, k, d in graph_edges_list], dtype=torch.bool)
-                end_mask = torch.tensor([out_degrees[v] == 0 for u, v, k, d in graph_edges_list], dtype=torch.bool)
+                start_mask = torch.tensor(
+                    [in_degrees[u] == 0 for u, v, k, d in graph_edges_list],
+                    dtype=torch.bool,
+                )
+                end_mask = torch.tensor(
+                    [out_degrees[v] == 0 for u, v, k, d in graph_edges_list],
+                    dtype=torch.bool,
+                )
                 end_mask &= ~start_mask
                 start_mask = start_mask.to(preds.device)
                 end_mask = end_mask.to(preds.device)
                 probabilities[start_mask] *= prob_model_start
                 probabilities[end_mask] *= prob_model_end
 
-                # Get final labels 
+                # Get final labels
                 labels = torch.argmax(probabilities, dim=1)
                 self.log.info(f"Graph {i}: Predicted {len(labels)} edge domain labels.")
                 predicted_labels = labels.tolist()
@@ -78,7 +90,9 @@ class LineageHandler(APIHandler):
                 attrs_to_set = dict(zip(edge_keys, predicted_labels))
                 dfg.set_domain_label(attrs_to_set, name="predicted_label")
 
-                self.log.info(f"Successfully mapped {len(labels)} predictions to edges in graph {i}.")
+                self.log.info(
+                    f"Successfully mapped {len(labels)} predictions to edges in graph {i}."
+                )
 
             if hightlight_relevant:
                 dfg.filter_relevant()
@@ -88,11 +102,10 @@ class LineageHandler(APIHandler):
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
-                "lineage_predictions": self.last_analysis_results, # Include mapped predictions
+                "lineage_predictions": self.last_analysis_results,  # Include mapped predictions
             }
             self.finish(json.dumps(result))
 
     def data_received(self, chunk):
         """Override to silence Tornado abstract method warning."""
         pass
-

@@ -4,9 +4,11 @@ import os
 from ApexDAG.vamsa.generate_wir import GenWIR
 from ApexDAG.vamsa.annotate_wir import AnnotationWIR, KB
 
+
 # todo: move to utils
 def get_name(node):
-    return node.split(':')[0]
+    return node.split(":")[0]
+
 
 def is_constant(var, prs):
     """
@@ -16,7 +18,7 @@ def is_constant(var, prs):
     """
     if var is None:
         return False
-    
+
     for pr in prs:
         _, _, _, output_nodes = pr
         if output_nodes is None:
@@ -28,6 +30,7 @@ def is_constant(var, prs):
             if var == output_nodes:
                 return False
     return True
+
 
 def drop_traversal(pr, tracker):
     """
@@ -44,8 +47,8 @@ def drop_traversal(pr, tracker):
                 next_prs.append(nextpr)
     return next_prs
 
-def list_traversal(pr, tracker):
 
+def list_traversal(pr, tracker):
     input_nodes, _, _, _ = pr
     next_prs = []
     input_nodes = input_nodes if isinstance(input_nodes, list) else [input_nodes]
@@ -55,14 +58,15 @@ def list_traversal(pr, tracker):
                 next_prs.append(nextpr)
     return next_prs
 
+
 def keyword_traversal(pr, tracker):
     # check if the keyword is "labels"
-    
+
     input_nodes, _, _, output_node = pr
-    if not 'label' in output_node:
+    if "label" not in output_node:
         # if the keyword is not "labels", we do not traverse further
         return []
-    
+
     next_prs = []
     input_nodes = input_nodes if isinstance(input_nodes, list) else [input_nodes]
     for var in input_nodes:
@@ -70,6 +74,7 @@ def keyword_traversal(pr, tracker):
             for nextpr in tracker.var_to_pr[var]:
                 next_prs.append(nextpr)
     return next_prs
+
 
 def iloc_traversal(pr, tracker):
     """
@@ -87,6 +92,7 @@ def iloc_traversal(pr, tracker):
                 next_prs.append(next_pr)
     return next_prs
 
+
 def subscript_traversal(pr, tracker):
     """
     Traversal rule for Subscript operation (e.g., df[var] or df[var_slice]):
@@ -101,6 +107,7 @@ def subscript_traversal(pr, tracker):
             for next_pr in tracker.var_to_pr[input_node]:
                 next_prs.append(next_pr)
     return next_prs
+
 
 def slice_traversal(pr, tracker):
     """
@@ -118,14 +125,15 @@ def slice_traversal(pr, tracker):
             next_prs.append(tracker.var_to_pr[bound_var])
     return next_prs
 
+
 # Knowledge base: map operation name to column_exclusion flag and traversal rule
 KBC = {
-    'drop': {'column_exclusion': True, 'traversal_rule': drop_traversal},
-    'iloc': {'column_exclusion': False, 'traversal_rule': iloc_traversal},
-    'Subscript': {'column_exclusion': False, 'traversal_rule': subscript_traversal},
-    'Slice': {'column_exclusion': False, 'traversal_rule': slice_traversal},
-    'List': {'column_exclusion': False, 'traversal_rule': list_traversal},
-    'keyword': {'column_exclusion': False, 'traversal_rule': keyword_traversal},
+    "drop": {"column_exclusion": True, "traversal_rule": drop_traversal},
+    "iloc": {"column_exclusion": False, "traversal_rule": iloc_traversal},
+    "Subscript": {"column_exclusion": False, "traversal_rule": subscript_traversal},
+    "Slice": {"column_exclusion": False, "traversal_rule": slice_traversal},
+    "List": {"column_exclusion": False, "traversal_rule": list_traversal},
+    "keyword": {"column_exclusion": False, "traversal_rule": keyword_traversal},
 }
 
 
@@ -137,12 +145,12 @@ class ProvenanceTracker:
       - C_plus  : columns included in features/labels
       - C_minus : columns excluded from features/labels
     """
-    def __init__(self, wir, prs, kbc=KBC):
 
+    def __init__(self, wir, prs, kbc=KBC):
         self.wir = wir
         self.prs = prs
         self.kbc = kbc
-        
+
         self.var_to_pr = {}
         self.cal_to_pr = {}
         for pr in prs:
@@ -158,7 +166,7 @@ class ProvenanceTracker:
                             self.var_to_pr[output_node].append(pr)
                         else:
                             self.var_to_pr[output_node] = [pr]
-                            
+
                 if output_nodes in self.var_to_pr:
                     self.var_to_pr[output_nodes].append(pr)
                 else:
@@ -182,7 +190,9 @@ class ProvenanceTracker:
         feature_labels = what_track
         for pr in self.prs:
             input_nodes, _, operation_node, output_nodes = pr
-            vars_to_check = input_nodes if isinstance(input_nodes, list) else [input_nodes]
+            vars_to_check = (
+                input_nodes if isinstance(input_nodes, list) else [input_nodes]
+            )
             if output_nodes:
                 if isinstance(output_nodes, list):
                     vars_to_check.extend(output_nodes)
@@ -192,10 +202,10 @@ class ProvenanceTracker:
             for var in vars_to_check:
                 info = annotations.get(var)
                 if info is not None:
-                    ann = annotations[var].get('annotations')
+                    ann = annotations[var].get("annotations")
                     ann = ann[0] if isinstance(ann, list) else ann
                     if (ann is not None) and (ann in feature_labels):
-                            annotated = True
+                        annotated = True
             if not annotated:
                 continue
 
@@ -204,7 +214,7 @@ class ProvenanceTracker:
             operation_name = get_name(operation_node)
             if operation_name in self.kbc:
                 self._guide_eval(pr)
-                
+
         return self.C_plus, self.C_minus
 
     def _guide_eval(self, pr, col_excl=None):
@@ -222,27 +232,17 @@ class ProvenanceTracker:
         if not entry:
             return
         if col_excl is None:
-            col_excl = entry['column_exclusion']
-        traversal_rule = entry['traversal_rule']
+            col_excl = entry["column_exclusion"]
+        traversal_rule = entry["traversal_rule"]
 
         constant_inputs = [var for var in input_nodes if is_constant(var, self.prs)]
-        if ('keyword' in op_name) and not ('label' in out_nodes): # patch
+        if ("keyword" in op_name) and "label" not in out_nodes:  # patch
             constant_inputs = []
         for cnst in constant_inputs:
-                if isinstance(cnst, (list, tuple)): # TODO: if keyword is not labels - do not add anything!
-                    for col in cnst:
-                        if col_excl:
-                            self.C_minus.add(col)
-                            # remove from C_plus if it was added before
-                            if col in self.C_plus:
-                                self.C_plus.remove(col)
-                        else:
-                            self.C_plus.add(col)
-                else:
-                    if isinstance(cnst, slice):
-                        col = (cnst.start, cnst.stop)
-                    else:
-                        col = cnst
+            if isinstance(
+                cnst, (list, tuple)
+            ):  # TODO: if keyword is not labels - do not add anything!
+                for col in cnst:
                     if col_excl:
                         self.C_minus.add(col)
                         # remove from C_plus if it was added before
@@ -250,12 +250,25 @@ class ProvenanceTracker:
                             self.C_plus.remove(col)
                     else:
                         self.C_plus.add(col)
+            else:
+                if isinstance(cnst, slice):
+                    col = (cnst.start, cnst.stop)
+                else:
+                    col = cnst
+                if col_excl:
+                    self.C_minus.add(col)
+                    # remove from C_plus if it was added before
+                    if col in self.C_plus:
+                        self.C_plus.remove(col)
+                else:
+                    self.C_plus.add(col)
         if len(constant_inputs) == len(input_nodes):
             return
 
         next_prs = traversal_rule(pr, self)
         for next_pr in next_prs:
             self._guide_eval(next_pr, col_excl=col_excl)
+
 
 def track_provenance(annotated_wir, prs, what_track):
     tracker = ProvenanceTracker(annotated_wir, prs)
@@ -264,30 +277,35 @@ def track_provenance(annotated_wir, prs, what_track):
 
 
 if __name__ == "__main__":
-    file_path = 'data/raw/test_vamsa.py'
-    location_related_attributes = ['lineno', 'col_offset', 'end_lineno', 'end_col_offset']
-    
-    output_dir = 'output'
+    file_path = "data/raw/test_vamsa.py"
+    location_related_attributes = [
+        "lineno",
+        "col_offset",
+        "end_lineno",
+        "end_col_offset",
+    ]
+
+    output_dir = "output"
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    with open(file_path, 'r') as file:
+    with open(file_path, "r") as file:
         file_content = file.read()
-    file_lines = file_content.split('\n')
-    
+    file_lines = file_content.split("\n")
+
     parsed_ast = ast.parse(file_content)
-    wir, prs, tuples = GenWIR(parsed_ast, output_filename=output_dir+'/wir-unannotated-test.png', if_draw_graph=True)
+    wir, prs, tuples = GenWIR(
+        parsed_ast,
+        output_filename=output_dir + "/wir-unannotated-test.png",
+        if_draw_graph=True,
+    )
 
     annotated_wir = AnnotationWIR(wir, prs, KB(None))
     annotated_wir.annotate()
 
-    input_nodes, caller_nodes, operation_nodes, output_nodes= tuples
+    input_nodes, caller_nodes, operation_nodes, output_nodes = tuples
 
-    what_track = {'features'}  # 'labels' # Specify what to track
-    C_plus, C_minus = track_provenance(
-        annotated_wir,
-        prs[::-1],
-        what_track=what_track
-    )
+    what_track = {"features"}  # 'labels' # Specify what to track
+    C_plus, C_minus = track_provenance(annotated_wir, prs[::-1], what_track=what_track)
     print(f"Columns included in {what_track} (C_plus):", C_plus)
     print(f"Columns excluded from {what_track} (C_minus):", C_minus)

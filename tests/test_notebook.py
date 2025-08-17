@@ -1,18 +1,17 @@
-
 import unittest
 import nbformat
 import networkx as nx
 from ApexDAG.notebook import Notebook
 
-class TestNotebook(unittest.TestCase):
 
+class TestNotebook(unittest.TestCase):
     def setUp(self):
         self.notebook_obj = nbformat.v4.new_notebook(
             cells=[
                 nbformat.v4.new_code_cell("print('hello')", execution_count=1),
                 nbformat.v4.new_code_cell("a = 1", execution_count=2),
                 nbformat.v4.new_code_cell("b = 2", execution_count=3),
-                nbformat.v4.new_code_cell("# %matplotlib inline", execution_count=4)
+                nbformat.v4.new_code_cell("# %matplotlib inline", execution_count=4),
             ]
         )
         self.notebook = Notebook(url=None, nb=self.notebook_obj)
@@ -63,5 +62,6 @@ class TestNotebook(unittest.TestCase):
         cell = self.notebook[0]
         self.assertEqual(cell.source, "print('hello')")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

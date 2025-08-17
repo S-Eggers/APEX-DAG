@@ -1,6 +1,7 @@
 import ast
 from typing import Optional
 
+
 def get_operator_description(node: ast.AST) -> Optional[str]:
     try:
         if isinstance(node, ast.Compare):
@@ -8,7 +9,7 @@ def get_operator_description(node: ast.AST) -> Optional[str]:
         elif isinstance(node, ast.BoolOp):
             operator = node.op.__class__.__name__.lower()
         else:
-            return None # Or raise an error, depending on desired behavior for unhandled types
+            return None  # Or raise an error, depending on desired behavior for unhandled types
 
         operator_translation = {
             "eq": "equal",
@@ -26,7 +27,7 @@ def get_operator_description(node: ast.AST) -> Optional[str]:
             "is": "is",
             "not": "not",
             "and": "and",
-            "or": "or"
+            "or": "or",
         }
         operator = operator_translation[operator]
 
@@ -34,6 +35,7 @@ def get_operator_description(node: ast.AST) -> Optional[str]:
         operator = None
 
     return operator
+
 
 def flatten_list(input_list):
     result = []

@@ -21,7 +21,9 @@ class Stack:
     def __contains__(self, context: str) -> bool:
         return context in self._state
 
-    def create_child_state(self, context: str = None, parent_context: Optional[str] = None) -> None:
+    def create_child_state(
+        self, context: str = None, parent_context: Optional[str] = None
+    ) -> None:
         if context in self._state:
             raise ValueError(f"State {context} already exists")
 

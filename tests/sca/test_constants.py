@@ -1,8 +1,16 @@
 import unittest
-from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES, DOMAIN_EDGE_TYPES, VERBOSE, REVERSE_NODE_TYPES, REVERSE_EDGE_TYPES, REVERSE_DOMAIN_EDGE_TYPES
+from ApexDAG.sca.constants import (
+    NODE_TYPES,
+    EDGE_TYPES,
+    DOMAIN_EDGE_TYPES,
+    VERBOSE,
+    REVERSE_NODE_TYPES,
+    REVERSE_EDGE_TYPES,
+    REVERSE_DOMAIN_EDGE_TYPES,
+)
+
 
 class TestConstants(unittest.TestCase):
-
     def test_node_types(self):
         self.assertIsInstance(NODE_TYPES, dict)
         self.assertIn("VARIABLE", NODE_TYPES)
@@ -49,5 +57,6 @@ class TestConstants(unittest.TestCase):
         self.assertEqual(REVERSE_DOMAIN_EDGE_TYPES[3], "EDA")
         self.assertEqual(REVERSE_DOMAIN_EDGE_TYPES[4], "ENVIRONMENT+DATA_EXPORT")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

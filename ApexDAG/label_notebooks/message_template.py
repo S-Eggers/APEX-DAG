@@ -1,6 +1,13 @@
 from enum import Enum
 
-def generate_message(node_id_source: str, node_id_target: str, code_edge: str, subgraph_context: str, code: str) -> list:
+
+def generate_message(
+    node_id_source: str,
+    node_id_target: str,
+    code_edge: str,
+    subgraph_context: str,
+    code: str,
+) -> list:
     """
     Generates a message for labeling edges in a dataflow graph.
 
@@ -39,11 +46,11 @@ def generate_message(node_id_source: str, node_id_target: str, code_edge: str, s
         "4. Explain your reasoning for choosing this label.\n"
         "5. Output the `LabelledEdge` method with the following structure:\n"
         "   LabelledEdge {\n"
-        f"       \"source\": \"{node_id_source}\",  # Unique identifier for the source node\n"
-        f"       \"target\": \"{node_id_target}\",  # Unique identifier for the target node\n"
-        f"       \"code\": \"{code_edge}\",  # Code representing the edge\n"
-        "       \"edge_type\": \"...\",  # Type of the edge\n"
-        "       \"domain_label\": \"...\"  # Domain-specific label for the edge\n"
+        f'       "source": "{node_id_source}",  # Unique identifier for the source node\n'
+        f'       "target": "{node_id_target}",  # Unique identifier for the target node\n'
+        f'       "code": "{code_edge}",  # Code representing the edge\n'
+        '       "edge_type": "...",  # Type of the edge\n'
+        '       "domain_label": "..."  # Domain-specific label for the edge\n'
         "   }\n\n"
         "Here is the code snippet from which this graph was created:\n"
         f"{code}\n\n"
@@ -60,7 +67,9 @@ class DomainLabel(str, Enum):
     MODEL_TRAIN = "Model Train - Training machine learning models"
     MODEL_EVALUATION = "Model Evaluation - Evaluating the performance of models"
     HYPERPARAMETER_TUNING = "Hyperparameter Tuning - Optimizing model parameters"
-    DATA_EXPORT = "Data Export - Exporting data to external storage (not to a local variable)"
+    DATA_EXPORT = (
+        "Data Export - Exporting data to external storage (not to a local variable)"
+    )
     DATA_EXTRACTION = "Data Extraction - Importing or extracting data from external data sources. (like oad from zip, load from disk load from sql, load from url- or any other)"
     DATA_TRANSFORM = "Data Transform - Transforming data into a suitable format"
     EDA = "EDA - Exploratory Data Analysis"
@@ -69,7 +78,7 @@ class DomainLabel(str, Enum):
 
     def __str__(self):
         return self.value
-    
+
     @classmethod
     def _full_list_to_str(cls):
         return "\n".join([f"{label.name}: {label.value}" for label in cls])

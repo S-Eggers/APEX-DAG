@@ -9,7 +9,8 @@ def write_dict_to_file(file_path, dictionary):
     with open(file_path, "w") as f:
         for key, value in dictionary.items():
             f.write(f"{key}: {value}\n")
-            
+
+
 def load_dict_from_file(file_path):
     dictionary = dict()
     with open(file_path, "r") as f:
@@ -18,8 +19,10 @@ def load_dict_from_file(file_path):
             dictionary[key] = value.strip()
     return dictionary
 
+
 def split_code(code: str):
     return code.split()
+
 
 def networkx_to_pyc(g: nx.Graph):
     word2idx = dict()
@@ -30,7 +33,7 @@ def networkx_to_pyc(g: nx.Graph):
         for word in content:
             if word not in word2idx:
                 word2idx[word] = len(word2idx)
-    
+
     node_embeddings = Embedding(len(word2idx), 256)
     for node in g.nodes:
         label = g.nodes[node]["label"]
@@ -42,16 +45,25 @@ def networkx_to_pyc(g: nx.Graph):
         for attr in attributes:
             if attr not in ["embedding"]:
                 del g.nodes[node][attr]
-                
+
     write_dict_to_file("output/word2idx.txt", word2idx)
     return from_networkx(g, group_node_attrs=["embedding"])
 
+
 def node2vec_embedding(data):
     # ToDo: Implement method
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    model = Node2Vec(data.edge_index, embedding_dim=256, walk_length=20,
-                     context_size=10, walks_per_node=10,
-                     num_negative_samples=1, p=1, q=1, sparse=True)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    model = Node2Vec(
+        data.edge_index,
+        embedding_dim=256,
+        walk_length=20,
+        context_size=10,
+        walks_per_node=10,
+        num_negative_samples=1,
+        p=1,
+        q=1,
+        sparse=True,
+    )
     loader = model.loader(batch_size=128, shuffle=True, num_workers=4)
     optimizer = torch.optim.SparseAdam(model.parameters(), lr=0.01)
     model.train()
@@ -66,7 +78,13 @@ def node2vec_embedding(data):
         print(total_loss / len(loader))
     model.eval()
     z = model()
-    acc = model.test(z[data.train_mask], data.y[data.train_mask], z[data.test_mask], data.y[data.test_mask], max_iter=10)
-    
+    acc = model.test(
+        z[data.train_mask],
+        data.y[data.train_mask],
+        z[data.test_mask],
+        data.y[data.test_mask],
+        max_iter=10,
+    )
+
     emb = model()
     return emb

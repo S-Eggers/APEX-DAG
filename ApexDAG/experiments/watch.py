@@ -19,12 +19,19 @@ class NotebookHandler(FileSystemEventHandler):
     def on_modified(self, event):
         if event.src_path.endswith(self.file_to_watch):
             file_mod_time = os.path.getmtime(event.src_path)
-            if not hasattr(self, 'last_file_change') or file_mod_time > self.last_file_change:
-                self.logger.info(f"Change in {self.file_to_watch} detected. Generating new dataflow graph.")
+            if (
+                not hasattr(self, "last_file_change")
+                or file_mod_time > self.last_file_change
+            ):
+                self.logger.info(
+                    f"Change in {self.file_to_watch} detected. Generating new dataflow graph."
+                )
                 start_time = time.time()
                 self.action(event.src_path, self.logger)
                 end_time = time.time()
-                self.logger.info(f"Building, optimizing, and drawing dataflow graph took {end_time - start_time}s")
+                self.logger.info(
+                    f"Building, optimizing, and drawing dataflow graph took {end_time - start_time}s"
+                )
                 self.last_file_change = file_mod_time
 
 
@@ -45,10 +52,13 @@ def execute_action(file_path: str, logger: logging.Logger) -> None:
     end_time = time.time()
     logger.info(f"Optimizing dataflow graph took {end_time - start_time}s")
     start_time = time.time()
-    path = os.path.join(os.getcwd(), "apex-dag-jupyter", "src", "app", "data_flow_graph")
+    path = os.path.join(
+        os.getcwd(), "apex-dag-jupyter", "src", "app", "data_flow_graph"
+    )
     dfg.webrender(path)
     end_time = time.time()
     logger.info(f"Drawing dataflow graph took {end_time - start_time}s")
+
 
 def watch(args, logger: logging.Logger) -> None:
     file_path = args.notebook

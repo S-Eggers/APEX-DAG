@@ -2,14 +2,16 @@ import json
 import os
 from setuptools import setup, find_packages
 
-package_json_path = os.path.join(os.path.dirname(__file__), 'apex-dag-jupyter', 'package.json')
+package_json_path = os.path.join(
+    os.path.dirname(__file__), "apex-dag-jupyter", "package.json"
+)
 
-with open(package_json_path, 'r') as f:
+with open(package_json_path, "r") as f:
     package_data = json.load(f)
-    version = package_data.get('version', '0.0.1')
+    version = package_data.get("version", "0.0.1")
 
 setup(
-    name='ApexDAG',
+    name="ApexDAG",
     version=version,
     packages=find_packages(include=["ApexDAG", "ApexDAG.*"]),
     install_requires=[
@@ -24,10 +26,10 @@ setup(
         "pydantic==2.10.6",
         "dotenv==0.9.9",
         "wandb",
-        "matplotlib"
+        "matplotlib",
     ],
     entry_points={
-        'console_scripts': [
+        "console_scripts": [
             # Define command-line scripts here
         ],
     },

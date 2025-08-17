@@ -39,7 +39,15 @@ def data_flow_graph_test(args, logger: logging.Logger) -> None:
     G = dfg.get_graph()
     start_time = time.time()
     in_out_file_path = os.path.join("output", "dfg.gml")
-    debug_graph(G, in_out_file_path, in_out_file_path, NODE_TYPES, EDGE_TYPES, save_prev=args.save_prev, verbose=True)
+    debug_graph(
+        G,
+        in_out_file_path,
+        in_out_file_path,
+        NODE_TYPES,
+        EDGE_TYPES,
+        save_prev=args.save_prev,
+        verbose=True,
+    )
     end_time = time.time()
 
     dfg.save_dfg(os.path.join(os.getcwd(), "output", "dfg.pkl"))

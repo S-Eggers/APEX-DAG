@@ -4,10 +4,13 @@ import networkx as nx
 import torch
 from torch_geometric.data import Data
 from ApexDAG.encoder import Encoder
-from ApexDAG.util.training_utils import InsufficientNegativeEdgesException, InsufficientPositiveEdgesException
+from ApexDAG.util.training_utils import (
+    InsufficientNegativeEdgesException,
+    InsufficientPositiveEdgesException,
+)
+
 
 class TestEncoder(unittest.TestCase):
-
     def setUp(self):
         self.mock_logger = MagicMock()
         self.encoder = Encoder(logger=self.mock_logger)
@@ -27,7 +30,7 @@ class TestEncoder(unittest.TestCase):
         self.assertEqual(self.encoder.edge_num_types_pretrain, 6)
         self.assertEqual(self.encoder.min_edges, 2)
 
-    @patch('ApexDAG.encoder.Embedding')
+    @patch("ApexDAG.encoder.Embedding")
     def test_encode(self, mock_embedding):
         mock_embedding.return_value.embed.return_value = torch.zeros(300)
         graph = self._create_sample_graph()
@@ -41,7 +44,7 @@ class TestEncoder(unittest.TestCase):
         self.assertTrue("edge_features" in data)
         self.assertTrue("edge_existence" in data)
 
-    @patch('ApexDAG.encoder.Embedding')
+    @patch("ApexDAG.encoder.Embedding")
     def test_encode_reversed(self, mock_embedding):
         mock_embedding.return_value.embed.return_value = torch.zeros(300)
         graph = self._create_sample_graph()
@@ -66,7 +69,7 @@ class TestEncoder(unittest.TestCase):
         with self.assertRaises(InsufficientNegativeEdgesException):
             self.encoder._sample_negative_edges(graph, node_to_id, 1)
 
-    @patch('ApexDAG.encoder.Embedding')
+    @patch("ApexDAG.encoder.Embedding")
     def test_extract_node_features(self, mock_embedding):
         mock_embedding.return_value.embed.return_value = torch.zeros(300)
         graph = self._create_sample_graph()
@@ -76,11 +79,13 @@ class TestEncoder(unittest.TestCase):
         self.assertEqual(node_features.shape, (3, 300))
         self.assertEqual(node_types, [1, 2, 3])
 
-    @patch('ApexDAG.encoder.Embedding')
+    @patch("ApexDAG.encoder.Embedding")
     def test_extract_edge_features(self, mock_embedding):
         mock_embedding.return_value.embed.return_value = torch.zeros(300)
         graph = self._create_sample_graph()
-        edge_features, edge_types, edge_existence = self.encoder._extract_edge_features(graph, [], "edge_type")
+        edge_features, edge_types, edge_existence = self.encoder._extract_edge_features(
+            graph, [], "edge_type"
+        )
 
         self.assertIsInstance(edge_features, torch.Tensor)
         self.assertEqual(edge_features.shape, (2, 300))
@@ -92,5 +97,6 @@ class TestEncoder(unittest.TestCase):
         with self.assertRaises(InsufficientPositiveEdgesException):
             self.encoder._extract_edge_features(graph, [], "edge_type")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()

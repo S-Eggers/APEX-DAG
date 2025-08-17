@@ -1,11 +1,12 @@
 import os
-import sys
 import networkx as nx
 from ApexDAG.util.draw import Draw
 from ApexDAG.util.logging import setup_logging
 
 
-def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbose=False) -> nx.DiGraph:
+def convert_multidigraph_to_digraph(
+    G: nx.MultiDiGraph, node_types: dict, verbose=False
+) -> nx.DiGraph:
     logger = setup_logging("graph_utils", verbose=verbose)
     G = G.copy()
     new_G = nx.DiGraph()
@@ -38,27 +39,68 @@ def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbos
                 if i == 0:
                     # Create the first intermediate node and edge
                     intermediate_node = f"{v}_intermediate_1"
-                    new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])
+                    new_G.add_node(
+                        intermediate_node,
+                        label=intermediate_node,
+                        node_type=node_types["INTERMEDIATE"],
+                    )
                     if "predicted_label" in edge_data:
-                        new_G.add_edge(u, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"], predicted_label=edge_data["predicted_label"])
+                        new_G.add_edge(
+                            u,
+                            intermediate_node,
+                            code=edge_data["code"],
+                            edge_type=edge_data["edge_type"],
+                            predicted_label=edge_data["predicted_label"],
+                        )
                     else:
-                        new_G.add_edge(u, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"])
+                        new_G.add_edge(
+                            u,
+                            intermediate_node,
+                            code=edge_data["code"],
+                            edge_type=edge_data["edge_type"],
+                        )
                 elif i < len(edges) - 1:
                     # Create subsequent intermediate nodes and edges
                     intermediate_node_prev = f"{v}_intermediate_{i}"
-                    intermediate_node = f"{v}_intermediate_{i+1}"
-                    new_G.add_node(intermediate_node, label=intermediate_node, node_type=node_types["INTERMEDIATE"])
+                    intermediate_node = f"{v}_intermediate_{i + 1}"
+                    new_G.add_node(
+                        intermediate_node,
+                        label=intermediate_node,
+                        node_type=node_types["INTERMEDIATE"],
+                    )
                     if "predicted_label" in edge_data:
-                        new_G.add_edge(intermediate_node_prev, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"], predicted_label=edge_data["predicted_label"])
+                        new_G.add_edge(
+                            intermediate_node_prev,
+                            intermediate_node,
+                            code=edge_data["code"],
+                            edge_type=edge_data["edge_type"],
+                            predicted_label=edge_data["predicted_label"],
+                        )
                     else:
-                        new_G.add_edge(intermediate_node_prev, intermediate_node, code=edge_data["code"], edge_type=edge_data["edge_type"])
+                        new_G.add_edge(
+                            intermediate_node_prev,
+                            intermediate_node,
+                            code=edge_data["code"],
+                            edge_type=edge_data["edge_type"],
+                        )
                 else:
                     # Connect the last intermediate node to the original destination node
                     intermediate_node_prev = f"{v}_intermediate_{i}"
                     if "predicted_label" in edge_data:
-                        new_G.add_edge(intermediate_node_prev, v, code=edge_data["code"], edge_type=edge_data["edge_type"], predicted_label=edge_data["predicted_label"])
+                        new_G.add_edge(
+                            intermediate_node_prev,
+                            v,
+                            code=edge_data["code"],
+                            edge_type=edge_data["edge_type"],
+                            predicted_label=edge_data["predicted_label"],
+                        )
                     else:
-                        new_G.add_edge(intermediate_node_prev, v, code=edge_data["code"], edge_type=edge_data["edge_type"])
+                        new_G.add_edge(
+                            intermediate_node_prev,
+                            v,
+                            code=edge_data["code"],
+                            edge_type=edge_data["edge_type"],
+                        )
 
             # Mark this pair as processed
             processed_edges.add(edge_pair)
@@ -69,6 +111,7 @@ def convert_multidigraph_to_digraph(G: nx.MultiDiGraph, node_types: dict, verbos
             processed_edges.add(edge_pair)
 
     return new_G
+
 
 def get_subgraph(G: nx.DiGraph, variable_versions: dict, variable: str) -> nx.DiGraph:
     if variable not in variable_versions:
@@ -81,8 +124,9 @@ def get_subgraph(G: nx.DiGraph, variable_versions: dict, variable: str) -> nx.Di
     descendants = nx.descendants(G_copy, variable)
     relevant_nodes = descendants.union(ancestors)
     relevant_nodes.add(variable)
-    
+
     return G_copy.subgraph(relevant_nodes).copy()
+
 
 def get_all_subgraphs(G: nx.DiGraph, variable_versions: dict) -> list[nx.DiGraph]:
     subgraphs = []
@@ -90,7 +134,16 @@ def get_all_subgraphs(G: nx.DiGraph, variable_versions: dict) -> list[nx.DiGraph
         subgraphs.append(get_subgraph(G, variable_versions, variable))
     return subgraphs
 
-def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_types: dict, edge_types: dict, save_prev=False, verbose=False):
+
+def debug_graph(
+    G: nx.DiGraph,
+    prev_graph_path: str,
+    new_graph_path: str,
+    node_types: dict,
+    edge_types: dict,
+    save_prev=False,
+    verbose=False,
+):
     logger = setup_logging("graph_utils", verbose=verbose)
 
     if os.path.exists(prev_graph_path):
@@ -107,51 +160,61 @@ def debug_graph(G: nx.DiGraph, prev_graph_path: str, new_graph_path: str, node_t
     node_types["added"] = -1
     node_types["modified"] = -2
     node_types["deleted"] = -3
-    
+
     # Calculate differences between graphs
-    added_edges = set(G.edges) - set(prev_G.edges)    
+    added_edges = set(G.edges) - set(prev_G.edges)
     removed_edges = set(prev_G.edges) - set(G.edges)
-    modified_edges = {edge for edge in set(G.edges).intersection(set(prev_G.edges)) if G.get_edge_data(*edge) != prev_G.get_edge_data(*edge)}
-    
+    modified_edges = {
+        edge
+        for edge in set(G.edges).intersection(set(prev_G.edges))
+        if G.get_edge_data(*edge) != prev_G.get_edge_data(*edge)
+    }
+
     added_nodes = set(G.nodes) - set(prev_G.nodes)
     removed_nodes = set(prev_G.nodes) - set(G.nodes)
-    modified_nodes = {node for node in set(G.nodes).intersection(set(prev_G.nodes)) if G.nodes[node]["node_type"] != prev_G.nodes[node]["node_type"]}
-    
+    modified_nodes = {
+        node
+        for node in set(G.nodes).intersection(set(prev_G.nodes))
+        if G.nodes[node]["node_type"] != prev_G.nodes[node]["node_type"]
+    }
+
     # Highlight changes in the previous graph
     for u, v in added_edges:
         prev_G.add_edge(u, v, edge_type=-1, code=f"added -> {G[u][v]['code']}")
-    
+
     for u, v in modified_edges:
-        prev_G[u][v]['edge_type'] = -2
-        prev_G[u][v]['code'] = f"modified -> {G[u][v]['code']}"
-    
+        prev_G[u][v]["edge_type"] = -2
+        prev_G[u][v]["code"] = f"modified -> {G[u][v]['code']}"
+
     for u, v in removed_edges:
-        prev_G[u][v]['edge_type'] = -3
-        prev_G[u][v]['code'] = f"deleted -> {prev_G[u][v]['code']}"
-    
+        prev_G[u][v]["edge_type"] = -3
+        prev_G[u][v]["code"] = f"deleted -> {prev_G[u][v]['code']}"
+
     for node in added_nodes:
-        prev_G.add_node(node, label=G.nodes[node]['label'], node_type=-1)
-    
+        prev_G.add_node(node, label=G.nodes[node]["label"], node_type=-1)
+
     for node in modified_nodes:
-        prev_G.nodes[node]['node_type'] = -2
+        prev_G.nodes[node]["node_type"] = -2
 
     for node in removed_nodes:
-        prev_G.nodes[node]['node_type'] = -3
+        prev_G.nodes[node]["node_type"] = -3
 
-    if save_prev: 
+    if save_prev:
         logger.debug("Saving debug graph")
         Draw(node_types, edge_types).dfg(prev_G, "debug_graph")
-        save_graph(G, new_graph_path)    
+        save_graph(G, new_graph_path)
 
     logger.debug(f"Added edges: {sorted(list(added_edges))}")
     logger.debug(f"Removed edges: {sorted(list(removed_edges))}")
     logger.debug(f"Modified edges: {sorted(list(modified_edges))}")
     logger.debug(f"Added nodes: {sorted(list(added_nodes))}")
     logger.debug(f"Removed nodes: {sorted(list(removed_nodes))}")
-    logger.debug(f"Modified nodes: {sorted(list(modified_nodes))}")    
+    logger.debug(f"Modified nodes: {sorted(list(modified_nodes))}")
+
 
 def save_graph(G: nx.DiGraph, path: str) -> None:
     nx.write_gml(G, os.path.join(os.getcwd(), path))
+
 
 def load_graph(path: str) -> nx.DiGraph:
     """
@@ -173,14 +236,18 @@ def load_graph(path: str) -> nx.DiGraph:
     try:
         G = nx.read_gml(path)
         for node, attrs in G.nodes(data=True):
-            if 'label' not in attrs:
-                G.nodes[node]['label'] = node
-            if 'node_type' not in attrs:
-                raise ValueError(f"Node {node} is missing required attribute 'node_type'")
+            if "label" not in attrs:
+                G.nodes[node]["label"] = node
+            if "node_type" not in attrs:
+                raise ValueError(
+                    f"Node {node} is missing required attribute 'node_type'"
+                )
 
         for u, v, data in G.edges(data=True):
-            if 'code' not in data or 'edge_type' not in data:
-                raise ValueError(f"Edge {u} -> {v} is missing required attributes 'code' or 'edge_type")
+            if "code" not in data or "edge_type" not in data:
+                raise ValueError(
+                    f"Edge {u} -> {v} is missing required attributes 'code' or 'edge_type"
+                )
 
         return G
     except Exception as e:

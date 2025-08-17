@@ -2,23 +2,24 @@ import os
 import json
 from tqdm import tqdm
 
+
 class KaggleDatasetIterator:
     def __init__(self, main_folder):
         self.main_folder = main_folder
         self.results = []
         self._iterator: tqdm = None
-        
+
     def __iter__(self):
         self._process_folders()
         self._iterator = tqdm(self.results, desc="Processed competitions")
         for result in self._iterator:
             yield result
-            
+
     def print(self, message: str):
         if self._iterator:
             self._iterator.write(message)
         else:
-            raise RuntimeError("No iterator initialized") 
+            raise RuntimeError("No iterator initialized")
 
     def _process_folders(self):
         # Iterate through all items in the main folder
@@ -43,9 +44,11 @@ class KaggleDatasetIterator:
                     elif item.endswith(".ipynb"):
                         ipynb_files.append(item)
 
-                self.results.append({
-                    "subfolder": subfolder,
-                    "subfolder_path": subfolder_path,
-                    "json_file": json_file,
-                    "ipynb_files": ipynb_files
-                })
+                self.results.append(
+                    {
+                        "subfolder": subfolder,
+                        "subfolder_path": subfolder_path,
+                        "json_file": json_file,
+                        "ipynb_files": ipynb_files,
+                    }
+                )

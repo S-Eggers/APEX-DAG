@@ -1,13 +1,17 @@
 from tqdm import tqdm
 from ApexDAG.crawl_notebooks.utils import InvalidNotebookException
-from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import JetbrainsNotebookProcessor
+from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import (
+    JetbrainsNotebookProcessor,
+)
 
 
 class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
-    def __init__(self, JSON_FILE, BUCKET_URL, SAVE_DIR, log_file, start_index = 0, stop_index = None):
+    def __init__(
+        self, JSON_FILE, BUCKET_URL, SAVE_DIR, log_file, start_index=0, stop_index=None
+    ):
         super().__init__(JSON_FILE, BUCKET_URL, SAVE_DIR, log_file)
         self.filenames = self.load_filenames(self.json_file)
-        
+
         self.stop_index = stop_index if stop_index else len(self.filenames)
 
         self.filenames = self.filenames[start_index:stop_index]
@@ -16,7 +20,7 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
 
     def __iter__(self):
         return self
-    
+
     def __next__(self):
         if self.current_index >= len(self.filenames):
             self.progress_bar.close()
@@ -26,7 +30,7 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
         self.current_index += 1
         self.progress_bar.update(1)
         notebook = self._fetch_notebook(filename)
-        
+
         if notebook is not None:
             return filename, notebook
         return self.__next__()
@@ -42,8 +46,7 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
         except Exception as e:
             self.logger.warning(f"Attempt failed for {filename}: {e}")
             return None
-    
-    def print(self, filename = '', message = ''):
+
+    def print(self, filename="", message=""):
         message = str(message)
         self.logger.info(f"{filename}: {message}")
-        

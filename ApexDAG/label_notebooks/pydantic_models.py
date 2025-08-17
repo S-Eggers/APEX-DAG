@@ -10,54 +10,62 @@ from ApexDAG.label_notebooks.message_template import DomainLabel
 class Node(BaseModel):
     node_id: str
     node_type: str
-    
+
     def __str__(self) -> str:
-        return (f"Node(\n"
-                f"  id={self.node_id},\n"
-                f"  node_type={self.node_type}\n"
-                f")")
+        return f"Node(\n  id={self.node_id},\n  node_type={self.node_type}\n)"
 
 
 class Edge(BaseModel):
-    source: str  
-    target: str 
+    source: str
+    target: str
     edge_type: str
     code: Optional[str] = None
     lineno: Optional[List[int]] = None
-    
-    def __str__(self) -> str:
-        return (f"Edge(\n"
-               f"  source={self.source},\n" 
-               f"  target={self.target},\n"
-               f"  code={self.code},\n"
-               f"  edge_type={self.edge_type}\n"
-               f")")
 
-    
+    def __str__(self) -> str:
+        return (
+            f"Edge(\n"
+            f"  source={self.source},\n"
+            f"  target={self.target},\n"
+            f"  code={self.code},\n"
+            f"  edge_type={self.edge_type}\n"
+            f")"
+        )
+
+
 class LabelledEdge(BaseModel):
-    '''
+    """
     This class is used to serialize the edge with the edge domain label
-    '''
-    source: str = Field(..., description="Unique identifier for the source of the edge.")
-    target: str = Field(..., description="Unique identifier for the target of the edge.")
-    code: Optional[str] = Field(None, description="The code that connects the source and target nodes.")
+    """
+
+    source: str = Field(
+        ..., description="Unique identifier for the source of the edge."
+    )
+    target: str = Field(
+        ..., description="Unique identifier for the target of the edge."
+    )
+    code: Optional[str] = Field(
+        None, description="The code that connects the source and target nodes."
+    )
     edge_type: str = Field(..., description="Type of the edge")
-    lineno: Optional[List[int]] = Field(None, description="The line number of the code that connects the source and target nodes.")
-    domain_label: Literal[ # the literal is very important Enum does not work as well 
-        "MODEL_TRAIN", 
-        "MODEL_EVALUATION", 
-        "HYPERPARAMETER_TUNING", 
-        "DATA_EXPORT", 
-        "DATA_IMPORT_EXTRACTION", 
-        "DATA_TRANSFORM", 
-        "EDA", 
-        "ENVIRONMENT", 
+    lineno: Optional[List[int]] = Field(
+        None,
+        description="The line number of the code that connects the source and target nodes.",
+    )
+    domain_label: Literal[  # the literal is very important Enum does not work as well
+        "MODEL_TRAIN",
+        "MODEL_EVALUATION",
+        "HYPERPARAMETER_TUNING",
+        "DATA_EXPORT",
+        "DATA_IMPORT_EXTRACTION",
+        "DATA_TRANSFORM",
+        "EDA",
+        "ENVIRONMENT",
         "NOT_INTERESTING",
         "MISSING",
-        "MORE_CONTEXT_NEEDED"
-        
+        "MORE_CONTEXT_NEEDED",
     ] = Field(..., description="Domain-specific label for the edge.")
-    
+
     class Config:
         title = "LabelledEdge"
         description = (
@@ -65,7 +73,9 @@ class LabelledEdge(BaseModel):
             "It ensures that the `source`, `target` and `node_type` are strings and that the `domain_label` "
             "is one of the specified literals."
         )
-        use_enum_values = True  # Automatically serialize Enum values as strings for JSON
+        use_enum_values = (
+            True  # Automatically serialize Enum values as strings for JSON
+        )
 
     def __str__(self) -> str:
         return (
@@ -77,21 +87,23 @@ class LabelledEdge(BaseModel):
             f"  domain_label='{self.domain_label}'\n"
             f")"
         )
+
     @classmethod
-    def from_edge(cls, edge: Edge, domain_label: DomainLabel) -> 'LabelledEdge':
-        return cls(source=edge.source,
-                   target=edge.target,
-                   edge_type=edge.edge_type, 
-                   code=edge.code,
-                   lineno=edge.lineno,
-                   domain_label=domain_label
-                   )
+    def from_edge(cls, edge: Edge, domain_label: DomainLabel) -> "LabelledEdge":
+        return cls(
+            source=edge.source,
+            target=edge.target,
+            edge_type=edge.edge_type,
+            code=edge.code,
+            lineno=edge.lineno,
+            domain_label=domain_label,
+        )
 
 
 class GraphContext(BaseModel):
     nodes: List[Node]
     edges: List[Edge | LabelledEdge]
-    
+
     edge_dict: Dict[str, List[str]] = Field(default_factory=dict)
 
     def get_neighbors(self, node_id: str):
@@ -99,8 +111,8 @@ class GraphContext(BaseModel):
         children_edges = [edge for edge in self.edges if edge.source == node_id]
         parents_edges = [edge for edge in self.edges if edge.target == node_id]
         return children_edges, parents_edges
-    
-    def populate_edge_dict(self): 
+
+    def populate_edge_dict(self):
         """Populate the edge_dict with sources as keys and lists of target indices as values."""
         self.edge_dict.clear()
         for index, edge in enumerate(self.edges):
@@ -110,7 +122,9 @@ class GraphContext(BaseModel):
 
 
 class GraphContextWithSubgraphSearch(GraphContext):
-    def get_subgraph(self, node_id_source: str, node_id_target: str, max_depth: int = 1):
+    def get_subgraph(
+        self, node_id_source: str, node_id_target: str, max_depth: int = 1
+    ):
         """Extract subgraph focusing on the node, its parents, and grandparents."""
         visited = set()
         subgraph_nodes = set()
@@ -127,7 +141,7 @@ class GraphContextWithSubgraphSearch(GraphContext):
             children_edges, parents_edges = self.get_neighbors(current_node_id)
             for child_edge in children_edges:
                 if child_edge.target not in visited:
-                    subgraph_edges.append(child_edge) # do ot rather with an id..... 
+                    subgraph_edges.append(child_edge)  # do ot rather with an id.....
                     dfs(child_edge.target, current_depth + 1)
             for parent_edge in parents_edges:
                 if parent_edge.source not in visited:
@@ -139,11 +153,11 @@ class GraphContextWithSubgraphSearch(GraphContext):
 
         subgraph_nodes = list(subgraph_nodes)
         subgraph_nodes = [node for node in self.nodes if node.node_id in subgraph_nodes]
-        
+
         return subgraph_nodes, subgraph_edges
-    
+
     @classmethod
-    def from_graph(cls, G: nx.DiGraph) -> 'GraphContextWithSubgraphSearch':
+    def from_graph(cls, G: nx.DiGraph) -> "GraphContextWithSubgraphSearch":
         for node_name in G.nodes:
             G.nodes[node_name]["label"] = re.sub(r"_\d+", "", node_name)
 
@@ -151,20 +165,24 @@ class GraphContextWithSubgraphSearch(GraphContext):
             return Node(
                 node_id=node_name,
                 label=node_data["label"],
-                node_type=REVERSE_NODE_TYPES.get(node_data.get("node_type"), "UNKNOWN")
+                node_type=REVERSE_NODE_TYPES.get(node_data.get("node_type"), "UNKNOWN"),
             )
 
         def build_edge(source: str, target: str, edge_data: dict) -> Edge:
             lineno_start: Optional[int] = edge_data.get("lineno")
             lineno_end: Optional[int] = edge_data.get("end_lineno", lineno_start)
-            lineno_range = list(range(lineno_start, lineno_end + 1)) if lineno_start is not None else [-1]
+            lineno_range = (
+                list(range(lineno_start, lineno_end + 1))
+                if lineno_start is not None
+                else [-1]
+            )
 
             return Edge(
                 source=source,
                 target=target,
                 code=edge_data.get("code", ""),
                 edge_type=REVERSE_EDGE_TYPES.get(edge_data.get("edge_type"), "UNKNOWN"),
-                lineno=lineno_range
+                lineno=lineno_range,
             )
 
         nodes = [build_node(name, data) for name, data in G.nodes(data=True)]
@@ -179,12 +197,11 @@ class SubgraphContext(GraphContext):
     def get_input_dict(self) -> Dict:
         """Prepare the input for the Groq API or model inference."""
         return self.model_dump()
-    
-    def __str__(self) -> str:
 
+    def __str__(self) -> str:
         nodes_str = indent("\n".join([str(node) for node in self.nodes]), "  ")
         edges_str = indent("\n".join([str(edge) for edge in self.edges]), "  ")
-        
+
         return (
             f"SubgraphContext(\n"
             f"  edge_of_interest: {self.edge_of_interest},\n"

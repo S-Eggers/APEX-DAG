@@ -1,5 +1,4 @@
 import json
-import time
 import tornado
 from jupyter_server.base.handlers import APIHandler
 
@@ -26,7 +25,7 @@ class DataflowHandler(APIHandler):
             result = {
                 "message": "Cannot process dataflow! Returning last successful result.",
                 "success": False,
-                "dataflow": self.last_analysis_results
+                "dataflow": self.last_analysis_results,
             }
             self.finish(json.dumps(result))
         else:
@@ -38,7 +37,7 @@ class DataflowHandler(APIHandler):
             result = {
                 "message": "Processed dataflow successfully!",
                 "success": True,
-                "dataflow": graph_json
+                "dataflow": graph_json,
             }
             self.finish(json.dumps(result))
 

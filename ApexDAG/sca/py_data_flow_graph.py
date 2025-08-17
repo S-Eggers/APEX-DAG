@@ -17,7 +17,7 @@ from ApexDAG.sca import (
     convert_multidigraph_to_digraph,
     get_subgraph,
     save_graph,
-    load_graph
+    load_graph,
 )
 
 
@@ -25,7 +25,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def __init__(self, notebook_path: str = "", replace_dataflow: bool = False) -> None:
         super().__init__()
         self._replace_dataflow = replace_dataflow
-        self._logger: Logger = setup_logging(f"py_data_flow_graph {notebook_path}", VERBOSE)
+        self._logger: Logger = setup_logging(
+            f"py_data_flow_graph {notebook_path}", VERBOSE
+        )
         self._state_stack: Stack = Stack()
         self._current_state: State = self._state_stack.get_current_state()
 
@@ -63,15 +65,23 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 target_name = target_name_[0] if is_obj_attribute else target_name_
 
                 # Create a new version for this variable
-                self._current_state.set_current_variable(self._get_versioned_name(target_name, node.lineno))
+                self._current_state.set_current_variable(
+                    self._get_versioned_name(target_name, node.lineno)
+                )
                 self._current_state.set_current_target(target_name)
 
                 if isinstance(value, ast.Lambda):
                     base_name = self._get_base_name(target)
-                    self._state_stack.functions[base_name] = {"node": self._current_state.current_variable}
-                    self._current_state.add_node(self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"])
+                    self._state_stack.functions[base_name] = {
+                        "node": self._current_state.current_variable
+                    }
+                    self._current_state.add_node(
+                        self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"]
+                    )
                 else:
-                    self._current_state.add_node(self._current_state.current_variable, NODE_TYPES["VARIABLE"])
+                    self._current_state.add_node(
+                        self._current_state.current_variable, NODE_TYPES["VARIABLE"]
+                    )
 
                 value.parent = node
                 self.visit(value)
@@ -83,9 +93,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 else:
                     previous_version = self._get_last_variable_version(target_name)
 
-                self._current_state.variable_versions[target_name].append(self._current_state.current_variable)
+                self._current_state.variable_versions[target_name].append(
+                    self._current_state.current_variable
+                )
 
-                if previous_version and not self._current_state.has_edge(previous_version, self._current_state.current_variable):
+                if previous_version and not self._current_state.has_edge(
+                    previous_version, self._current_state.current_variable
+                ):
                     self._current_state.add_edge(
                         previous_version,
                         self._current_state.current_variable,
@@ -94,7 +108,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.lineno,
                         node.col_offset,
                         node.end_lineno,
-                        node.end_col_offset
+                        node.end_col_offset,
                     )
 
         self._current_state.set_current_variable(None)
@@ -123,7 +137,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 node.lineno,
                 node.col_offset,
                 node.end_lineno,
-                node.end_col_offset
+                node.end_col_offset,
             )
         original_current_var = self._current_state.current_variable
         self._current_state.set_current_variable(new_target_version)
@@ -133,7 +147,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         # Update variable version tracking
         if target_base_name not in self._current_state.variable_versions:
             self._current_state.variable_versions[target_base_name] = []
-        self._current_state.variable_versions[target_base_name].append(new_target_version)
+        self._current_state.variable_versions[target_base_name].append(
+            new_target_version
+        )
 
         # Reset state
         self._current_state.set_current_variable(None)
@@ -142,7 +158,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def visit_AnnAssign(self, node: ast.AnnAssign) -> ast.AnnAssign:
         # ToDo: we might want to do something with the annotation
-        if not hasattr(node, 'value') or not node.value:
+        if not hasattr(node, "value") or not node.value:
             return node
 
         assign_node = ast.Assign(targets=[node.target], value=node.value)
@@ -169,7 +185,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self._current_state.add_node(return_node_name, NODE_TYPES["INTERMEDIATE"])
 
             if "return_nodes" in self._state_stack.functions[function_name]:
-                self._state_stack.functions[function_name]["return_nodes"].append(return_node_name)
+                self._state_stack.functions[function_name]["return_nodes"].append(
+                    return_node_name
+                )
 
             original_variable = self._current_state.current_variable
             self._current_state.set_current_variable(return_node_name)
@@ -184,12 +202,19 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         is_call = isinstance(node.value, ast.Call)
         is_first_order = is_call and isinstance(node.value.func, ast.Name)
         is_self_defined = base_name in self._state_stack.functions
-        is_imported = base_name in self._state_stack.import_from_modules or base_name in self._state_stack.imported_names
+        is_imported = (
+            base_name in self._state_stack.import_from_modules
+            or base_name in self._state_stack.imported_names
+        )
 
         if base_name and (not is_first_order or is_self_defined or is_imported):
-            self._current_state.set_current_variable(self._get_versioned_name(base_name, node.lineno))
+            self._current_state.set_current_variable(
+                self._get_versioned_name(base_name, node.lineno)
+            )
             self._current_state.set_current_target(base_name)
-            self._current_state.add_node(self._current_state.current_variable, NODE_TYPES["VARIABLE"])
+            self._current_state.add_node(
+                self._current_state.current_variable, NODE_TYPES["VARIABLE"]
+            )
 
             node.value.parent = node
             self.visit(node.value)
@@ -198,7 +223,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             if base_name not in self._current_state.variable_versions:
                 self._current_state.variable_versions[base_name] = []
 
-            self._current_state.variable_versions[base_name].append(self._current_state.current_variable)
+            self._current_state.variable_versions[base_name].append(
+                self._current_state.current_variable
+            )
 
         self._current_state.set_current_variable(None)
         self._current_state.set_current_target(None)
@@ -208,7 +235,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_Lambda(self, node: ast.Lambda) -> ast.Lambda:
-        if hasattr(node, '_visited'):
+        if hasattr(node, "_visited"):
             return node
         node._visited = True
 
@@ -221,7 +248,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 return node
 
             self._state_stack.functions[parent_name]["context"] = context_name
-            self._state_stack.functions[parent_name]["args"] = self._process_arguments(node.args)
+            self._state_stack.functions[parent_name]["args"] = self._process_arguments(
+                node.args
+            )
             self._state_stack.functions[parent_name]["is_recursive"] = False
             parent_context = self._current_state.context
             self._state_stack.create_child_state(context_name, parent_context)
@@ -240,7 +269,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         else:
             code = ast.get_source_segment(self.code, node)
-            message = f"Ignoring lambda function {code} as it is not assigned to a variable"
+            message = (
+                f"Ignoring lambda function {code} as it is not assigned to a variable"
+            )
             self._logger.debug(message)
             self._logger.debug(ast.dump(node))
             super().generic_visit(node)
@@ -260,16 +291,17 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             "is_recursive": self._check_resursion(node),
             "kwargs": bool(node.args.kwarg),
             "vararg": bool(node.args.vararg),
-            "return_nodes": []
+            "return_nodes": [],
         }
-        self._state_stack.functions[function_name]["args"] = self._process_arguments(node.args)
+        self._state_stack.functions[function_name]["args"] = self._process_arguments(
+            node.args
+        )
         self._current_state.add_node(context_name, NODE_TYPES["FUNCTION"])
         # print(self._current_state.get_graph().nodes)
 
         parent_context = self._current_state.context
         self._state_stack.create_child_state(context_name, parent_context)
         self._current_state = self._state_stack.get_current_state()
-
 
         for arg in self._state_stack.functions[function_name]["args"]["args"]:
             argument_node = f"{arg}_{node.lineno}"
@@ -302,28 +334,53 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             caller_object_name = self._get_caller_object(node.func)
             function_name = "__call__"
         else:
-            raise NotImplementedError(f"Unsupported function call {ast.get_source_segment(self.code, node)} with node {ast.dump(node)}")
+            raise NotImplementedError(
+                f"Unsupported function call {ast.get_source_segment(self.code, node)} with node {ast.dump(node)}"
+            )
 
         # we are calling a method of an imported module, e.g. pd.read_csv() or an
         # imported first order method, e.g. read_csv()
-        if caller_object_name in self._state_stack.imported_names or caller_object_name in self._state_stack.import_from_modules:
+        if (
+            caller_object_name in self._state_stack.imported_names
+            or caller_object_name in self._state_stack.import_from_modules
+        ):
             self._process_library_call(node, caller_object_name, function_name)
         # we are calling a user defined class, e.g. dataframe = DataFrame(), ToDo: currently only working for Constructors
-        elif caller_object_name in self._state_stack.classes or function_name in self._state_stack.classes:
+        elif (
+            caller_object_name in self._state_stack.classes
+            or function_name in self._state_stack.classes
+        ):
             self._process_class_call(node, caller_object_name, function_name)
         # we are calling a user defined function, e.g. a lambda function stored in a variable
-        elif (not caller_object_name or caller_object_name == function_name) and function_name in self._state_stack.functions:
+        elif (
+            not caller_object_name or caller_object_name == function_name
+        ) and function_name in self._state_stack.functions:
             self._process_function_call(node, function_name)
-        elif function_name in ["enumerate", "zip", "next", "iter", "range", "sorted", "map", "filter"]:
+        elif function_name in [
+            "enumerate",
+            "zip",
+            "next",
+            "iter",
+            "range",
+            "sorted",
+            "map",
+            "filter",
+        ]:
             self._process_builtin_call(node, function_name)
         # we are calling a method of a object, e.g. dataframe = dataframe.dropna()
         elif self._current_state.current_target:
             self._process_method_call(node, caller_object_name, function_name)
         else:
             code = ast.get_source_segment(self.code, node)
-            self._logger.debug("Ignoring function call %s as it contains no data flow", code)
+            self._logger.debug(
+                "Ignoring function call %s as it contains no data flow", code
+            )
             self._logger.debug(ast.dump(node))
-            self._logger.debug("Caller object name %s not in %s", caller_object_name, self._current_state.current_target)
+            self._logger.debug(
+                "Caller object name %s not in %s",
+                caller_object_name,
+                self._current_state.current_target,
+            )
 
         return node
 
@@ -340,7 +397,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         # get operator
         try:
-            operator =  node.op.__class__.__name__.lower()
+            operator = node.op.__class__.__name__.lower()
         except AttributeError:
             code = ast.get_source_segment(self.code, node)
             self._logger.debug("Could not get operator for %s", code)
@@ -358,7 +415,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     node.lineno,
                     node.col_offset,
                     node.end_lineno,
-                    node.end_col_offset
+                    node.end_col_offset,
                 )
             if right_var:
                 right_version = self._get_last_variable_version(right_var)
@@ -370,7 +427,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     node.lineno,
                     node.col_offset,
                     node.end_lineno,
-                    node.end_col_offset
+                    node.end_col_offset,
                 )
 
         return node
@@ -391,10 +448,28 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             if self._current_state.current_variable and operator:
                 if left_var:
                     left_version = self._get_last_variable_version(left_var)
-                    self._current_state.add_edge(left_version, self._current_state.current_variable, operator, EDGE_TYPES["CALLER"], node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                    self._current_state.add_edge(
+                        left_version,
+                        self._current_state.current_variable,
+                        operator,
+                        EDGE_TYPES["CALLER"],
+                        node.lineno,
+                        node.col_offset,
+                        node.end_lineno,
+                        node.end_col_offset,
+                    )
                 if right_var:
                     right_version = self._get_last_variable_version(right_var)
-                    self._current_state.add_edge(right_version, self._current_state.current_variable, operator, EDGE_TYPES["CALLER"], node.lineno, node.col_offset, node.end_lineno, node.end_col_offset)
+                    self._current_state.add_edge(
+                        right_version,
+                        self._current_state.current_variable,
+                        operator,
+                        EDGE_TYPES["CALLER"],
+                        node.lineno,
+                        node.col_offset,
+                        node.end_lineno,
+                        node.end_col_offset,
+                    )
 
             left_operand = right_operand
 
@@ -405,7 +480,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             return node
 
         var_name = node.id
-        if var_name in self._state_stack.imported_names or var_name in self._state_stack.import_from_modules:
+        if (
+            var_name in self._state_stack.imported_names
+            or var_name in self._state_stack.import_from_modules
+        ):
             self._logger.debug("Processing library attribute %s", var_name)
             self._process_library_attr(node, var_name)
         else:
@@ -428,7 +506,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     node.lineno,
                     node.col_offset,
                     node.end_lineno,
-                    node.end_col_offset
+                    node.end_col_offset,
                 )
                 self._current_state.set_last_variable(var_version)
 
@@ -451,7 +529,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.lineno,
             node.col_offset,
             node.end_lineno,
-            node.end_col_offset
+            node.end_col_offset,
         )
 
         return node
@@ -465,7 +543,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.lineno,
             node.col_offset,
             node.end_lineno,
-            node.end_col_offset
+            node.end_col_offset,
         )
         # visit if expression
         self.visit(node.body)
@@ -477,12 +555,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def visit_If(self, node: ast.If) -> ast.If:
         if_branch = True
         # first check if we are in an if or else if statement
-        if node.parent and isinstance(node.parent, ast.If) and isinstance(node.parent.orelse[0], ast.If):
+        if (
+            node.parent
+            and isinstance(node.parent, ast.If)
+            and isinstance(node.parent.orelse[0], ast.If)
+        ):
             # we are actually in an else if statement
             parent_context = node.parent.parent_context
             if_context = f"else_if_{node.lineno}"
             self._visit_if_body(node.body, if_context, parent_context, node)
-            self._state_stack.branches.append((self._current_state, "else if", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append(
+                (self._current_state, "else if", EDGE_TYPES["BRANCH"])
+            )
             if_branch = False
             previous_target = None
         # we are not visiting an elif statement (if or else body)
@@ -495,7 +579,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
             if_context = f"{var_version}_if"
             self._visit_if_body(node.body, if_context, parent_context, node)
-            self._state_stack.branches.append((self._current_state, "if", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append(
+                (self._current_state, "if", EDGE_TYPES["BRANCH"])
+            )
 
         # visit elif statements
         if node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
@@ -506,7 +592,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         elif len(node.orelse) > 0:
             else_context = f"else_{node.lineno}"
             self._visit_if_body(node.orelse, else_context, parent_context, node)
-            self._state_stack.branches.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append(
+                (self._current_state, "else", EDGE_TYPES["BRANCH"])
+            )
         # merge state
         if if_branch:
             self._state_stack.merge_states(parent_context, self._state_stack.branches)
@@ -548,7 +636,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         original_variable = self._current_state.current_variable
         self._current_state.set_current_variable(temp_iterable_node)
         self.visit(node.iter)
-        
+
         self._current_state.set_current_variable(original_variable)
 
         def get_target_components(raw_target_list: list) -> list[list[str]]:
@@ -559,11 +647,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             components = []
             if not raw_target_list:
                 return []
-            
-            if isinstance(raw_target_list[0], list): # Nested structure from a tuple
+
+            if isinstance(raw_target_list[0], list):  # Nested structure from a tuple
                 for sub_list in raw_target_list:
                     components.extend(get_target_components(sub_list))
-            else: # Base case: a single target's components
+            else:  # Base case: a single target's components
                 components.append(raw_target_list)
             return components
 
@@ -579,8 +667,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             base_name = components[0]
             target_version = self._get_versioned_name(base_name, node.lineno)
             attribute_path = "." + ".".join(components[1:])
-            edge_label = f"iterate into {attribute_path}" if len(components) > 1 else "iterate"
-            
+            edge_label = (
+                f"iterate into {attribute_path}" if len(components) > 1 else "iterate"
+            )
+
             self._current_state.add_node(target_version, NODE_TYPES["VARIABLE"])
             self._current_state.variable_versions[base_name] = [target_version]
             self._current_state.add_edge(
@@ -591,7 +681,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 node.lineno,
                 node.col_offset,
                 node.end_lineno,
-                node.end_col_offset
+                node.end_col_offset,
             )
 
         for stmt in node.body:
@@ -639,20 +729,28 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         # draw the full graph
         self.draw()
 
-    def draw(self, save_path: str=None, start_node: str=None) -> None:
+    def draw(self, save_path: str = None, start_node: str = None) -> None:
         draw = Draw(NODE_TYPES, EDGE_TYPES)
 
         if start_node:
             G_copy = self._current_state.copy_graph()
             self._current_state.set_graph(
-                get_subgraph(self._current_state.get_graph(), self._current_state.variable_versions, start_node)
+                get_subgraph(
+                    self._current_state.get_graph(),
+                    self._current_state.variable_versions,
+                    start_node,
+                )
             )
-            G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
+            G = convert_multidigraph_to_digraph(
+                self._current_state.get_graph(), NODE_TYPES
+            )
             draw.dfg(G, save_path)
             self._current_state.set_graph(G_copy)
         else:
-            G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
-            #print("Drawing full graph")
+            G = convert_multidigraph_to_digraph(
+                self._current_state.get_graph(), NODE_TYPES
+            )
+            # print("Drawing full graph")
             draw.dfg(G, save_path)
 
     def webrender(self, save_path: str = None) -> None:
@@ -704,16 +802,26 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         return arguments
 
-    def _visit_if_body(self, body: list[ast.AST], context: str, parent_context: str, parent_node: ast.AST) -> None:
+    def _visit_if_body(
+        self,
+        body: list[ast.AST],
+        context: str,
+        parent_context: str,
+        parent_node: ast.AST,
+    ) -> None:
         self._state_stack.create_child_state(context, parent_context)
         self._current_state = self._state_stack.get_current_state()
         for stmt in body:
             stmt.parent = parent_node
             self.visit(stmt)
 
-    def _process_method_call(self, node: ast.Call, caller_object_name: str, tokens: Optional[str]) -> None:
+    def _process_method_call(
+        self, node: ast.Call, caller_object_name: str, tokens: Optional[str]
+    ) -> None:
         previous_version = self._get_last_variable_version(caller_object_name)
-        previous_version = previous_version if previous_version else self._current_state.last_variable
+        previous_version = (
+            previous_version if previous_version else self._current_state.last_variable
+        )
         tokens = self._tokenize_method(tokens)
         self._current_state.add_edge(
             previous_version,
@@ -723,7 +831,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.lineno,
             node.col_offset,
             node.end_lineno,
-            node.end_col_offset
+            node.end_col_offset,
         )
 
         for arg in node.args:
@@ -742,7 +850,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.lineno,
                         node.col_offset,
                         node.end_lineno,
-                        node.end_col_offset
+                        node.end_col_offset,
                     )
             if isinstance(arg, (ast.Tuple)):
                 arg_names = self._get_names(arg)
@@ -760,13 +868,14 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                             node.lineno,
                             node.col_offset,
                             node.end_lineno,
-                            node.end_col_offset
+                            node.end_col_offset,
                         )
             else:
                 self.visit(arg)
 
-
-    def _process_library_call(self, node: ast.Call, caller_object_name: str, tokens: str=None) -> None:
+    def _process_library_call(
+        self, node: ast.Call, caller_object_name: str, tokens: str = None
+    ) -> None:
         # Add the import node and connect it
         import_node = self._state_stack.imported_names[caller_object_name]
         self._current_state.add_node(import_node, NODE_TYPES["IMPORT"])
@@ -780,7 +889,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.lineno,
             node.col_offset,
             node.end_lineno,
-            node.end_col_offset
+            node.end_col_offset,
         )
 
         for arg in node.args:
@@ -799,12 +908,14 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.lineno,
                         node.col_offset,
                         node.end_lineno,
-                        node.end_col_offset
+                        node.end_col_offset,
                     )
 
         self._current_state.set_last_variable(import_node)
 
-    def _process_class_call(self, node: ast.Call, caller_object_name: str, tokens: str=None) -> None:
+    def _process_class_call(
+        self, node: ast.Call, caller_object_name: str, tokens: str = None
+    ) -> None:
         # Add the import node and connect it
         class_node = self._state_stack.classes[caller_object_name][0]
         self._current_state.add_node(class_node, NODE_TYPES["CLASS"])
@@ -818,7 +929,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.lineno,
             node.col_offset,
             node.end_lineno,
-            node.end_col_offset
+            node.end_col_offset,
         )
 
         for arg in node.args:
@@ -837,7 +948,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.lineno,
                         node.col_offset,
                         node.end_lineno,
-                        node.end_col_offset
+                        node.end_col_offset,
                     )
 
         self._current_state.set_last_variable(class_node)
@@ -854,7 +965,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self._current_state.current_variable,
             function_name,
             EDGE_TYPES["CALLER"],
-            node.lineno, node.col_offset, node.end_lineno, node.end_col_offset
+            node.lineno,
+            node.col_offset,
+            node.end_lineno,
+            node.end_col_offset,
         )
 
         for arg in node.args:
@@ -869,14 +983,20 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                             self._current_state.current_variable,
                             "arg",
                             EDGE_TYPES["INPUT"],
-                            arg.lineno, arg.col_offset, arg.end_lineno, arg.end_col_offset
+                            arg.lineno,
+                            arg.col_offset,
+                            arg.end_lineno,
+                            arg.end_col_offset,
                         )
 
-    def _process_function_call(self, node: ast.Call, tokens: str=None) -> None:
+    def _process_function_call(self, node: ast.Call, tokens: str = None) -> None:
         replace_data_flow = self._replace_dataflow
         function_name = tokens
 
-        should_inline = not self._state_stack.functions[function_name]["is_recursive"] and replace_data_flow
+        should_inline = (
+            not self._state_stack.functions[function_name]["is_recursive"]
+            and replace_data_flow
+        )
 
         if should_inline:
             caller_return_variable = self._current_state.current_variable
@@ -900,11 +1020,15 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
             for key, value in arg_mapping.items():
                 if key in self._current_state.variable_versions:
-                    self._current_state.variable_versions[value] = self._current_state.variable_versions[key]
+                    self._current_state.variable_versions[value] = (
+                        self._current_state.variable_versions[key]
+                    )
                     del self._current_state.variable_versions[key]
 
             if caller_return_variable:
-                return_nodes = self._state_stack.functions[function_name].get("return_nodes", [])
+                return_nodes = self._state_stack.functions[function_name].get(
+                    "return_nodes", []
+                )
                 for return_node in return_nodes:
                     self._current_state.add_edge(
                         return_node,
@@ -914,10 +1038,19 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.lineno,
                         node.col_offset,
                         node.end_lineno,
-                        node.end_col_offset
+                        node.end_col_offset,
                     )
 
-            self._state_stack.merge_states(current_context, [(self._current_state, function_name_tokens, EDGE_TYPES["FUNCTION_CALL"])])
+            self._state_stack.merge_states(
+                current_context,
+                [
+                    (
+                        self._current_state,
+                        function_name_tokens,
+                        EDGE_TYPES["FUNCTION_CALL"],
+                    )
+                ],
+            )
             self._current_state = self._state_stack.get_current_state()
         else:
             function_def_node = self._state_stack.functions[function_name]["node"]
@@ -927,11 +1060,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     function_def_node,
                     self._current_state.current_variable,
                     self._tokenize_method(function_name),
-                    EDGE_TYPES["FUNCTION_CALL"], # Using a specific edge type is good practice
+                    EDGE_TYPES[
+                        "FUNCTION_CALL"
+                    ],  # Using a specific edge type is good practice
                     node.lineno,
                     node.col_offset,
                     node.end_lineno,
-                    node.end_col_offset
+                    node.end_col_offset,
                 )
 
                 for arg in node.args:
@@ -939,7 +1074,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         arg_name = self._get_names(arg)
                         # Handle nested names like a.b
                         arg_name = flatten_list(arg_name) if arg_name else None
-                        arg_name = arg_name[0] if isinstance(arg_name, list) else arg_name
+                        arg_name = (
+                            arg_name[0] if isinstance(arg_name, list) else arg_name
+                        )
 
                         if arg_name:
                             arg_version = self._get_last_variable_version(arg_name)
@@ -952,10 +1089,12 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                                     node.lineno,
                                     node.col_offset,
                                     node.end_lineno,
-                                    node.end_col_offset
+                                    node.end_col_offset,
                                 )
 
-    def _process_library_attr(self, node: ast.Attribute, caller_object_name: str) -> None:
+    def _process_library_attr(
+        self, node: ast.Attribute, caller_object_name: str
+    ) -> None:
         # Add the import node and connect it
         import_node = self._state_stack.imported_names[caller_object_name]
         self._current_state.add_node(import_node, NODE_TYPES["IMPORT"])
@@ -968,7 +1107,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.lineno,
             node.col_offset,
             node.end_lineno,
-            node.end_col_offset
+            node.end_col_offset,
         )
         self._current_state.set_last_variable(import_node)
 
@@ -996,10 +1135,12 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def _get_caller_object(self, value: ast.AST) -> str:
         names = self._get_names(value)
-        if names and (self._import_accessible(names[0]) or \
-            self._class_accessible(names[0]) or \
-            self._function_accessible(names[0]) or \
-            names[0] in self._current_state.variable_versions):
+        if names and (
+            self._import_accessible(names[0])
+            or self._class_accessible(names[0])
+            or self._function_accessible(names[0])
+            or names[0] in self._current_state.variable_versions
+        ):
             return names[0]
 
         return self._current_state.current_target
@@ -1026,8 +1167,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             case ast.Attribute():
                 name = self._get_names(node.value)
                 return [name[0], node.attr] if name else [node.attr]
-            case (ast.Tuple() | ast.List() | ast.Set()):
-                names = [self._get_names(elt) for elt in node.elts if self._get_names(elt)]
+            case ast.Tuple() | ast.List() | ast.Set():
+                names = [
+                    self._get_names(elt) for elt in node.elts if self._get_names(elt)
+                ]
                 return names
             case ast.Dict():
                 names = []
@@ -1044,14 +1187,22 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 return self._get_names(node.value)
             case ast.Call():
                 return self._get_names(node.func)
-            case (ast.If() | ast.IfExp()):
+            case ast.If() | ast.IfExp():
                 return ["If"]
-            case (ast.While() | ast.For()):
+            case ast.While() | ast.For():
                 return ["Loop"]
             case ast.Lambda():
                 return ["Lambda"]
             # no error, however, we dont want to process them (probably within Expr aka having a look into the variable context)
-            case (ast.BinOp() | ast.Compare() | ast.BoolOp() | ast.UnaryOp() | ast.IfExp() | ast.JoinedStr() | ast.Constant()):
+            case (
+                ast.BinOp()
+                | ast.Compare()
+                | ast.BoolOp()
+                | ast.UnaryOp()
+                | ast.IfExp()
+                | ast.JoinedStr()
+                | ast.Constant()
+            ):
                 return None
             case _:
                 code = ast.get_source_segment(self.code, node)
@@ -1061,20 +1212,25 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def _tokenize_method(self, method: str) -> str:
         # Add spaces before uppercase letters
-        s1 = re.sub('(.)([A-Z][a-z]+)', r'\1 \2', method)
-        s2 = re.sub('([a-z0-9])([A-Z])', r'\1 \2', s1)
+        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1 \2", method)
+        s2 = re.sub("([a-z0-9])([A-Z])", r"\1 \2", s1)
 
         # Split by period, underscore, and space
-        tokens = re.split(r'[._\s]', s2)
+        tokens = re.split(r"[._\s]", s2)
 
         # Remove library alias as we dont want to learn from it
         for library_alias in self._state_stack.imported_names.keys():
-            if library_alias in tokens and library_alias not in self._state_stack.import_from_modules:
+            if (
+                library_alias in tokens
+                and library_alias not in self._state_stack.import_from_modules
+            ):
                 tokens.remove(library_alias)
 
         return " ".join(tokens).lower()
 
-    def _get_last_variable_version(self, variable: str, max_depth: int = 99) -> Optional[str]:
+    def _get_last_variable_version(
+        self, variable: str, max_depth: int = 99
+    ) -> Optional[str]:
         if variable in self._current_state.variable_versions:
             return self._current_state.variable_versions.get(variable)[-1]
 
@@ -1082,7 +1238,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             current_context = self._current_state.context
             self._state_stack.restore_parent_state()
             self._current_state = self._state_stack.get_current_state()
-            variable_version = self._get_last_variable_version(variable, max_depth=max_depth - 1)
+            variable_version = self._get_last_variable_version(
+                variable, max_depth=max_depth - 1
+            )
             self._state_stack.restore_state(current_context)
             self._current_state = self._state_stack.get_current_state()
             return variable_version
@@ -1090,8 +1248,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             return None
 
     def _import_accessible(self, name: str, max_depth: int = 99) -> bool:
-        if name in self._state_stack.import_from_modules or \
-            name in self._state_stack.imported_names:
+        if (
+            name in self._state_stack.import_from_modules
+            or name in self._state_stack.imported_names
+        ):
             return True
 
         if self._current_state.parent_context and max_depth > 0:
@@ -1135,7 +1295,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         return False
 
-    def _get_lr_values(self, left: ast.AST, right: ast.AST) -> tuple[Optional[str], Optional[str]]:
+    def _get_lr_values(
+        self, left: ast.AST, right: ast.AST
+    ) -> tuple[Optional[str], Optional[str]]:
         def get_name(node: ast.AST) -> Optional[str]:
             names = self._get_names(node)
             if not names:

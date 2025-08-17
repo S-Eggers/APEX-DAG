@@ -4,10 +4,9 @@ import ast
 import networkx as nx
 from ApexDAG.sca.py_ast_graph import PythonASTGraph
 from ApexDAG.notebook import Notebook
-from ApexDAG.util.draw import Draw
+
 
 class TestPythonASTGraph(unittest.TestCase):
-
     def setUp(self):
         self.py_ast_graph = PythonASTGraph()
         self.py_ast_graph.code = "test_code"
@@ -16,10 +15,11 @@ class TestPythonASTGraph(unittest.TestCase):
         self.assertIsInstance(self.py_ast_graph, PythonASTGraph)
         self.assertIsInstance(self.py_ast_graph, ast.NodeVisitor)
 
-    @patch.object(PythonASTGraph, 'add_node')
+    @patch.object(PythonASTGraph, "add_node")
     def test_generic_visit(self, mock_add_node):
         # Create a side_effect that returns increasing integers
         node_id_counter = 0
+
         def mock_add_node_side_effect(node):
             nonlocal node_id_counter
             current_id = node_id_counter
@@ -32,14 +32,12 @@ class TestPythonASTGraph(unittest.TestCase):
         # Create a simple AST structure for testing
         # Represents: a = 1 + 2
         node = ast.Assign(
-            targets=[ast.Name(id='a', ctx=ast.Store())],
+            targets=[ast.Name(id="a", ctx=ast.Store())],
             value=ast.BinOp(
-                left=ast.Constant(value=1),
-                op=ast.Add(),
-                right=ast.Constant(value=2)
-            )
+                left=ast.Constant(value=1), op=ast.Add(), right=ast.Constant(value=2)
+            ),
         )
-        
+
         # Mock the internal graph to check edge additions
         py_ast_graph._G = MagicMock(spec=nx.DiGraph)
 
@@ -49,12 +47,12 @@ class TestPythonASTGraph(unittest.TestCase):
         # Assertions for add_node calls
         # We need to map the nodes to their expected IDs
         node_to_id = {
-            node: 0, # Assign
-            node.targets[0]: 1, # Name
-            node.value: 2, # BinOp
-            node.value.left: 3, # Constant (left)
-            node.value.op: 4, # Add
-            node.value.right: 5 # Constant (right)
+            node: 0,  # Assign
+            node.targets[0]: 1,  # Name
+            node.value: 2,  # BinOp
+            node.value.left: 3,  # Constant (left)
+            node.value.op: 4,  # Add
+            node.value.right: 5,  # Constant (right)
         }
 
         # Assert that add_node was called for all expected nodes
@@ -69,15 +67,18 @@ class TestPythonASTGraph(unittest.TestCase):
         # BinOp (2) -> Add (4)
         # BinOp (2) -> Constant (5)
 
-        py_ast_graph._G.add_edge.assert_has_calls([
-            call(node_to_id[node], node_to_id[node.targets[0]]),
-            call(node_to_id[node], node_to_id[node.value]),
-            call(node_to_id[node.value], node_to_id[node.value.left]),
-            call(node_to_id[node.value], node_to_id[node.value.op]),
-            call(node_to_id[node.value], node_to_id[node.value.right])
-        ], any_order=True)
+        py_ast_graph._G.add_edge.assert_has_calls(
+            [
+                call(node_to_id[node], node_to_id[node.targets[0]]),
+                call(node_to_id[node], node_to_id[node.value]),
+                call(node_to_id[node.value], node_to_id[node.value.left]),
+                call(node_to_id[node.value], node_to_id[node.value.op]),
+                call(node_to_id[node.value], node_to_id[node.value.right]),
+            ],
+            any_order=True,
+        )
 
-    @patch.object(PythonASTGraph, 'get_code_from_node', return_value="mock_code")
+    @patch.object(PythonASTGraph, "get_code_from_node", return_value="mock_code")
     def test_add_node(self, mock_get_code_from_node):
         initial_node_counter = self.py_ast_graph.node_counter
         mock_node = MagicMock(spec=ast.AST)
@@ -97,19 +98,21 @@ class TestPythonASTGraph(unittest.TestCase):
         )
         mock_get_code_from_node.assert_called_once_with(mock_node)
 
-    @patch('ApexDAG.sca.py_ast_graph.Draw')
+    @patch("ApexDAG.sca.py_ast_graph.Draw")
     def test_draw(self, MockDraw):
         py_ast_graph = PythonASTGraph()
         mock_draw_instance = MockDraw.return_value
         py_ast_graph.draw()
         MockDraw.assert_called_once_with(None, None)
-        mock_draw_instance.ast.assert_called_once_with(py_ast_graph._G, py_ast_graph._t2t_paths)
+        mock_draw_instance.ast.assert_called_once_with(
+            py_ast_graph._G, py_ast_graph._t2t_paths
+        )
 
-    @patch('ApexDAG.sca.py_ast_graph.PythonASTGraph')
+    @patch("ApexDAG.sca.py_ast_graph.PythonASTGraph")
     def test_from_notebook_windows(self, MockPythonASTGraph):
         mock_notebook = MagicMock(spec=Notebook)
-        mock_notebook.__iter__.return_value = ['cell1', 'cell2']
-        mock_notebook.cell_code.side_effect = ['code1', 'code2']
+        mock_notebook.__iter__.return_value = ["cell1", "cell2"]
+        mock_notebook.cell_code.side_effect = ["code1", "code2"]
 
         mock_graph_instance1 = MagicMock()
         mock_graph_instance2 = MagicMock()
@@ -121,12 +124,10 @@ class TestPythonASTGraph(unittest.TestCase):
         self.assertEqual(ast_graphs[0], mock_graph_instance1)
         self.assertEqual(ast_graphs[1], mock_graph_instance2)
 
-        mock_notebook.cell_code.assert_has_calls([
-            call('cell1'),
-            call('cell2')
-        ])
-        mock_graph_instance1.parse_code.assert_called_once_with('code1')
-        mock_graph_instance2.parse_code.assert_called_once_with('code2')
+        mock_notebook.cell_code.assert_has_calls([call("cell1"), call("cell2")])
+        mock_graph_instance1.parse_code.assert_called_once_with("code1")
+        mock_graph_instance2.parse_code.assert_called_once_with("code2")
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     unittest.main()
