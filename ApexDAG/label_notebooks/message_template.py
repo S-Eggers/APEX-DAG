@@ -55,11 +55,12 @@ You will be given the full code snippet, the specific edge to analyze, and the s
 ## Instructions
 1.  **Analyze the context**: Carefully examine the `<EDGE>`, `<CODE>`, and `<CONTEXT>` sections to understand the operation occurring between the source and target nodes.
 2.  **Choose `domain_label`**: Select the most fitting label from the provided `<DOMAIN_LABELS>` list.
+3.  **Infer `edge_type`**: Based on the context, determine the type of the edge (e.g., 'data_flow', 'control_flow', 'call').
 4.  **Provide Reasoning**: Briefly explain your choice in the `reasoning` field. Your reasoning should justify your choice of both the domain label and the edge type.
 5.  **Output JSON**: Your final output must be a single, valid JSON object and nothing else.
 
 <EDGE>
-{node_id_source} ---{code_edge}---> {node_id_target}
+{node_id_source} --{code_edge}---> {node_id_target}
 </EDGE>
 
 <CODE>
@@ -79,6 +80,7 @@ You will be given the full code snippet, the specific edge to analyze, and the s
     "source": "{node_id_source}",
     "target": "{node_id_target}",
     "code": "{escaped_code_edge}",
+    "edge_type": "...",
     "domain_label": "...",
     "reasoning": "A brief justification for the chosen labels."
 }}

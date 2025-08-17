@@ -1,11 +1,13 @@
 import os
-import instructor
+import re
+import json
 import time
 import logging
-import re
-from typing import Literal
+import instructor
 from tqdm import tqdm
+from typing import Literal
 from dotenv import load_dotenv
+from pydantic import parse_obj_as, TypeAdapter, ValidationError
 
 from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.label_notebooks.utils import Config
@@ -16,10 +18,11 @@ from ApexDAG.label_notebooks.pydantic_models import (
     SubgraphContext,
 )
 
-log_format = "%(asctime)s - %(levelname)s - %(message)s"
+log_format = "{asctime} - {name} - {levelname} - {message}"
 logging.basicConfig(
     level=logging.INFO,
     format=log_format,
+    style="{",
     handlers=[logging.FileHandler("graph_labeling.log"), logging.StreamHandler()],
 )
 
@@ -89,7 +92,8 @@ class GraphLabeler:
                     "GEMINI_API_KEY environment variable not set for Google provider."
                 )
             genai.configure(api_key=api_key)
-            return instructor.from_gemini(genai.GenerativeModel(self.config.model_name))
+            client = genai.GenerativeModel(self.config.model_name)
+            return client
 
         else:
             raise ValueError(
@@ -106,19 +110,37 @@ class GraphLabeler:
                 messages=messages,
                 response_model=response_model,
             )
-            usage = response._raw.usage
-            usage_dict = {
-                "prompt": usage.prompt_tokens,
-                "completion": usage.completion_tokens,
-            }
-            return response, usage_dict
+            return response, response.usage
 
         elif self.llm_provider == "google":
-            response = self.client.create(
-                response_model=response_model,
-                messages=messages,
+            # Convert messages to Gemini format (list of content strings)
+            gemini_messages = [
+                msg["content"] for msg in messages if msg["role"] == "user"
+            ]
+
+            response = self.client.generate_content(
+                gemini_messages,
+                generation_config={"response_mime_type": "application/json"},
             )
-            return response, {"prompt": 0, "completion": 0}
+
+            # Parse the JSON response and validate with Pydantic
+            try:
+                parsed_response = json.loads(response.text)
+                validated_response = TypeAdapter(response_model).validate_python(
+                    parsed_response
+                )
+            except (json.JSONDecodeError, ValidationError) as e:
+                logging.error(f"Error parsing or validating Gemini response: {e}")
+                logging.error(f"Raw Gemini response: {response.text}")
+                raise
+
+            # Extract token usage
+            usage_metadata = response.usage_metadata
+            prompt_tokens = getattr(usage_metadata, "prompt_token_count", 0)
+            completion_tokens = getattr(usage_metadata, "candidates_token_count", 0)
+            total_tokens = prompt_tokens + completion_tokens
+
+            return validated_response, total_tokens
 
     def read_code(self, code_path: str):
         if not os.path.exists(code_path):
@@ -205,13 +227,21 @@ class GraphLabeler:
                     edge.source, edge.target, edge.code, graph_context, code_context
                 )
 
-                api_response, usage = self._create_chat_completion(
+                resp, usage = self._create_chat_completion(
                     messages=messages,
                     response_model=LabelledEdge,
                 )
-                resp = api_response
 
-                tokens_this_call = usage["prompt"] + usage["completion"]
+                if self.llm_provider == "groq":
+                    tokens_this_call = usage.total_tokens
+                elif self.llm_provider == "google":
+                    tokens_this_call = usage  # usage is already total_tokens for google
+                else:
+                    # Fallback for unknown providers
+                    prompt_tokens = len(messages[0]["content"]) / 4
+                    completion_tokens = len(resp.model_dump_json()) / 4
+                    tokens_this_call = prompt_tokens + completion_tokens
+
                 self.total_tokens_used += tokens_this_call
                 logging.info(
                     f"Tokens used for ({edge.source} -> {edge.target}): {tokens_this_call}. "
@@ -330,6 +360,7 @@ df = pd.read_csv("data.csv")
 # Split data into training and testing sets
 X_train, X_test, y_train, y_test = train_test_split(df.drop('target', axis=1), df['target'])"""
     from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
+
     dfg = DataFlowGraph()
     dfg.parse_code(code)
     dfg.optimize()
@@ -348,6 +379,7 @@ X_train, X_test, y_train, y_test = train_test_split(df.drop('target', axis=1), d
 
     output_file = os.path.join(output_directory, "demo.gml")
     import networkx as nx
+
     nx.write_gml(G, output_file)
     # Clean up
 
