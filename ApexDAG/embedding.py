@@ -90,16 +90,23 @@ class Embedding:
             case EmbeddingType.FASTTEXT:
                 return self._get_sentence_vector_fast_text(sequence)
             case EmbeddingType.GEMINI_STANDARD:
-                config = types.EmbedContentConfig(task_type="CLASSIFICATION", output_dimensionality=self._max_output_dim)
+                config = types.EmbedContentConfig(
+                    task_type="CLASSIFICATION",
+                    output_dimensionality=self._max_output_dim,
+                )
                 return self._get_sentence_vector_gemini(sequence, config)
             case EmbeddingType.GEMINI_CODE:
-                config = types.EmbedContentConfig(task_type="RETRIEVAL_QUERY", output_dimensionality=self._max_output_dim)
+                config = types.EmbedContentConfig(
+                    task_type="RETRIEVAL_QUERY",
+                    output_dimensionality=self._max_output_dim,
+                )
                 return self._get_sentence_vector_gemini(sequence, config)
             case _:
                 raise NotImplementedError(f"Embedding type {self.type} not implemented")
 
 
 if __name__ == "__main__":
+    # --- Example Usage ---
     import sys
     import traceback
 

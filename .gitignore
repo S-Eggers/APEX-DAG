@@ -202,3 +202,5 @@ web_path.json
 *.dot
 *.gml
 *.png
+
+.ruff_cache*
