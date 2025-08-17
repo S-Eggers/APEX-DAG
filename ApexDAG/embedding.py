@@ -40,6 +40,7 @@ class Embedding:
         self._initialize_model()
 
     def _initialize_model(self):
+        load_dotenv()
         match self.type:
             case EmbeddingType.FASTTEXT:
                 self._embedding_model_name = "cc.en.300.bin"

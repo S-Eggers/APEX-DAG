@@ -54,7 +54,7 @@ You will be given the full code snippet, the specific edge to analyze, and the s
 
 ## Instructions
 1.  **Analyze the context**: Carefully examine the `<EDGE>`, `<CODE>`, and `<CONTEXT>` sections to understand the operation occurring between the source and target nodes.
-2.  **Choose `domain_label`**: Select the most fitting label from the provided `<LABELS>` list.
+2.  **Choose `domain_label`**: Select the most fitting label from the provided `<DOMAIN_LABELS>` list.
 4.  **Provide Reasoning**: Briefly explain your choice in the `reasoning` field. Your reasoning should justify your choice of both the domain label and the edge type.
 5.  **Output JSON**: Your final output must be a single, valid JSON object and nothing else.
 
@@ -70,9 +70,9 @@ You will be given the full code snippet, the specific edge to analyze, and the s
 {subgraph_context}
 </CONTEXT>
 
-<LABELS>
+<DOMAIN_LABELS>
 {domain_labels_str}
-</LABELS>
+</DOMAIN_LABELS>
 
 ## Required JSON Output Format
 {{

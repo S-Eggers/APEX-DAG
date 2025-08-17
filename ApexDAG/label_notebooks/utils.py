@@ -1,3 +1,4 @@
+import sys
 import yaml
 from dataclasses import dataclass
 
@@ -7,6 +8,8 @@ class Config:
     model_name: str
     sleep_interval: int
     max_depth: int
+    max_tokens: int = sys.maxsize
+    llm_provider: str = "groq"
 
 
 def load_config(config_path: str) -> Config:

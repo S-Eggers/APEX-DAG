@@ -4,7 +4,6 @@ src = ["ApexDAG", "tests"]
 line-length = 88
 indent-width = 4
 
-# Exclude commonly ignored directories.
 exclude = [
     ".git",
     ".ruff_cache",
@@ -16,16 +15,9 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# A good starting set of rules:
-# E/W: pycodestyle errors and warnings
-# F: Pyflakes
-# I: isort (import sorting)
-# B: flake8-bugbear (finds likely bugs)
 select = ["E", "F", "W", "I", "B"]
 
-# Allow unused arguments in functions (useful for interfaces/overrides)
 ignore = ["ARG001", "ARG002"]
 
 [tool.ruff.format]
-# Use double quotes for strings, like Black.
 quote-style = "double"
