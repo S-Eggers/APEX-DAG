@@ -4,6 +4,7 @@ import re
 import pandas as pd
 from collections import defaultdict, Counter
 import logging
+import ijson
 
 
 class NotebookProcessor:
@@ -30,16 +31,22 @@ class NotebookProcessor:
 
     def load_filenames(self, json_file):
         """
-        Load filenames from a JSON file.
+        Load filenames from a JSON file iteratively using ijson.
         """
         try:
-            with open(json_file, "r") as f:
-                return json.load(f)
+            with open(json_file, "rb") as f:  # Open in binary mode for ijson
+                filenames = []
+                for item in ijson.items(f, "item"):  # Assuming the JSON is a list of items
+                    filenames.append(item)
+                return filenames
         except FileNotFoundError:
             self.logger.warning(f"File not found: {json_file}")
             return []
-        except json.JSONDecodeError as e:
-            self.logger.warning(f"Error decoding JSON file: {e}")
+        except ijson.common.JSONError as e:
+            self.logger.warning(f"Error decoding JSON file with ijson: {e}")
+            return []
+        except Exception as e:
+            self.logger.warning(f"An unexpected error occurred while loading filenames: {e}")
             return []
 
     @classmethod

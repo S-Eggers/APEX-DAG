@@ -204,3 +204,4 @@ web_path.json
 *.png
 
 .ruff_cache*
+jetbrains_dfg_*

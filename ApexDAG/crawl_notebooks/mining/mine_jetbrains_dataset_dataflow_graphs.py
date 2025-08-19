@@ -112,7 +112,15 @@ def mine_dataflows_on_jetbrains_dataset(args):
 
         except Exception as e:
             tb = traceback.format_exc()
-            jetbrains_iterator.print(filename, tb)  # this only prints to log!
+            # if the code is not parseable because of syntax or identation error, 
+            # i dont want to write the stacktrace to the log file, just say something like syntax error in X
+            # I still want to write the stck trace to disk if I later wanna have a look but not to the log
+            # TabError and UnicodeDecodeError are also caused by the notebook code
+            if isinstance(e, (SyntaxError, IndentationError, TabError, UnicodeDecodeError)):
+                jetbrains_iterator.print(filename, f"Syntax error in notebook {notebook_url} ({e.__class__.__name__})")
+            else:
+                jetbrains_iterator.print(filename, tb)  # this only prints to log!
+            
             jetbrains_iterator.print(filename, f"Error in notebook {notebook_url}")
             stats[filename]["dfg_extract_time"] = -float("inf")
 

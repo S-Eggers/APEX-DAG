@@ -554,14 +554,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def visit_If(self, node: ast.If) -> ast.If:
         if_branch = True
-        # first check if we are in an if or else if statement
-        if (
-            node.parent
+
+        is_elif = (
+            hasattr(node, "parent")
             and isinstance(node.parent, ast.If)
-            and isinstance(node.parent.orelse[0], ast.If)
-        ):
+            and node.parent.orelse
+            and node.parent.orelse[0] == node
+        )
+
+        if is_elif:
             # we are actually in an else if statement
             parent_context = node.parent.parent_context
+            node.parent_context = parent_context
             if_context = f"else_if_{node.lineno}"
             self._visit_if_body(node.body, if_context, parent_context, node)
             self._state_stack.branches.append(
@@ -576,6 +580,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             previous_target = self._current_state.current_target
             self._current_state.current_target = var_version
             parent_context = self._current_state.context
+            node.parent_context = parent_context  # Set for children
 
             if_context = f"{var_version}_if"
             self._visit_if_body(node.body, if_context, parent_context, node)
@@ -585,19 +590,19 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         # visit elif statements
         if node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
-            node.parent_context = self._current_state.parent_context
             node.orelse[0].parent = node
+            node.orelse[0].parent_context = node.parent_context  # Pass down context
             self.visit(node.orelse[0])
         # visit else statement
         elif len(node.orelse) > 0:
             else_context = f"else_{node.lineno}"
-            self._visit_if_body(node.orelse, else_context, parent_context, node)
+            self._visit_if_body(node.orelse, else_context, node.parent_context, node)
             self._state_stack.branches.append(
                 (self._current_state, "else", EDGE_TYPES["BRANCH"])
             )
         # merge state
         if if_branch:
-            self._state_stack.merge_states(parent_context, self._state_stack.branches)
+            self._state_stack.merge_states(node.parent_context, self._state_stack.branches)
             self._current_state = self._state_stack.get_current_state()
             self._state_stack.branches = []
             self._current_state.current_target = previous_target
@@ -839,8 +844,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_name = self._get_names(arg)
-                arg_name = arg_name[0] if arg_name else None
+                arg_names = self._get_names(arg)
+                if not arg_names:
+                    continue
+                arg_name = flatten_list(arg_names)[0]
 
                 if arg_name:
                     arg_version = self._get_last_variable_version(arg_name)
@@ -855,11 +862,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.end_lineno,
                         node.end_col_offset,
                     )
-            if isinstance(arg, (ast.Tuple)):
+            elif isinstance(arg, (ast.Tuple)):
                 arg_names = self._get_names(arg)
-                arg_names = [arg_name[0] for arg_name in arg_names if arg_name]
+                if not arg_names:
+                    continue
 
-                for arg_name in arg_names:
+                processed_arg_names = [
+                    flatten_list(name_list)[0]
+                    for name_list in arg_names
+                    if name_list and flatten_list(name_list)
+                ]
+
+                for arg_name in processed_arg_names:
                     if arg_name:
                         arg_version = self._get_last_variable_version(arg_name)
                         code_segment = self._tokenize_method(arg_name)
@@ -897,8 +911,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_name = self._get_names(arg)
-                arg_name = arg_name[0] if arg_name else None
+                arg_names = self._get_names(arg)
+                if not arg_names:
+                    continue
+                arg_name = flatten_list(arg_names)[0]
 
                 if arg_name:
                     arg_version = self._get_last_variable_version(arg_name)
@@ -937,8 +953,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_name = self._get_names(arg)
-                arg_name = arg_name[0] if arg_name else None
+                arg_names = self._get_names(arg)
+                if not arg_names:
+                    continue
+                arg_name = flatten_list(arg_names)[0]
 
                 if arg_name:
                     arg_version = self._get_last_variable_version(arg_name)
@@ -1169,7 +1187,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 return [node.id]
             case ast.Attribute():
                 name = self._get_names(node.value)
-                return [name[0], node.attr] if name else [node.attr]
+                return (name + [node.attr]) if name else [node.attr]
             case ast.Tuple() | ast.List() | ast.Set():
                 names = [
                     self._get_names(elt) for elt in node.elts if self._get_names(elt)

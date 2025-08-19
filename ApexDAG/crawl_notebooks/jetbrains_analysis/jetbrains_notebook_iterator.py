@@ -1,3 +1,5 @@
+import os
+import nbformat
 from tqdm import tqdm
 from ApexDAG.crawl_notebooks.utils import InvalidNotebookException
 from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import (
@@ -37,11 +39,33 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
 
     def _fetch_notebook(self, filename):
         """Process a single notebook, with a retry mechanism."""
+        local_notebook_path = os.path.join(self.save_dir, "downloaded_notebooks", filename)
+
+        # Check if the notebook is already cached locally
+        if os.path.exists(local_notebook_path):
+            self.logger.info(f"Loading notebook {filename} from cache.")
+            try:
+                with open(local_notebook_path, 'r', encoding='utf-8') as f:
+                    return nbformat.read(f, as_version=4)
+            except Exception as e:
+                self.logger.warning(f"Could not read cached notebook {filename}. Refetching. Error: {e}")
+
+        # If not cached, download it
+        self.logger.info(f"Fetching notebook {filename} from remote.")
         try:
             file_url = f"{self.bucket_url}{filename}"
             notebook = self.get_notebook(file_url)
             if notebook is None:
                 raise InvalidNotebookException(f"Failed to fetch notebook {filename}")
+            
+            # Save the downloaded notebook to the cache
+            local_notebook_dir = os.path.dirname(local_notebook_path)
+            if not os.path.exists(local_notebook_dir):
+                os.makedirs(local_notebook_dir)
+
+            with open(local_notebook_path, 'w', encoding='utf-8') as f:
+                nbformat.write(notebook, f)
+
             return notebook
         except Exception as e:
             self.logger.warning(f"Attempt failed for {filename}: {e}")
