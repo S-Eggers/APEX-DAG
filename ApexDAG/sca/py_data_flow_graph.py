@@ -783,6 +783,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def get_graph(self) -> nx.Graph:
         return self._current_state.get_graph()
 
+    def get_edges(self, data: bool = False):
+        return self._current_state.get_graph().edges(data=data)
+
     def _check_resursion(self, node: ast.FunctionDef) -> bool:
         function_name = node.name
         for sub_node in ast.walk(node):

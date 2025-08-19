@@ -54,6 +54,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     config = load_config(args.config_path)
+    config.max_tokens = 1000000000
 
     if not os.path.exists(args.source_path):
         logging.error(f"Source path '{args.source_path}' does not exist.")
@@ -83,4 +84,3 @@ if __name__ == "__main__":
                 logging.info(f"Saved labeled graph to: {output_file}")
             except Exception as e:
                 logging.error(f"Failed to process {filename}: {e}", exc_info=True)
-                time.sleep(10)

@@ -13,6 +13,7 @@ python ApexDAG/crawl_notebooks/mining/mine_jetbrains_dataset_dataflow_graphs.py 
 import os
 import argparse
 import time
+import random
 import traceback
 import pandas as pd
 
@@ -82,8 +83,27 @@ def mine_dataflows_on_jetbrains_dataset(args):
             dfg.optimize()
             dfg_end_time = time.time()
 
-            dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
-            notebook.save_code(os.path.join(folder_code, f"{name}.code"))
+            # Sampling logic based on the number of edges in the dataflow graph
+            num_edges = len(dfg.get_edges())
+            sample_this_notebook = False
+
+            if num_edges < 50:
+                # Small notebooks: 50% sampling rate
+                if random.random() < 0.5:
+                    sample_this_notebook = True
+            elif 50 <= num_edges <= 250:
+                # Mid-size notebooks: 100% sampling rate
+                sample_this_notebook = True
+            else: # num_edges > 250
+                # Large notebooks: 75% sampling rate
+                if random.random() < 0.75:
+                    sample_this_notebook = True
+
+            if sample_this_notebook:
+                dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
+                notebook.save_code(os.path.join(folder_code, f"{name}.code"))
+            else:
+                jetbrains_iterator.print(filename, f"Skipping notebook {filename} due to sampling.")
 
             if args.draw:
                 dfg.draw(os.path.join("output", name, "dfg"))
