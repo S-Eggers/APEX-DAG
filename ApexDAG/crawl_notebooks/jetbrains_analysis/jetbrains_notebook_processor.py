@@ -43,6 +43,11 @@ class JetbrainsNotebookProcessor(NotebookProcessor):
                 f"Fetched {url} but failed to parse: Content is not a valid JSON notebook. Possible HTML content received."
             )
             return None
+        except UnicodeDecodeError:
+            self.logger.warning(
+                f"Fetched {url} but failed to parse: 'utf-8' codec can't decode"
+            )
+            return None
         except Exception as e:
             self.logger.warning(f"Error processing notebook {url}: {e}", exc_info=True)
             return None

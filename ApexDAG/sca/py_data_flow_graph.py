@@ -563,13 +563,18 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         )
 
         if is_elif:
+            parent_context = node.parent_context
+        else:
+            parent_context = self._current_state.context
+
+        node.parent_context = parent_context
+
+        if is_elif:
             # we are actually in an else if statement
-            parent_context = node.parent.parent_context
-            node.parent_context = parent_context
             if_context = f"else_if_{node.lineno}"
-            self._visit_if_body(node.body, if_context, parent_context, node)
+            branch_state = self._visit_if_body(node.body, if_context, parent_context, node)
             self._state_stack.branches.append(
-                (self._current_state, "else if", EDGE_TYPES["BRANCH"])
+                (branch_state, "else if", EDGE_TYPES["BRANCH"])
             )
             if_branch = False
             previous_target = None
@@ -579,14 +584,15 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             var_version = self._get_versioned_name(node_name, node.lineno)
             previous_target = self._current_state.current_target
             self._current_state.current_target = var_version
-            parent_context = self._current_state.context
-            node.parent_context = parent_context  # Set for children
 
             if_context = f"{var_version}_if"
-            self._visit_if_body(node.body, if_context, parent_context, node)
+            branch_state = self._visit_if_body(node.body, if_context, parent_context, node)
             self._state_stack.branches.append(
-                (self._current_state, "if", EDGE_TYPES["BRANCH"])
+                (branch_state, "if", EDGE_TYPES["BRANCH"])
             )
+
+        self._state_stack.restore_state(parent_context)
+        self._current_state = self._state_stack.get_current_state()
 
         # visit elif statements
         if node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
@@ -596,13 +602,20 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         # visit else statement
         elif len(node.orelse) > 0:
             else_context = f"else_{node.lineno}"
-            self._visit_if_body(node.orelse, else_context, node.parent_context, node)
-            self._state_stack.branches.append(
-                (self._current_state, "else", EDGE_TYPES["BRANCH"])
+            branch_state = self._visit_if_body(
+                node.orelse, else_context, node.parent_context, node
             )
+            self._state_stack.branches.append(
+                (branch_state, "else", EDGE_TYPES["BRANCH"])
+            )
+            self._state_stack.restore_state(node.parent_context)
+            self._current_state = self._state_stack.get_current_state()
+
         # merge state
         if if_branch:
-            self._state_stack.merge_states(node.parent_context, self._state_stack.branches)
+            self._state_stack.merge_states(
+                node.parent_context, self._state_stack.branches
+            )
             self._current_state = self._state_stack.get_current_state()
             self._state_stack.branches = []
             self._current_state.current_target = previous_target
@@ -816,12 +829,14 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         context: str,
         parent_context: str,
         parent_node: ast.AST,
-    ) -> None:
+    ) -> "State":
         self._state_stack.create_child_state(context, parent_context)
         self._current_state = self._state_stack.get_current_state()
         for stmt in body:
             stmt.parent = parent_node
+            stmt.parent_context = context
             self.visit(stmt)
+        return self._current_state
 
     def _process_method_call(
         self, node: ast.Call, caller_object_name: str, tokens: Optional[str]
