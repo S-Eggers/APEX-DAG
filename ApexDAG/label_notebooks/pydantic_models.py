@@ -65,6 +65,7 @@ class LabelledEdge(BaseModel):
         "MISSING",
         "MORE_CONTEXT_NEEDED",
     ] = Field(..., description="Domain-specific label for the edge.")
+    reasoning: Optional[str] = Field(None, description="The reasoning provided by the LLM for the domain label.")
 
     class Config:
         title = "LabelledEdge"
@@ -85,11 +86,12 @@ class LabelledEdge(BaseModel):
             f"  code='{self.code}',\n"
             f"  edge_type='{self.edge_type}',\n"
             f"  domain_label='{self.domain_label}'\n"
+            f"  reasoning='{self.reasoning}'\n"
             f")"
         )
 
     @classmethod
-    def from_edge(cls, edge: Edge, domain_label: DomainLabel) -> "LabelledEdge":
+    def from_edge(cls, edge: Edge, domain_label: DomainLabel, reasoning: Optional[str] = None) -> "LabelledEdge":
         return cls(
             source=edge.source,
             target=edge.target,
@@ -97,6 +99,7 @@ class LabelledEdge(BaseModel):
             code=edge.code,
             lineno=edge.lineno,
             domain_label=domain_label,
+            reasoning=reasoning,
         )
 
 

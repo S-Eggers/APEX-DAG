@@ -293,8 +293,11 @@ class GraphLabeler:
         self.G.edges._adjdict[edge.source][edge.target]["domain_label"] = (
             resp.domain_label
         )
+        self.G.edges._adjdict[edge.source][edge.target]["reasoning"] = (
+            resp.reasoning
+        )
         self.G_with_context.edges[edge_num_index] = LabelledEdge.from_edge(
-            edge, resp.domain_label
+            edge, resp.domain_label, resp.reasoning
         )
 
         sleep_time = max(0, self.config.sleep_interval - elapsed_time)
