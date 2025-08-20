@@ -73,7 +73,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 if isinstance(value, ast.Lambda):
                     base_name = self._get_base_name(target)
                     self._state_stack.functions[base_name] = {
-                        "node": self._current_state.current_variable
+                        "node": self._current_state.current_variable,
+                        "context": None,
+                        "args": {"args": [], "defaults": []},
+                        "is_recursive": False,
+                        "kwargs": False,
+                        "vararg": False,
+                        "return_nodes": [],
                     }
                     self._current_state.add_node(
                         self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"]
@@ -1229,6 +1235,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 return ["Loop"]
             case ast.Lambda():
                 return ["Lambda"]
+            case ast.Starred():
+                return self._get_names(node.value)
             # no error, however, we dont want to process them (probably within Expr aka having a look into the variable context)
             case (
                 ast.BinOp()
