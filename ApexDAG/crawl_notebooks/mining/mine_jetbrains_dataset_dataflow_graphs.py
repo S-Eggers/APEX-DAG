@@ -65,6 +65,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
             "execution_graph_time": None,
             "exception": None,
             "stacktrace": None,
+            "keep": None,
         }
 
         try:
@@ -102,7 +103,9 @@ def mine_dataflows_on_jetbrains_dataset(args):
             if sample_this_notebook:
                 dfg.save_dfg(os.path.join(folder_dfg, f"{name}.execution_graph"))
                 notebook.save_code(os.path.join(folder_code, f"{name}.code"))
+                stats[filename]["keep"] = True
             else:
+                stats[filename]["keep"] = False
                 jetbrains_iterator.print(filename, f"Skipping notebook {filename} due to sampling.")
 
             if args.draw:
@@ -112,10 +115,6 @@ def mine_dataflows_on_jetbrains_dataset(args):
 
         except Exception as e:
             tb = traceback.format_exc()
-            # if the code is not parseable because of syntax or identation error, 
-            # i dont want to write the stacktrace to the log file, just say something like syntax error in X
-            # I still want to write the stck trace to disk if I later wanna have a look but not to the log
-            # TabError and UnicodeDecodeError are also caused by the notebook code
             if isinstance(e, (SyntaxError, IndentationError, TabError, UnicodeDecodeError)):
                 jetbrains_iterator.print(filename, f"Syntax error in notebook {notebook_url} ({e.__class__.__name__})")
             else:
@@ -123,6 +122,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
             
             jetbrains_iterator.print(filename, f"Error in notebook {notebook_url}")
             stats[filename]["dfg_extract_time"] = -float("inf")
+            stats[filename]["keep"] = False
 
             folder = os.path.join(FULL_OUTPUT_DIR, "errors", name, "stacktraces")
             if not os.path.exists(folder):
@@ -178,6 +178,9 @@ def mine_dataflows_on_jetbrains_dataset(args):
     jetbrains_iterator.print(
         f"Median LoC (statements): {stats_df[stats_df['dfg_extract_time'] > float('-inf')]['loc'].median()}"
     )
+    jetbrains_iterator.print(
+        f"Kept notebooks: {stats_df[stats_df['keep'] == True].shape[0]}/{stats_df.shape[0]}"
+    )
 
 
 if __name__ == "__main__":
@@ -189,7 +192,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
     parser.add_argument("--start_index", type=int, default=0, help="Start index")
-    parser.add_argument("--stop_index", type=int, default=110000, help="End index")
+    parser.add_argument("--stop_index", type=int, default=250000, help="End index")
     args = parser.parse_args()
 
     mine_dataflows_on_jetbrains_dataset(args)
