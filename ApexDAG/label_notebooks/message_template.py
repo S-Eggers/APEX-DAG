@@ -28,6 +28,7 @@ class DomainLabel(str, Enum):
 def generate_message(
     node_id_source: str,
     node_id_target: str,
+    edge_key: str,
     code_edge: str,
     subgraph_context: str,
     code: str,
@@ -38,6 +39,7 @@ def generate_message(
     Args:
         node_id_source (str): The unique identifier of the source node.
         node_id_target (str): The unique identifier of the target node.
+        edge_key (str): The unique key for the edge.
         code_edge (str): The code that connects the source and target nodes.
         subgraph_context (str): The context of the subgraph.
         code (str): The code snippet from which the graph was created.
@@ -79,6 +81,7 @@ You will be given the full code snippet, the specific edge to analyze, and the s
 {{
     "source": "{node_id_source}",
     "target": "{node_id_target}",
+    "key": "{edge_key}",
     "code": "{escaped_code_edge}",
     "edge_type": "...",
     "domain_label": "...",

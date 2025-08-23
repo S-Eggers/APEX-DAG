@@ -86,8 +86,8 @@ class GraphEncoder:
         self.bidirectional = bidirectional
         self.mode = mode
         self.encoded_checkpoint_path = encoded_checkpoint_path
-        self.logger = logger
         self.encoded_graphs = []
+        self.logger = logger
 
         # hyperparams
         self.min_nodes = min_nodes
@@ -121,7 +121,7 @@ class GraphEncoder:
         """Encodes graphs and saves them to disk."""
         self.logger.info("Encoding graphs...")
         os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
-        encoder = Encoder()
+        encoder = Encoder(logger=self.logger)
 
         for index, graph in tqdm.tqdm(enumerate(graphs), desc="Encoding graphs"):
             if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:

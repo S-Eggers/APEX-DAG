@@ -8,6 +8,7 @@ const updateWidget = (
   replaceDataflowInUDFs: boolean,
   highlightRelevantSubgraphs: boolean,
   greedyNotebookExtraction: boolean,
+  llmClassification: boolean,
   notebookPanel: NotebookPanel
 ) => {
   if (!graphWidget) {
@@ -15,12 +16,13 @@ const updateWidget = (
   }
   const cells = notebookPanel.content.model?.cells;
   if (cells) {
-    let content = getNotebookCode(cells, greedyNotebookExtraction)
+    let content = getNotebookCode(cells, greedyNotebookExtraction);
     console.debug('Notebook content\n' + content);
     callBackend('lineage', {
       code: content,
       replaceDataflowInUDFs,
-      highlightRelevantSubgraphs
+      highlightRelevantSubgraphs,
+      llmClassification
     })
       .then(response => {
         console.info('Dataflow received from server:', response);

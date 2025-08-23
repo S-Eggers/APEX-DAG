@@ -4,6 +4,7 @@ import json
 import time
 import logging
 import instructor
+import networkx as nx
 from tqdm import tqdm
 from typing import Literal
 from dotenv import load_dotenv

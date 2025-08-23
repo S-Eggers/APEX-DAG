@@ -39,6 +39,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     let replaceDataflowInUDFs: boolean = false;
     let highlightRelevantSubgraphs: boolean = false;
     let greedyNotebookExtraction: boolean = true;
+    let llmClassification: boolean = false;
 
     if (settingRegistry) {
       const settings = await settingRegistry.load(plugin.id);
@@ -57,6 +58,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
         greedyNotebookExtraction =
           (newSettings.get('greedyNotebookExtraction').composite as boolean) ??
           true;
+        llmClassification =
+          (newSettings.get('llmClassification').composite as boolean) ?? false;
         console.debug('APEX-DAG settings updated:', {
           debounceDelay,
           replaceDataflowInUDFs,
@@ -161,6 +164,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
           replaceDataflowInUDFs,
           highlightRelevantSubgraphs,
           greedyNotebookExtraction,
+          llmClassification,
           notebookPanel
         );
 
@@ -186,6 +190,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 replaceDataflowInUDFs,
                 highlightRelevantSubgraphs,
                 greedyNotebookExtraction,
+                llmClassification,
                 notebookPanel
               );
             }, debounceDelay);
@@ -200,6 +205,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
                 replaceDataflowInUDFs,
                 highlightRelevantSubgraphs,
                 greedyNotebookExtraction,
+                llmClassification,
                 notebookPanel
               );
             }

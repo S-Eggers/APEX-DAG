@@ -28,6 +28,12 @@
       "description": "Extract all the code from top to bottom and ignore cell execution order (if turned false, code gets ordered by execution number and ignored if no execution at all)",
       "type": "boolean",
       "default": true
+    },
+    "llmClassification": {
+      "title": "LLM Lineage Classification",
+      "description": "Use LLM for classifying nodes in the data flow graph (DFG).",
+      "type": "boolean",
+      "default": false
     }
   },
   "additionalProperties": false
