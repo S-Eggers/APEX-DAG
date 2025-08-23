@@ -22,6 +22,9 @@ from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_iterator import (
     JetbrainsNotebookIterator,
 )
+from ApexDAG.crawl_notebooks.jetbrains_analysis.local_notebook_iterator import (
+    LocalNotebookIterator,
+)
 
 from dotenv import load_dotenv
 
@@ -46,16 +49,22 @@ def mine_dataflows_on_jetbrains_dataset(args):
     if not os.path.exists(folder_code):
         os.makedirs(folder_code)
 
-    jetbrains_iterator = JetbrainsNotebookIterator(
-        JSON_FILE,
-        BUCKET_URL,
-        FULL_OUTPUT_DIR,
-        log_file=f"notebook_processor_{args.start_index}_{args.stop_index}.log",
-        start_index=args.start_index,
-        stop_index=args.stop_index,
-    )
+    if args.iterator_type == "local":
+        iterator = LocalNotebookIterator(
+            local_path=args.local_path,
+            log_file=f"notebook_local_processor.log",
+        )
+    else:
+        iterator = JetbrainsNotebookIterator(
+            JSON_FILE,
+            BUCKET_URL,
+            FULL_OUTPUT_DIR,
+            log_file=f"notebook_processor_{args.start_index}_{args.stop_index}.log",
+            start_index=args.start_index,
+            stop_index=args.stop_index,
+        )
 
-    for filename, notebook_object in jetbrains_iterator:
+    for filename, notebook_object in iterator:
         name = filename.replace(".ipynb", "")
         notebook_url = f"{BUCKET_URL}{filename}"
         stats[filename] = {
@@ -87,8 +96,10 @@ def mine_dataflows_on_jetbrains_dataset(args):
             # Sampling logic based on the number of edges in the dataflow graph
             num_edges = len(dfg.get_edges())
             sample_this_notebook = False
-
-            if num_edges < 50:
+            if num_edges < 5:
+                # Very small notebooks: 0% sampling rate
+                sample_this_notebook = False
+            elif num_edges < 50:
                 # Small notebooks: 50% sampling rate
                 if random.random() < 0.5:
                     sample_this_notebook = True
@@ -106,7 +117,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
                 stats[filename]["keep"] = True
             else:
                 stats[filename]["keep"] = False
-                jetbrains_iterator.print(filename, f"Skipping notebook {filename} due to sampling.")
+                iterator.print(filename, f"Skipping notebook {filename} due to sampling.")
 
             if args.draw:
                 dfg.draw(os.path.join("output", name, "dfg"))
@@ -116,11 +127,11 @@ def mine_dataflows_on_jetbrains_dataset(args):
         except Exception as e:
             tb = traceback.format_exc()
             if isinstance(e, (SyntaxError, IndentationError, TabError, UnicodeDecodeError)):
-                jetbrains_iterator.print(filename, f"Syntax error in notebook {notebook_url} ({e.__class__.__name__})")
+                iterator.print(filename, f"Syntax error in notebook {notebook_url} ({e.__class__.__name__})")
             else:
-                jetbrains_iterator.print(filename, tb)  # this only prints to log!
+                iterator.print(filename, tb)  # this only prints to log!
             
-            jetbrains_iterator.print(filename, f"Error in notebook {notebook_url}")
+            iterator.print(filename, f"Error in notebook {notebook_url}")
             stats[filename]["dfg_extract_time"] = -float("inf")
             stats[filename]["keep"] = False
 
@@ -147,38 +158,38 @@ def mine_dataflows_on_jetbrains_dataset(args):
     stats_df.to_csv(
         os.path.join(FULL_OUTPUT_DIR, "dfg_experiment_jetbrains.csv"), encoding="utf-8"
     )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Succesfully extracted dataflow graphs for {stats_df[stats_df['dfg_extract_time'] > float('-inf')].shape[0]}/{stats_df.shape[0]}"
     )
     if (
         stats_df[stats_df["dfg_extract_time"] > float("-inf")].shape[0]
         < stats_df.shape[0]
     ):
-        jetbrains_iterator.print(
+        iterator.print(
             f"Error types observed: {stats_df[stats_df['exception'].str.len() > 0]['exception'].unique()}"
         )
-        jetbrains_iterator.print(
+        iterator.print(
             f"Stacktraces for failed notebooks can be found in {os.path.join('output', 'stacktraces')}"
         )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Mean execution graph creation time: {stats_df['execution_graph_time'].mean()}s"
     )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Median execution graph creation time: {stats_df['execution_graph_time'].median()}s"
     )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Mean DFG extraction time: {stats_df[stats_df['dfg_extract_time'] > float('-inf')]['dfg_extract_time'].mean()}s"
     )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Median DFG extraction time: {stats_df[stats_df['dfg_extract_time'] > float('-inf')]['dfg_extract_time'].median()}s"
     )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Mean LoC (statements): {stats_df[stats_df['dfg_extract_time'] > float('-inf')]['loc'].mean()}"
     )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Median LoC (statements): {stats_df[stats_df['dfg_extract_time'] > float('-inf')]['loc'].median()}"
     )
-    jetbrains_iterator.print(
+    iterator.print(
         f"Kept notebooks: {stats_df[stats_df['keep'] == True].shape[0]}/{stats_df.shape[0]}"
     )
 
@@ -193,6 +204,22 @@ if __name__ == "__main__":
     parser.add_argument("--draw", action="store_true", help="Draw the data flow graph")
     parser.add_argument("--start_index", type=int, default=0, help="Start index")
     parser.add_argument("--stop_index", type=int, default=250000, help="End index")
+    parser.add_argument(
+        "--iterator_type",
+        type=str,
+        default="jetbrains",
+        choices=["jetbrains", "local"],
+        help="Iterator type to use.",
+    )
+    parser.add_argument(
+        "--local_path",
+        type=str,
+        default=None,
+        help="Local path to notebooks, required if iterator_type is local.",
+    )
     args = parser.parse_args()
+
+    if args.iterator_type == "local" and args.local_path is None:
+        parser.error("--local_path is required when --iterator_type is local")
 
     mine_dataflows_on_jetbrains_dataset(args)
