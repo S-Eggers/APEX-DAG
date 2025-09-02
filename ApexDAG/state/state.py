@@ -308,6 +308,21 @@ class State:
 
                 nodes_to_remove.update(nodes_to_remove_eda)
 
+            # second preprocessing step: flip node types for predicted labels
+            for u, v, data in self._G.edges(data=True):
+                if (
+                    data.get("predicted_label")
+                    == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]
+                ):
+                    self._G.nodes[v]["node_type"] = NODE_TYPES["DATASET"]
+                    for succ in self._G.successors(v):
+                        for _, edge_data in self._G.get_edge_data(v, succ).items():
+                            if (
+                                edge_data.get("predicted_label")
+                                == DOMAIN_EDGE_TYPES["DATA_TRANSFORM"]
+                            ):
+                                self._G.nodes[succ]["node_type"] = NODE_TYPES["DATASET"]
+
         self._G.remove_nodes_from(nodes_to_remove)
 
     def optimize(self) -> None:

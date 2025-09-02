@@ -138,14 +138,14 @@ const initialLegendItemsLineage: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_blue,
-    label: 'Dataset / Dataframe',
+    color: colors.light_green,
+    label: 'Dataset',
     borderStyle: 'solid',
     numericType: 2
   },
   {
     type: 'node',
-    color: colors.light_green,
+    color: colors.very_soft_blue,
     label: 'UDF',
     borderStyle: 'solid',
     numericType: 3
@@ -292,9 +292,9 @@ export default function Graph({
         case 1:
           return colors.pink;
         case 2:
-          return colors.very_soft_blue;
-        case 3:
           return colors.light_green;
+        case 3:
+          return colors.very_soft_blue;
         default:
           return colors.light_steel_blue;
       }
