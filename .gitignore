@@ -205,3 +205,4 @@ web_path.json
 
 .ruff_cache*
 jetbrains_dfg_*
+customer_clean.json

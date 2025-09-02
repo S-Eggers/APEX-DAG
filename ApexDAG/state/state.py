@@ -272,6 +272,41 @@ class State:
 
                 if not has_special_edge:
                     nodes_to_remove.update(component)
+            
+            nodes_to_remove_eda = set()
+            for u, v, data in self._G.edges(data=True):
+                if data.get("predicted_label") == DOMAIN_EDGE_TYPES["EDA"]:
+                    nodes_to_remove_eda.add(v)
+
+            if nodes_to_remove_eda:
+                edges_to_add = []
+                
+                boundary_predecessors = {p for h in nodes_to_remove_eda for p in self._G.predecessors(h) if p not in nodes_to_remove_eda}
+
+                for pred in boundary_predecessors:
+                    q = [s for s in self._G.successors(pred) if s in nodes_to_remove_eda]
+                    visited = set(q)
+                    
+                    processed_successors = set()
+
+                    search_q = q[:]
+                    while search_q:
+                        curr = search_q.pop(0)
+                        for succ in self._G.successors(curr):
+                            if succ in nodes_to_remove_eda:
+                                if succ not in visited:
+                                    visited.add(succ)
+                                    search_q.append(succ)
+                            elif succ not in processed_successors:
+                                processed_successors.add(succ)
+                                if self._G.has_edge(curr, succ):
+                                    for _, data in self._G.get_edge_data(curr, succ).items():
+                                        edges_to_add.append((pred, succ, data.copy()))
+
+                for u, v, data in edges_to_add:
+                    self._G.add_edge(u, v, **data)
+
+                nodes_to_remove.update(nodes_to_remove_eda)
 
         self._G.remove_nodes_from(nodes_to_remove)
 
