@@ -123,6 +123,34 @@ const initialLegendItems: LegendItemType[] = [
 
 const initialLegendItemsLineage: LegendItemType[] = [
   {
+    type: 'node',
+    color: colors.light_steel_blue,
+    label: 'Variable',
+    borderStyle: 'solid',
+    numericType: 0
+  },
+  {
+    type: 'node',
+    color: colors.pink,
+    label: 'Library',
+    borderStyle: 'solid',
+    numericType: 1
+  },
+  {
+    type: 'node',
+    color: colors.very_soft_blue,
+    label: 'Dataset / Dataframe',
+    borderStyle: 'solid',
+    numericType: 2
+  },
+  {
+    type: 'node',
+    color: colors.light_green,
+    label: 'UDF',
+    borderStyle: 'solid',
+    numericType: 3
+  },
+  {
     type: 'edge',
     color: colors.light_salmon,
     label: 'Model Train/Eval',
@@ -256,11 +284,21 @@ export default function Graph({
   };
 
   const nodeType = (element: cytoscape.SingularElementReturnValue) => {
-    if (mode === 'lineage') {
-      return colors.light_steel_blue;
-    }
-
     const caseType = element.data('node_type');
+    if (mode === 'lineage') {
+      switch (caseType) {
+        case 0:
+          return colors.light_steel_blue;
+        case 1:
+          return colors.pink;
+        case 2:
+          return colors.very_soft_blue;
+        case 3:
+          return colors.light_green;
+        default:
+          return colors.light_steel_blue;
+      }
+    }
     switch (caseType) {
       case 0:
         return colors.light_steel_blue;

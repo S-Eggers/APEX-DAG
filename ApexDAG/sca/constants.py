@@ -1,7 +1,8 @@
 NODE_TYPES = {
     "VARIABLE": 0,
     "IMPORT": 1,
-    "LITERAL": 2,
+    # "LITERAL": 2,
+    "DATASET": 2,
     "FUNCTION": 3,
     "INTERMEDIATE": 4,
     "IF": 5,
