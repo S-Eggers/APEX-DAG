@@ -242,10 +242,8 @@ class State:
                 "Ignoring edge %s -> %s with code %s", source, target, code
             )
 
-    def filter_relevant(self) -> None:
+    def _filter_irrelevant_dataflow(self) -> set:
         nodes_to_remove = set()
-
-        # filter irrelevant dataflow
         for node in self.node_iterator():
             if (
                 self._G.out_degree(node) == 0
@@ -254,74 +252,105 @@ class State:
                 == NODE_TYPES["IMPORT"]
             ):
                 nodes_to_remove.add(node)
+        return nodes_to_remove
 
-        # filter non-data parts of the pipeline
-        if any("predicted_label" in data for _, _, data in self._G.edges(data=True)):
-            component_generator = nx.weakly_connected_components(self._G)
-            for component in component_generator:
-                has_special_edge = False
-                subgraph = self._G.subgraph(component)
-
-                for _, _, data in subgraph.edges(data=True):
+    def _filter_unlabeled_components(self) -> set:
+        nodes_to_remove = set()
+        for component in nx.weakly_connected_components(self._G):
+            has_special_edge = False
+            for node in component:
+                for _, _, data in self._G.edges(node, data=True):
                     if (
                         data.get("predicted_label")
                         == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]
                     ):
                         has_special_edge = True
                         break
-
-                if not has_special_edge:
-                    nodes_to_remove.update(component)
+                if has_special_edge:
+                    break
             
-            nodes_to_remove_eda = set()
-            for u, v, data in self._G.edges(data=True):
-                if data.get("predicted_label") == DOMAIN_EDGE_TYPES["EDA"]:
-                    nodes_to_remove_eda.add(v)
+            if not has_special_edge:
+                nodes_to_remove.update(component)
+        return nodes_to_remove
+
+    def _rewire_eda_nodes(self) -> tuple[set, list]:
+        nodes_to_remove_eda = {
+            v for _, v, data in self._G.edges(data=True)
+            if data.get("predicted_label") == DOMAIN_EDGE_TYPES["EDA"]
+        }
+
+        if not nodes_to_remove_eda:
+            return set(), []
+
+        edges_to_add = []
+        
+        boundary_predecessors = {
+            p for h in nodes_to_remove_eda 
+            for p in self._G.predecessors(h) 
+            if p not in nodes_to_remove_eda
+        }
+
+        for pred in boundary_predecessors:
+            # Traversal starting from nodes inside the EDA component that are successors of `pred`
+            search_q = [s for s in self._G.successors(pred) if s in nodes_to_remove_eda]
+            visited_in_eda = set(search_q)
+            
+            processed_external_succs = set()
+
+            while search_q:
+                curr = search_q.pop(0)
+                for succ in self._G.successors(curr):
+                    if succ in nodes_to_remove_eda:
+                        if succ not in visited_in_eda:
+                            visited_in_eda.add(succ)
+                            search_q.append(succ)
+                    elif succ not in processed_external_succs:
+                        processed_external_succs.add(succ)
+                        if self._G.has_edge(curr, succ):
+                            for _, data in self._G.get_edge_data(curr, succ).items():
+                                edges_to_add.append((pred, succ, data.copy()))
+        
+        return nodes_to_remove_eda, edges_to_add
+
+    def _update_node_types(self) -> None:
+        q = []
+        for _, v, data in self._G.edges(data=True):
+            if data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]:
+                if self._G.nodes[v].get("node_type") != NODE_TYPES["DATASET"]:
+                    self._G.nodes[v]["node_type"] = NODE_TYPES["DATASET"]
+                    q.append(v)
+        
+        visited = set(q)
+        while q:
+            curr = q.pop(0)
+            for succ in self._G.successors(curr):
+                if succ not in visited:
+                    is_dataset_transform = False
+                    # Check all edges between curr and succ
+                    for _, edge_data in self._G.get_edge_data(curr, succ).items():
+                        if edge_data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_TRANSFORM"]:
+                            is_dataset_transform = True
+                            break
+                    
+                    if is_dataset_transform:
+                        self._G.nodes[succ]["node_type"] = NODE_TYPES["DATASET"]
+                        visited.add(succ)
+                        q.append(succ)
+
+    def filter_relevant(self) -> None:
+        nodes_to_remove = self._filter_irrelevant_dataflow()
+
+        if any("predicted_label" in data for _, _, data in self._G.edges(data=True)):
+            nodes_to_remove.update(self._filter_unlabeled_components())
+            
+            nodes_to_remove_eda, edges_to_add = self._rewire_eda_nodes()
 
             if nodes_to_remove_eda:
-                edges_to_add = []
-                
-                boundary_predecessors = {p for h in nodes_to_remove_eda for p in self._G.predecessors(h) if p not in nodes_to_remove_eda}
-
-                for pred in boundary_predecessors:
-                    q = [s for s in self._G.successors(pred) if s in nodes_to_remove_eda]
-                    visited = set(q)
-                    
-                    processed_successors = set()
-
-                    search_q = q[:]
-                    while search_q:
-                        curr = search_q.pop(0)
-                        for succ in self._G.successors(curr):
-                            if succ in nodes_to_remove_eda:
-                                if succ not in visited:
-                                    visited.add(succ)
-                                    search_q.append(succ)
-                            elif succ not in processed_successors:
-                                processed_successors.add(succ)
-                                if self._G.has_edge(curr, succ):
-                                    for _, data in self._G.get_edge_data(curr, succ).items():
-                                        edges_to_add.append((pred, succ, data.copy()))
-
                 for u, v, data in edges_to_add:
                     self._G.add_edge(u, v, **data)
-
                 nodes_to_remove.update(nodes_to_remove_eda)
 
-            # second preprocessing step: flip node types for predicted labels
-            for u, v, data in self._G.edges(data=True):
-                if (
-                    data.get("predicted_label")
-                    == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]
-                ):
-                    self._G.nodes[v]["node_type"] = NODE_TYPES["DATASET"]
-                    for succ in self._G.successors(v):
-                        for _, edge_data in self._G.get_edge_data(v, succ).items():
-                            if (
-                                edge_data.get("predicted_label")
-                                == DOMAIN_EDGE_TYPES["DATA_TRANSFORM"]
-                            ):
-                                self._G.nodes[succ]["node_type"] = NODE_TYPES["DATASET"]
+            self._update_node_types()
 
         self._G.remove_nodes_from(nodes_to_remove)
 
