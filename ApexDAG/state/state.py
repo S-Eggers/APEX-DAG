@@ -337,10 +337,10 @@ class State:
                         visited.add(succ)
                         q.append(succ)
 
-    def filter_relevant(self) -> None:
+    def filter_relevant(self, lineage_mode: bool = False) -> None:
         nodes_to_remove = self._filter_irrelevant_dataflow()
 
-        if any("predicted_label" in data for _, _, data in self._G.edges(data=True)):
+        if lineage_mode:
             nodes_to_remove.update(self._filter_unlabeled_components())
             
             nodes_to_remove_eda, edges_to_add = self._rewire_eda_nodes()

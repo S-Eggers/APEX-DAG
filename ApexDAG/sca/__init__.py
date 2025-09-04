@@ -3,12 +3,14 @@ This module initializes the SCA (Static Code Analysis) package of the ApexDAG li
 """
 
 from ApexDAG.sca.ast_graph import ASTGraph
+
 from ApexDAG.sca.constants import (
     VERBOSE,
     NODE_TYPES,
     EDGE_TYPES,
     REVERSE_NODE_TYPES,
     REVERSE_EDGE_TYPES,
+    DOMAIN_EDGE_TYPES
 )
 from ApexDAG.sca.graph_utils import (
     convert_multidigraph_to_digraph,
