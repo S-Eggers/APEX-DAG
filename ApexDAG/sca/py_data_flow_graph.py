@@ -323,6 +323,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         return node
 
+    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AsyncFunctionDef:
+        self.visit_FunctionDef(node)
+        return node
+
     def visit_Call(self, node: ast.Call) -> ast.Call:
         caller_object_name = None
         function_name = None
@@ -1223,7 +1227,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     if key_names := self._get_names(key):
                         names.extend(key_names)
                 return names
-            case ast.FunctionDef():
+            case ast.FunctionDef() | ast.AsyncFunctionDef():
                 return [node.name]
             case ast.Subscript():
                 return self._get_names(node.value)
