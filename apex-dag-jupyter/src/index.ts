@@ -3,20 +3,80 @@ import {
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
 import { ICommandPalette, MainAreaWidget } from '@jupyterlab/apputils';
-import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { ILauncher } from '@jupyterlab/launcher';
+import { IMainMenu } from '@jupyterlab/mainmenu';
 import {
   INotebookTracker,
-  NotebookPanel,
-  NotebookActions
+  NotebookActions,
+  NotebookPanel
 } from '@jupyterlab/notebook';
-import { IMainMenu } from '@jupyterlab/mainmenu';
+import { ISettingRegistry } from '@jupyterlab/settingregistry';
 
 import { GraphWidget } from './components/widget/GraphWidget';
-import ApexIcon from './utils/ApexIcon';
-import updateWidget from './utils/updateWidget';
-import updateLineageWidget from './utils/updateLineageWidget';
 import CommandIDs from './types/CommandIDs';
+import ApexIcon from './utils/ApexIcon';
+import updateLineageWidget from './utils/updateLineageWidget';
+import updateWidget from './utils/updateWidget';
+
+class AppSettings {
+  debounceDelay = -1;
+  replaceDataflowInUDFs = false;
+  highlightRelevantSubgraphs = false;
+  greedyNotebookExtraction = true;
+  llmClassification = false;
+
+  update(settings: ISettingRegistry.ISettings) {
+    this.debounceDelay =
+      (settings.get('debounceDelay').composite as number) ?? 1000;
+    this.replaceDataflowInUDFs =
+      (settings.get('replaceDataflowInUDFs').composite as boolean) ?? false;
+    this.highlightRelevantSubgraphs =
+      (settings.get('highlightRelevantSubgraphs').composite as boolean) ??
+      false;
+    this.greedyNotebookExtraction =
+      (settings.get('greedyNotebookExtraction').composite as boolean) ?? true;
+    this.llmClassification =
+      (settings.get('llmClassification').composite as boolean) ?? false;
+    console.debug('APEX-DAG settings updated:', this);
+  }
+}
+
+function createAndShowWidget(
+  app: JupyterFrontEnd,
+  label: string,
+  type?: 'lineage'
+): GraphWidget {
+  const content = new GraphWidget(type);
+  const widget = new MainAreaWidget<GraphWidget>({ content });
+  widget.title.label = label;
+  widget.title.icon = ApexIcon;
+  widget.title.closable = true;
+  app.shell.add(widget, 'main');
+  return content;
+}
+
+function addMenuWidget(
+  app: JupyterFrontEnd,
+  palette: ICommandPalette,
+  launcher: ILauncher,
+  commandId: string,
+  label: string,
+  category: string,
+  rank: number,
+  onExecute: () => void
+): { command: string; category: string; rank: number } {
+  app.commands.addCommand(commandId, {
+    caption: label,
+    label: label,
+    icon: args => (args['isPalette'] ? undefined : ApexIcon),
+    execute: onExecute
+  });
+
+  const commandItem = { command: commandId, category, rank };
+  palette.addItem(commandItem);
+  launcher.add(commandItem);
+  return commandItem;
+}
 
 /**
  * Initialization data for the apex-dag-jupyter extension.
@@ -35,104 +95,99 @@ const plugin: JupyterFrontEndPlugin<void> = {
     mainMenu: IMainMenu,
     settingRegistry: ISettingRegistry | null
   ) => {
-    let debounceDelay: number = -1;
-    let replaceDataflowInUDFs: boolean = false;
-    let highlightRelevantSubgraphs: boolean = false;
-    let greedyNotebookExtraction: boolean = true;
-    let llmClassification: boolean = false;
+    console.debug('JupyterLab extension apex-dag-jupyter is activated!');
+    const appSettings = new AppSettings();
+
+    let dataflowGraphWidget: GraphWidget;
+    let lineageGraphWidget: GraphWidget;
+    let lastActiveNotebook: NotebookPanel | null = null;
+
+    const dataflowCmd = addMenuWidget(
+      app,
+      palette,
+      launcher,
+      CommandIDs.dataflow,
+      'Dataflow Widget',
+      'APEX-DAG',
+      1,
+      () => {
+        dataflowGraphWidget = createAndShowWidget(app, 'Dataflow Widget');
+        if (lastActiveNotebook) {
+          updateDataflow(lastActiveNotebook);
+        }
+      }
+    );
+
+    const lineageCmd = addMenuWidget(
+      app,
+      palette,
+      launcher,
+      CommandIDs.lineage,
+      'Lineage Widget',
+      'APEX-DAG',
+      2,
+      () => {
+        lineageGraphWidget = createAndShowWidget(
+          app,
+          'Lineage Widget',
+          'lineage'
+        );
+        if (lastActiveNotebook) {
+          updateLineage(lastActiveNotebook);
+        }
+      }
+    );
+
+    mainMenu.fileMenu.newMenu.addGroup([dataflowCmd, lineageCmd]);
+
+    const updateDataflow = (notebookPanel: NotebookPanel) => {
+      if (dataflowGraphWidget) {
+        updateWidget(
+          dataflowGraphWidget,
+          appSettings.replaceDataflowInUDFs,
+          appSettings.greedyNotebookExtraction,
+          appSettings.highlightRelevantSubgraphs,
+          notebookPanel
+        );
+      }
+    };
+
+    const updateLineage = (notebookPanel: NotebookPanel) => {
+      if (lineageGraphWidget) {
+        updateLineageWidget(
+          lineageGraphWidget,
+          appSettings.replaceDataflowInUDFs,
+          appSettings.highlightRelevantSubgraphs,
+          appSettings.greedyNotebookExtraction,
+          appSettings.llmClassification,
+          notebookPanel
+        );
+      }
+    };
 
     if (settingRegistry) {
       const settings = await settingRegistry.load(plugin.id);
-
       const onSettingsChanged = (
         newSettings: ISettingRegistry.ISettings
       ): void => {
-        debounceDelay =
-          (newSettings.get('debounceDelay').composite as number) ?? 1000;
-        replaceDataflowInUDFs =
-          (newSettings.get('replaceDataflowInUDFs').composite as boolean) ??
-          false;
-        highlightRelevantSubgraphs =
-          (newSettings.get('highlightRelevantSubgraphs')
-            .composite as boolean) ?? false;
-        greedyNotebookExtraction =
-          (newSettings.get('greedyNotebookExtraction').composite as boolean) ??
-          true;
-        llmClassification =
-          (newSettings.get('llmClassification').composite as boolean) ?? false;
-        console.debug('APEX-DAG settings updated:', {
-          debounceDelay,
-          replaceDataflowInUDFs,
-          highlightRelevantSubgraphs
-        });
-      }; // Load initial settings
-
-      onSettingsChanged(settings); // Listen for future changes
-
+        appSettings.update(newSettings);
+        const notebookPanel = tracker.currentWidget;
+        if (notebookPanel) {
+          updateDataflow(notebookPanel);
+          updateLineage(notebookPanel);
+        }
+      };
+      onSettingsChanged(settings);
       settings.changed.connect(onSettingsChanged);
     }
-
-    console.debug('JupyterLab extension apex-dag-jupyter is activated!');
-    console.debug('ICommandPalette:', palette);
-
-    const dataflowWidget: string = CommandIDs.dataflow;
-    let dataflowGraphWidget: GraphWidget;
-    app.commands.addCommand(dataflowWidget, {
-      caption: 'Dataflow Widget',
-      label: 'Dataflow Widget',
-      icon: args => (args['isPalette'] ? undefined : ApexIcon),
-      execute: () => {
-        const content = new GraphWidget();
-        const widget = new MainAreaWidget<GraphWidget>({ content });
-        widget.title.label = 'Dataflow Widget';
-        widget.title.icon = ApexIcon;
-        widget.title.closable = true;
-        app.shell.add(widget, 'main');
-        dataflowGraphWidget = content;
-      }
-    });
-
-    const dataflowCommandItem = {
-      command: dataflowWidget,
-      category: 'APEX-DAG',
-      rank: 1
-    };
-
-    const lineageWidget: string = CommandIDs.lineage;
-    let lineageGraphWidget: GraphWidget;
-    app.commands.addCommand(lineageWidget, {
-      caption: 'Lineage Widget',
-      label: 'Lineage Widget',
-      icon: args => (args['isPalette'] ? undefined : ApexIcon),
-      execute: () => {
-        const content = new GraphWidget('lineage');
-        const widget = new MainAreaWidget<GraphWidget>({ content });
-        widget.title.label = 'Lineage Widget';
-        widget.title.icon = ApexIcon;
-        widget.title.closable = true;
-        app.shell.add(widget, 'main');
-        lineageGraphWidget = content;
-      }
-    });
-
-    const lineageCommandItem = {
-      command: lineageWidget,
-      category: 'APEX-DAG',
-      rank: 2
-    };
-
-    palette.addItem(dataflowCommandItem);
-    palette.addItem(lineageCommandItem);
-    mainMenu.fileMenu.newMenu.addGroup([
-      dataflowCommandItem,
-      lineageCommandItem
-    ]);
-    launcher.add(dataflowCommandItem);
-    launcher.add(lineageCommandItem);
 
     let interval: NodeJS.Timeout;
     tracker.currentChanged.connect(
       async (sender, notebookPanel: NotebookPanel | null) => {
+        if (notebookPanel) {
+          lastActiveNotebook = notebookPanel;
+        }
+
         console.debug('Current notebook changed', notebookPanel);
         if (!notebookPanel) {
           if (interval) {
@@ -151,63 +206,30 @@ const plugin: JupyterFrontEndPlugin<void> = {
           return;
         }
 
-        console.debug('Initial call to updateWidget on notebook open');
-        updateWidget(
-          dataflowGraphWidget,
-          replaceDataflowInUDFs,
-          greedyNotebookExtraction,
-          highlightRelevantSubgraphs,
-          notebookPanel
-        );
-        updateLineageWidget(
-          lineageGraphWidget,
-          replaceDataflowInUDFs,
-          highlightRelevantSubgraphs,
-          greedyNotebookExtraction,
-          llmClassification,
-          notebookPanel
-        );
+        console.debug('Initial call to update widgets on notebook open');
+        updateDataflow(notebookPanel);
+        updateLineage(notebookPanel);
 
         model.contentChanged.connect(() => {
           console.debug('Notebook model changed!');
-          updateWidget(
-            dataflowGraphWidget,
-            replaceDataflowInUDFs,
-            greedyNotebookExtraction,
-            highlightRelevantSubgraphs,
-            notebookPanel
-          );
+          updateDataflow(notebookPanel);
 
-          if (debounceDelay >= 0) {
+          if (appSettings.debounceDelay >= 0) {
             if (interval) {
               clearTimeout(interval);
             }
 
             interval = setTimeout(() => {
               console.debug('Executing debounced lineage update.');
-              updateLineageWidget(
-                lineageGraphWidget,
-                replaceDataflowInUDFs,
-                highlightRelevantSubgraphs,
-                greedyNotebookExtraction,
-                llmClassification,
-                notebookPanel
-              );
-            }, debounceDelay);
+              updateLineage(notebookPanel);
+            }, appSettings.debounceDelay);
           }
         });
 
-        if (debounceDelay < 0) {
-          NotebookActions.executed.connect((sender, { notebook, cell }) => {
+        if (appSettings.debounceDelay < 0) {
+          NotebookActions.executed.connect((sender, { notebook }) => {
             if (notebookPanel && notebookPanel.content === notebook) {
-              updateLineageWidget(
-                lineageGraphWidget,
-                replaceDataflowInUDFs,
-                highlightRelevantSubgraphs,
-                greedyNotebookExtraction,
-                llmClassification,
-                notebookPanel
-              );
+              updateLineage(notebookPanel);
             }
           });
         }

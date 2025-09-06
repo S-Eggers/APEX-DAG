@@ -19,6 +19,7 @@ const GraphComponent = ({ eventTarget, mode = "dataflow" }: GraphComponentProps)
     };
 
     eventTarget.addEventListener("graph-update", handler);
+    // The reset-view event is now handled directly by Graph.tsx via eventTarget
 
     return () => {
       eventTarget.removeEventListener("graph-update", handler);
@@ -27,7 +28,7 @@ const GraphComponent = ({ eventTarget, mode = "dataflow" }: GraphComponentProps)
 
   return (
     <div className={"apexDagPage"}>
-      <Graph graphData={graphData} mode={mode} />
+      <Graph graphData={graphData} mode={mode} eventTarget={eventTarget} />
     </div>
   );};
 

@@ -52,9 +52,7 @@ class Stack:
 
         base_state = self._state[base_context]
         base_state.merge(*args)
-        for state, _, _ in args:
-            if state.context in self._state:
-                del self._state[state.context]
+        
 
         self._current_state = base_context
 

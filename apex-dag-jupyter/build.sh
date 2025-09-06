@@ -1,7 +1,19 @@
 #!/bin/bash
 set -e 
 
-current_version=$(grep '"version"' package.json | head -1 | sed -E 's/.*"([0-9]+)\.([0-9]+)\.([0-9]+)".*/\1.\2.\3/')
+# Ensure we are in the project root before creating the virtual environment
+cd ..
+
+# Create and activate a virtual environment if not already in one
+if [ -z "$VIRTUAL_ENV" ]; then
+    echo "Creating and activating virtual environment..."
+    python3 -m venv .venv
+    source .venv/bin/activate
+else
+    echo "Already in a virtual environment: $VIRTUAL_ENV"
+fi
+
+current_version=$(grep '"version"' apex-dag-jupyter/package.json | head -1 | sed -E 's/.*"([0-9]+)\.([0-9]+)\.([0-9]+)".*/\1.\2.\3/')
 major=$(echo "$current_version" | cut -d. -f1)
 minor=$(echo "$current_version" | cut -d. -f2)
 patch=$(echo "$current_version" | cut -d. -f3)
@@ -12,13 +24,11 @@ new_patch=$((patch + 1))
 new_version="$major.$minor.$new_patch"
 
 echo "New version: $new_version"
-sed -i.bak -E "s/\"version\": \"[0-9]+\.[0-9]+\.[0-9]+\"/\"version\": \"$new_version\"/" package.json
+sed -i.bak -E 's/"version": "[0-9]+\.[0-9]+\.[0-9]+"/"version": "'$new_version'"/' apex-dag-jupyter/package.json
 
-
-cd ..
 # install ApexDAG as module
 
-pip install -e .
+./.venv/bin/pip install -e .
 
 # install Jupyter extension
 cd ./apex-dag-jupyter
@@ -27,4 +37,4 @@ cd ./apex-dag-jupyter
 jlpm install
 jlpm build
 
-pip install -e .
+../.venv/bin/pip install -e .

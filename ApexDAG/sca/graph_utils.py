@@ -34,73 +34,42 @@ def convert_multidigraph_to_digraph(
             # Process all edges between u and v
             edges = list(G.get_edge_data(u, v).items())
 
-            # Create intermediate nodes and edges for multiple edges
+            # Determine the node type for intermediate nodes
+            u_node_type = new_G.nodes[u].get("node_type")
+            v_node_type = new_G.nodes[v].get("node_type")
+            intermediate_node_type = (
+                node_types["DATASET"]
+                if u_node_type == node_types["DATASET"]
+                and v_node_type == node_types["DATASET"]
+                else node_types["INTERMEDIATE"]
+            )
+
+            # Chain the edges through intermediate nodes
+            current_node = u
             for i, (_, edge_data) in enumerate(edges):
-                if i == 0:
-                    # Create the first intermediate node and edge
-                    intermediate_node = f"{v}_intermediate_1"
-                    new_G.add_node(
-                        intermediate_node,
-                        label=intermediate_node,
-                        node_type=node_types["INTERMEDIATE"],
-                    )
-                    if "predicted_label" in edge_data:
-                        new_G.add_edge(
-                            u,
-                            intermediate_node,
-                            code=edge_data["code"],
-                            edge_type=edge_data["edge_type"],
-                            predicted_label=edge_data["predicted_label"],
-                        )
-                    else:
-                        new_G.add_edge(
-                            u,
-                            intermediate_node,
-                            code=edge_data["code"],
-                            edge_type=edge_data["edge_type"],
-                        )
-                elif i < len(edges) - 1:
-                    # Create subsequent intermediate nodes and edges
-                    intermediate_node_prev = f"{v}_intermediate_{i}"
+                if i < len(edges) - 1:
+                    # Create intermediate node
                     intermediate_node = f"{v}_intermediate_{i + 1}"
                     new_G.add_node(
                         intermediate_node,
                         label=intermediate_node,
-                        node_type=node_types["INTERMEDIATE"],
+                        node_type=intermediate_node_type,
                     )
-                    if "predicted_label" in edge_data:
-                        new_G.add_edge(
-                            intermediate_node_prev,
-                            intermediate_node,
-                            code=edge_data["code"],
-                            edge_type=edge_data["edge_type"],
-                            predicted_label=edge_data["predicted_label"],
-                        )
-                    else:
-                        new_G.add_edge(
-                            intermediate_node_prev,
-                            intermediate_node,
-                            code=edge_data["code"],
-                            edge_type=edge_data["edge_type"],
-                        )
+                    target_node = intermediate_node
                 else:
-                    # Connect the last intermediate node to the original destination node
-                    intermediate_node_prev = f"{v}_intermediate_{i}"
-                    if "predicted_label" in edge_data:
-                        new_G.add_edge(
-                            intermediate_node_prev,
-                            v,
-                            code=edge_data["code"],
-                            edge_type=edge_data["edge_type"],
-                            predicted_label=edge_data["predicted_label"],
-                        )
-                    else:
-                        new_G.add_edge(
-                            intermediate_node_prev,
-                            v,
-                            code=edge_data["code"],
-                            edge_type=edge_data["edge_type"],
-                        )
+                    # The last edge connects to the original destination
+                    target_node = v
+
+                # Add the edge with its data
+                edge_attrs = {
+                    "code": edge_data["code"],
+                    "edge_type": edge_data["edge_type"],
+                }
+                if "predicted_label" in edge_data:
+                    edge_attrs["predicted_label"] = edge_data["predicted_label"]
+
+                new_G.add_edge(current_node, target_node, **edge_attrs)
+                current_node = target_node
 
             # Mark this pair as processed
             processed_edges.add(edge_pair)
