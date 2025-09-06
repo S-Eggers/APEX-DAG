@@ -100,6 +100,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
     let dataflowGraphWidget: GraphWidget;
     let lineageGraphWidget: GraphWidget;
+    let lastActiveNotebook: NotebookPanel | null = null;
 
     const dataflowCmd = addMenuWidget(
       app,
@@ -111,9 +112,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
       1,
       () => {
         dataflowGraphWidget = createAndShowWidget(app, 'Dataflow Widget');
-        const notebookPanel = tracker.currentWidget;
-        if (notebookPanel) {
-          updateDataflow(notebookPanel);
+        if (lastActiveNotebook) {
+          updateDataflow(lastActiveNotebook);
         }
       }
     );
@@ -132,9 +132,8 @@ const plugin: JupyterFrontEndPlugin<void> = {
           'Lineage Widget',
           'lineage'
         );
-        const notebookPanel = tracker.currentWidget;
-        if (notebookPanel) {
-          updateLineage(notebookPanel);
+        if (lastActiveNotebook) {
+          updateLineage(lastActiveNotebook);
         }
       }
     );
@@ -185,6 +184,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
     let interval: NodeJS.Timeout;
     tracker.currentChanged.connect(
       async (sender, notebookPanel: NotebookPanel | null) => {
+        if (notebookPanel) {
+          lastActiveNotebook = notebookPanel;
+        }
+
         console.debug('Current notebook changed', notebookPanel);
         if (!notebookPanel) {
           if (interval) {
