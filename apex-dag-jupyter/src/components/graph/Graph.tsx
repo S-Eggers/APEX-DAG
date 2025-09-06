@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 
@@ -209,6 +209,7 @@ interface GraphData {
 interface GraphProps {
   graphData?: GraphData;
   mode?: string;
+  eventTarget: EventTarget;
 }
 
 const filterLegendItems = (
@@ -253,7 +254,8 @@ const filterLegendItems = (
 
 export default function Graph({
   graphData = { elements: [] },
-  mode = 'dataflow'
+  mode = 'dataflow',
+  eventTarget
 }: GraphProps) {
   const layout = {
     name: 'dagre',
@@ -369,6 +371,8 @@ export default function Graph({
   const [activeLegendItems, setActiveLegendItems] =
     useState<LegendItemType[]>(initialLegendItems);
 
+  const cyRef = useRef<cytoscape.Core | null>(null);
+
   const drawGraph = () => {
     const cy = cytoscape({
       container: graphRef.current,
@@ -376,6 +380,8 @@ export default function Graph({
       layout: layout,
       elements: graphData.elements
     });
+
+    cyRef.current = cy; // Store the cy instance
 
     if (pan) {
       cy.pan(pan);
@@ -408,6 +414,24 @@ export default function Graph({
     console.log('Filtered legend items:', filtered);
     setActiveLegendItems(filtered);
   }, [graphData]);
+
+  const handleResetView = useCallback(() => {
+    if (cyRef.current) {
+      console.log('Resetting Cytoscape view (fit and zoom 1)');
+      cyRef.current.fit(); // Fit the graph to the viewport
+      cyRef.current.zoom(1); // Reset zoom to 1
+      setPan(cyRef.current.pan()); // Update React state
+      setZoom(cyRef.current.zoom()); // Update React state
+    }
+  }, [setPan, setZoom]); // Add setPan and setZoom to dependencies for useCallback
+
+  useEffect(() => {
+    eventTarget.addEventListener('reset-view', handleResetView);
+
+    return () => {
+      eventTarget.removeEventListener('reset-view', handleResetView);
+    };
+  }, [eventTarget, handleResetView]); // Add handleResetView to dependencies for useEffect
 
   return (
     <>

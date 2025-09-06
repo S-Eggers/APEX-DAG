@@ -30,4 +30,10 @@ export class GraphWidget extends ReactWidget {
     const event = new CustomEvent("graph-update", { detail: JSON.parse(graphData) });
     this.eventTarget.dispatchEvent(event);
   }
+
+  resetView(): void {
+    console.log("Resetting graph view");
+    const event = new CustomEvent("reset-view");
+    this.eventTarget.dispatchEvent(event);
+  }
 }
