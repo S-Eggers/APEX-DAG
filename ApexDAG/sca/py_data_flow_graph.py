@@ -328,6 +328,12 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_Call(self, node: ast.Call) -> ast.Call:
+        # Visit all arguments first to ensure any nested calls are processed
+        for arg in node.args:
+            self.visit(arg)
+        for keyword in node.keywords:
+            self.visit(keyword.value)
+
         caller_object_name = None
         function_name = None
 
@@ -336,13 +342,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             function_name = node.func.attr
             if hasattr(node.func, "value"):
                 node.func.value.parent = node.func
-                self.visit(node.func.value)
         elif isinstance(node.func, ast.Name):
             caller_object_name = self._get_caller_object(node.func)
             function_name = node.func.id
         elif isinstance(node.func, (ast.Call, ast.Subscript)):
             caller_object_name = self._get_caller_object(node.func)
             function_name = "__call__"
+            self.visit(node.func) # Ensure the function itself (if a call or subscript) is visited
         else:
             raise NotImplementedError(
                 f"Unsupported function call {ast.get_source_segment(self.code, node)} with node {ast.dump(node)}"
