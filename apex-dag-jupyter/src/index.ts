@@ -65,6 +65,25 @@ const plugin: JupyterFrontEndPlugin<void> = {
           replaceDataflowInUDFs,
           highlightRelevantSubgraphs
         });
+
+        const notebookPanel = tracker.currentWidget;
+        if (notebookPanel) {
+          updateWidget(
+            dataflowGraphWidget,
+            replaceDataflowInUDFs,
+            greedyNotebookExtraction,
+            highlightRelevantSubgraphs,
+            notebookPanel
+          );
+          updateLineageWidget(
+            lineageGraphWidget,
+            replaceDataflowInUDFs,
+            highlightRelevantSubgraphs,
+            greedyNotebookExtraction,
+            llmClassification,
+            notebookPanel
+          );
+        }
       }; // Load initial settings
 
       onSettingsChanged(settings); // Listen for future changes
