@@ -128,7 +128,7 @@ class State:
             self.add_node(var_name, NODE_TYPES["LOOP"])
             new_variable_versions[variable].append(var_name)
             self.add_edge(loop[1], var_name, "end_loop", EDGE_TYPES["LOOP"])
-            self.add_edge(var_name, loop[0], "restart_loop", EDGE_TYPES["LOOP"])
+            # self.add_edge(var_name, loop[0], "restart_loop", EDGE_TYPES["LOOP"])
 
         for variable, branches in branched_variables.items():
             if len(branches) > 1:

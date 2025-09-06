@@ -649,7 +649,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         for stmt in node.body:
             stmt.parent = node
             self.visit(stmt)
-        contexts = [(self._current_state, "loop", EDGE_TYPES["LOOP"])]
+        contexts = [(self._current_state, "start_loop", EDGE_TYPES["LOOP"])]
 
         if node.orelse and len(node.orelse) > 0:
             else_context = f"{var_version}_else"
@@ -722,7 +722,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             stmt.parent = node
             self.visit(stmt)
 
-        contexts = [(self._current_state, "loop", EDGE_TYPES["LOOP"])]
+        contexts = [(self._current_state, "start_loop", EDGE_TYPES["LOOP"])]
         if node.orelse and len(node.orelse) > 0:
             else_context = f"for_else_{node.lineno}"
             self._state_stack.create_child_state(else_context, parent_context)
