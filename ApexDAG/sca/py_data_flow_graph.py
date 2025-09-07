@@ -673,24 +673,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         self._current_state.set_current_variable(original_variable)
 
-        def get_target_components(raw_target_list: list) -> list[list[str]]:
-            """
-            Takes the raw output of _get_names and returns a clean list of component lists.
-            e.g., [['a'], ['b', 'c']] for (a, b.c)
-            """
-            components = []
-            if not raw_target_list:
-                return []
-
-            if isinstance(raw_target_list[0], list):  # Nested structure from a tuple
-                for sub_list in raw_target_list:
-                    components.extend(get_target_components(sub_list))
-            else:  # Base case: a single target's components
-                components.append(raw_target_list)
-            return components
-
         raw_targets = self._get_names(node.target)
-        all_targets = get_target_components(raw_targets) if raw_targets else []
+        all_targets = self._get_target_components(raw_targets) if raw_targets else []
 
         parent_context = self._current_state.context
         for_context = f"for_loop_{node.lineno}"
@@ -734,6 +718,69 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         self._state_stack.merge_states(parent_context, contexts)
         self._current_state = self._state_stack.get_current_state()
+        return node
+
+    def visit_ListComp(self, node: ast.ListComp) -> ast.ListComp:
+        parent_context = self._current_state.context
+        list_comp_context = f"list_comp_{node.lineno}"
+        self._state_stack.create_child_state(list_comp_context, parent_context)
+        self._current_state = self._state_stack.get_current_state()
+
+        for generator in node.generators:
+            # Handle the iterable
+            temp_iterable_node = (
+                f"iterable_{generator.iter.lineno}_{generator.iter.col_offset}"
+            )
+            self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
+
+            original_variable = self._current_state.current_variable
+            self._current_state.set_current_variable(temp_iterable_node)
+            self.visit(generator.iter)
+            self._current_state.set_current_variable(original_variable)
+
+            # Handle the target
+            raw_targets = self._get_names(generator.target)
+            all_targets = self._get_target_components(raw_targets) if raw_targets else []
+
+            for components in all_targets:
+                base_name = components[0]
+                target_version = self._get_versioned_name(
+                    base_name, generator.target.lineno
+                )
+                attribute_path = ".".join(components[1:])
+                edge_label = (
+                    f"iterate into {attribute_path}"
+                    if len(components) > 1
+                    else "iterate"
+                )
+
+                self._current_state.add_node(target_version, NODE_TYPES["VARIABLE"])
+                self._current_state.variable_versions[base_name] = [target_version]
+                self._current_state.add_edge(
+                    temp_iterable_node,
+                    target_version,
+                    edge_label,
+                    EDGE_TYPES["LOOP"],
+                    generator.target.lineno,
+                    generator.target.col_offset,
+                    generator.target.end_lineno,
+                    generator.target.end_col_offset,
+                )
+
+            # Handle the conditions
+            for if_cond in generator.ifs:
+                self.visit(if_cond)
+
+        # Handle the element expression
+        self.visit(node.elt)
+
+        # Merge the list comprehension state back to the parent
+        self._state_stack.merge_states(
+            parent_context,
+            [(self._current_state, "list_comp", EDGE_TYPES["CALLER"])],
+        )
+        self._current_state = self._state_stack.get_current_state()
+
         return node
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
@@ -1361,3 +1408,19 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             return flat_names[0] if flat_names else None
 
         return get_name(left), get_name(right)
+
+    def _get_target_components(self, raw_target_list: list) -> list[list[str]]:
+        """
+        Takes the raw output of _get_names and returns a clean list of component lists.
+        e.g., [['a'], ['b', 'c']] for (a, b.c)
+        """
+        components = []
+        if not raw_target_list:
+            return []
+
+        if isinstance(raw_target_list[0], list):  # Nested structure from a tuple
+            for sub_list in raw_target_list:
+                components.extend(self._get_target_components(sub_list))
+        else:  # Base case: a single target's components
+            components.append(raw_target_list)
+        return components

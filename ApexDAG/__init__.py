@@ -4,6 +4,7 @@ from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 from ApexDAG.sca.py_lineage_graph import PythonLineageGraph as LineageGraph
 from ApexDAG.util.notebook_stat_miner import NotebookStatMiner
 from ApexDAG.util.kaggle_dataset_iterator import KaggleDatasetIterator
+from ApexDAG.annotation.dynamic import Dynamic as DynamicType
 
 __all__ = [
     "Notebook",
@@ -12,4 +13,5 @@ __all__ = [
     "LineageGraph",
     "NotebookStatMiner",
     "KaggleDatasetIterator",
+    "DynamicType"
 ]
