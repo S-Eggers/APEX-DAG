@@ -721,45 +721,71 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_ListComp(self, node: ast.ListComp) -> ast.ListComp:
+        # This is the FINAL list node, e.g., "beam_search_tasks_12"
+        # It was set by the parent visit_Assign.
+        final_list_variable = self._current_state.current_variable
+        if not final_list_variable:
+            final_list_variable = f"list_comp_result_{node.lineno}"
+            self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
+
         parent_context = self._current_state.context
         list_comp_context = f"list_comp_{node.lineno}"
         self._state_stack.create_child_state(list_comp_context, parent_context)
         self._current_state = self._state_stack.get_current_state()
 
+        # 1. Create an "initial" list node for the child state
+        # This is your 'beam_search_task1'
+        start_loop_node = f"{final_list_variable}_start_loop"
+        self._current_state.add_node(start_loop_node, NODE_TYPES["INTERMEDIATE"])
+
+        initial_list_node = f"list_comp_start_{node.lineno}"
+        self._current_state.add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
+
+        self._current_state.add_edge(
+            start_loop_node,
+            initial_list_node,
+            "start_loop",
+            EDGE_TYPES["LOOP"],
+            node.lineno,
+            node.col_offset,
+            node.end_lineno,
+            node.end_col_offset,
+        )
+
+        current_list_version = initial_list_node
+        
+        # Also add the final list node to this context so we can link to it later
+        self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
+
         for generator in node.generators:
-            # Handle the iterable
+            # --- Process the Iterable (e.g., range(10)) ---
             temp_iterable_node = (
                 f"iterable_{generator.iter.lineno}_{generator.iter.col_offset}"
             )
             self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
 
+            # Visit the iterable, setting its node as the target
             original_variable = self._current_state.current_variable
             self._current_state.set_current_variable(temp_iterable_node)
             self.visit(generator.iter)
-            self._current_state.set_current_variable(original_variable)
-
-            # Handle the target
+            self._current_state.set_current_variable(original_variable) # Restore
+            
+            # --- Process the Loop Variable (e.g., _) ---
             raw_targets = self._get_names(generator.target)
             all_targets = self._get_target_components(raw_targets) if raw_targets else []
-
+            
             for components in all_targets:
                 base_name = components[0]
                 target_version = self._get_versioned_name(
                     base_name, generator.target.lineno
                 )
-                attribute_path = ".".join(components[1:])
-                edge_label = (
-                    f"iterate into {attribute_path}"
-                    if len(components) > 1
-                    else "iterate"
-                )
-
                 self._current_state.add_node(target_version, NODE_TYPES["VARIABLE"])
                 self._current_state.variable_versions[base_name] = [target_version]
+                # Link iterable to loop var
                 self._current_state.add_edge(
                     temp_iterable_node,
                     target_version,
-                    edge_label,
+                    "iterate",
                     EDGE_TYPES["LOOP"],
                     generator.target.lineno,
                     generator.target.col_offset,
@@ -767,12 +793,58 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     generator.target.end_col_offset,
                 )
 
-            # Handle the conditions
+            # --- Process the Element (THE KEY PART) ---
+            
+            # 2. Create a new intermediate list version
+            # This is your 'beam_search_task2'
+            intermediate_list_node = f"list_iter_node_{node.elt.lineno}_{node.elt.col_offset}"
+            self._current_state.add_node(intermediate_list_node, NODE_TYPES["VARIABLE"])
+
+            # 3. Add the 'append' edge from the previous list version
+            # This is your 'beam_search_task1 --append--> beam_search_task2'
+            self._current_state.add_edge(
+                current_list_version,
+                intermediate_list_node,
+                "append", # Replicates the for-loop 'append'
+                EDGE_TYPES["CALLER"],
+                node.elt.lineno,
+                node.elt.col_offset,
+                node.elt.end_lineno,
+                node.elt.end_col_offset,
+            )
+
+            # 4. Set current_variable to this new list version
+            self._current_state.set_current_variable(intermediate_list_node)
+            
+            # 5. Visit the element. All dataflow (e.g., from asyncio)
+            # will now flow to 'intermediate_list_node'
+            # This creates 'asyncio --create_task--> beam_search_task2'
+            self.visit(node.elt)
+            
+            # 6. Update the 'current_list_version' for the next iteration
+            current_list_version = intermediate_list_node
+
+            # Handle the 'if' conditions
             for if_cond in generator.ifs:
+                self._current_state.set_current_variable(current_list_version)
                 self.visit(if_cond)
 
-        # Handle the element expression
-        self.visit(node.elt)
+        # --- Finalize ---
+        # 7. Connect the very last list version to the final assigned variable
+        # This is your '... --end_loop--> loop_beam_search_task'
+        self._current_state.add_edge(
+            current_list_version,
+            final_list_variable,
+            "end_loop", # Your "end_loop"
+            EDGE_TYPES["LOOP"],
+            node.lineno,
+            node.col_offset,
+            node.end_lineno,
+            node.end_col_offset,
+        )
+
+        # Restore original variable before merging
+        self._current_state.set_current_variable(None)
 
         # Merge the list comprehension state back to the parent
         self._state_stack.merge_states(
