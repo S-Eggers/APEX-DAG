@@ -311,6 +311,9 @@ class GraphLabeler:
             edge, "MISSING"
         )
 
+    def get_total_tokens_used(self):
+        return self.total_tokens_used
+
     def label_graph(self):
         self.G_with_context.populate_edge_dict()
 

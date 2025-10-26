@@ -41,31 +41,30 @@ if __name__ == "__main__":
     parser.add_argument(
         "--source_path",
         type=str,
-        default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs",
+        default="jetbrains_dfg_100k_new/execution_graphs",
         help="Path to the input graph files",
     )
     parser.add_argument(
         "--target_path",
         type=str,
-        default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs",
+        default="jetbrains_dfg_100k_new/labelled_execution_graphs",
         help="Path to save labeled graph files",
     )
 
     args = parser.parse_args()
 
     config = load_config(args.config_path)
-    config.max_tokens = 1000000000
 
-    if not os.path.exists(args.source_path):
-        logging.error(f"Source path '{args.source_path}' does not exist.")
+    source_path = os.path.join(os.getcwd(), args.source_path)
+    if not os.path.exists(source_path):
+        logging.error(f"Source path '{source_path}' does not exist.")
         exit(1)
 
-    os.makedirs(args.target_path, exist_ok=True)
-    files = [f for f in os.listdir(args.source_path) if f.endswith(".execution_graph")]
-
+    os.makedirs(os.path.join(os.getcwd(), args.target_path), exist_ok=True)
+    files = [f for f in os.listdir(source_path) if f.endswith(".execution_graph")]
     for filename in tqdm(files, desc="Processing graph files"):
         if filename.endswith(".execution_graph"):
-            graph_file_path = os.path.join(args.source_path, filename)
+            graph_file_path = os.path.join(os.path.join(os.getcwd(), args.source_path), filename)
             logging.info(f"Processing file: {graph_file_path}")
 
             try:
@@ -74,8 +73,12 @@ if __name__ == "__main__":
 
                 labeler = GraphLabeler(config, graph_file_path, code_file_path)
                 G, G_with_context = labeler.label_graph()
+                total_tokens_used = labeler.get_total_tokens_used()
+                logging.info(f"Total tokens used: {total_tokens_used}")
+                config.max_tokens = config.max_tokens - total_tokens_used
+                logging.info(f"Remaining tokens: {config.max_tokens}")
 
-                output_directory = args.target_path
+                output_directory = os.path.join(os.getcwd(), args.target_path)
                 os.makedirs(output_directory, exist_ok=True)
 
                 output_file = os.path.join(output_directory, filename)
