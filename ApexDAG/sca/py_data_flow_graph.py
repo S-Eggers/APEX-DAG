@@ -505,8 +505,16 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         ):
             self._logger.debug("Processing library attribute %s", var_name)
             self._process_library_attr(node, var_name)
+            return node
         else:
             var_version = self._get_last_variable_version(var_name)
+            is_base_of_attribute = hasattr(node, "parent") and isinstance(
+                node.parent, ast.Attribute
+            )
+            if is_base_of_attribute:
+                self._current_state.set_last_variable(var_version)
+                return node
+
             edge_type = EDGE_TYPES["INPUT"]
             # Determine the full code context for more complex structures
             if hasattr(node, "parent") and isinstance(node.parent, ast.Subscript):
@@ -527,7 +535,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     node.end_lineno,
                     node.end_col_offset,
                 )
-                self._current_state.set_last_variable(var_version)
+            self._current_state.set_last_variable(None)
 
         return node
 
@@ -550,6 +558,16 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.end_lineno,
             node.end_col_offset,
         )
+
+        is_part_of_chain = hasattr(node, "parent") and isinstance(
+            node.parent, ast.Attribute
+        )
+        if is_part_of_chain:
+            self._current_state.set_last_variable(
+                self._current_state.current_variable
+            )
+        else:
+            self._current_state.set_last_variable(None)
 
         return node
 
@@ -1111,30 +1129,49 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         if should_inline:
             caller_return_variable = self._current_state.current_variable
-
+            current_context = self._current_state.context
             function_context = self._state_stack.functions[function_name]["context"]
             function_name_tokens = self._tokenize_method(function_name)
-
-            # Simplified argument mapping
-            arg_mapping = {}
             f_args = self._state_stack.functions[function_name]["args"]["args"]
-            for i, arg in enumerate(node.args):
+            param_to_caller_version = {}
+
+            for i, arg_node in enumerate(node.args):
                 if i < len(f_args):
-                    arg_mapping[self._get_base_name(arg)] = f_args[i]
+                    param_name = f_args[i]
+                    caller_base_name = self._get_base_name(arg_node)
+                    if caller_base_name:
+                        caller_version = self._get_last_variable_version(
+                            caller_base_name
+                        )
+                        if caller_version:
+                            param_to_caller_version[param_name] = caller_version
 
             for kw in node.keywords:
-                arg_mapping[self._get_base_name(kw.value)] = kw.arg
+                param_name = kw.arg
+                caller_base_name = self._get_base_name(kw.value)
+                if caller_base_name:
+                    caller_version = self._get_last_variable_version(caller_base_name)
+                    if caller_version:
+                        param_to_caller_version[param_name] = caller_version
 
-            current_context = self._current_state.context
             self._state_stack.restore_state(function_context)
             self._current_state = self._state_stack.get_current_state()
 
-            for key, value in arg_mapping.items():
-                if key in self._current_state.variable_versions:
-                    self._current_state.variable_versions[value] = (
-                        self._current_state.variable_versions[key]
+            for param_name, caller_node in param_to_caller_version.items():
+                if param_name in self._current_state.variable_versions:
+                    func_param_node = self._current_state.variable_versions[
+                        param_name
+                    ][0]
+                    self._current_state.add_edge(
+                        caller_node,
+                        func_param_node,
+                        "arg_pass",
+                        EDGE_TYPES["FUNCTION_CALL"],
+                        node.lineno,
+                        node.col_offset,
+                        node.end_lineno,
+                        node.end_col_offset,
                     )
-                    del self._current_state.variable_versions[key]
 
             if caller_return_variable:
                 return_nodes = self._state_stack.functions[function_name].get(
@@ -1151,7 +1188,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.end_lineno,
                         node.end_col_offset,
                     )
-
+            
             self._state_stack.merge_states(
                 current_context,
                 [
@@ -1173,7 +1210,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     self._tokenize_method(function_name),
                     EDGE_TYPES[
                         "FUNCTION_CALL"
-                    ],  # Using a specific edge type is good practice
+                    ],
                     node.lineno,
                     node.col_offset,
                     node.end_lineno,
