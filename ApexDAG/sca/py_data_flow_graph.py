@@ -964,24 +964,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_names = self._get_names(arg)
-                if not arg_names:
-                    continue
-                arg_name = flatten_list(arg_names)[0]
-
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._current_state.add_edge(
-                        arg_version,
-                        self._current_state.current_variable,
-                        code_segment,
-                        EDGE_TYPES["INPUT"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
+                self._process_name_attr_sub_args(node, arg)
             elif isinstance(arg, (ast.Tuple)):
                 arg_names = self._get_names(arg)
                 if not arg_names:
@@ -1031,28 +1014,29 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_names = self._get_names(arg)
-                if not arg_names:
-                    continue
-                arg_name = flatten_list(arg_names)[0]
-
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._current_state.add_edge(
-                        arg_version,
-                        self._current_state.current_variable,
-                        code_segment,
-                        EDGE_TYPES["INPUT"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
-            #else:
-            #    self.visit(arg)
+                self._process_name_attr_sub_args(node, arg)
 
         self._current_state.set_last_variable(import_node)
+
+    def _process_name_attr_sub_args(node, arg):
+        arg_names = self._get_names(arg)
+        if not arg_names:
+            return
+        arg_name = flatten_list(arg_names)[0]
+
+        if arg_name:
+            arg_version = self._get_last_variable_version(arg_name)
+            code_segment = self._tokenize_method(arg_name)
+            self._current_state.add_edge(
+                arg_version,
+                self._current_state.current_variable,
+                code_segment,
+                EDGE_TYPES["INPUT"],
+                node.lineno,
+                node.col_offset,
+                node.end_lineno,
+                node.end_col_offset,
+            )
 
     def _process_class_call(
         self, node: ast.Call, caller_object_name: str, tokens: str = None
@@ -1075,24 +1059,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_names = self._get_names(arg)
-                if not arg_names:
-                    continue
-                arg_name = flatten_list(arg_names)[0]
-
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._current_state.add_edge(
-                        arg_version,
-                        self._current_state.current_variable,
-                        code_segment,
-                        EDGE_TYPES["INPUT"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
+                self._process_name_attr_sub_args(node, arg)
 
         self._current_state.set_last_variable(class_node)
 
