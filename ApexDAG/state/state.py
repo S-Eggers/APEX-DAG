@@ -119,11 +119,12 @@ class State:
 
                 if is_loop and key in self.variable_versions:
                     last_var = self.variable_versions[key][-1]
-                    looped_variables[key] = (last_var, value[-1])
+                    child_last_var = value[-1]
+                    if last_var != child_last_var:
+                        looped_variables[key] = (last_var, child_last_var)
 
             self._G = nx.compose(self._G, state["_G"])
 
-        print(looped_variables)
         for variable, loop in looped_variables.items():
             var_name = f"loop_{'_'.join(loop)}"
             self.add_node(var_name, NODE_TYPES["LOOP"])

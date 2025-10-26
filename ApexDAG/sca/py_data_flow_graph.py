@@ -717,9 +717,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             base_name = components[0]
             if base_name in self._current_state.variable_versions:
                 del self._current_state.variable_versions[base_name]
-        print("merge")
         self._state_stack.merge_states(parent_context, contexts)
-        print("merge done")
         self._current_state = self._state_stack.get_current_state()
         return node
 
@@ -1021,7 +1019,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         self._current_state.set_last_variable(import_node)
 
-    def _process_name_attr_sub_args(node, arg):
+    def _process_name_attr_sub_args(self, node: ast.Call, arg: ast.AST) -> None:
         arg_names = self._get_names(arg)
         if not arg_names:
             return
