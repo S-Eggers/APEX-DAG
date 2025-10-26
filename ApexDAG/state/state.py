@@ -123,6 +123,7 @@ class State:
 
             self._G = nx.compose(self._G, state["_G"])
 
+        print(looped_variables)
         for variable, loop in looped_variables.items():
             var_name = f"loop_{'_'.join(loop)}"
             self.add_node(var_name, NODE_TYPES["LOOP"])

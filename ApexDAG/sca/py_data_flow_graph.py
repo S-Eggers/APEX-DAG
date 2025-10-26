@@ -668,13 +668,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_For(self, node: ast.For) -> ast.For:
-        temp_iterable_node = f"iterable_{node.lineno}_{node.col_offset}"
-        self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
-        original_variable = self._current_state.current_variable
-        self._current_state.set_current_variable(temp_iterable_node)
-        self.visit(node.iter)
-
-        self._current_state.set_current_variable(original_variable)
+        temp_iterable_node = self._handle_iterable(node.iter)
 
         raw_targets = self._get_names(node.target)
         all_targets = self._get_target_components(raw_targets) if raw_targets else []
@@ -719,7 +713,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 self.visit(stmt)
             contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
 
+        for components in all_targets:
+            base_name = components[0]
+            if base_name in self._current_state.variable_versions:
+                del self._current_state.variable_versions[base_name]
+        print("merge")
         self._state_stack.merge_states(parent_context, contexts)
+        print("merge done")
         self._current_state = self._state_stack.get_current_state()
         return node
 
@@ -735,6 +735,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._current_state = self._state_stack.get_current_state()
 
         start_loop_node = f"{final_list_variable}_start_loop"
+        # print(start_loop_node) <- beam_search_task_17_start_loop
         self._current_state.add_node(start_loop_node, NODE_TYPES["LOOP"])
         initial_list_node = f"list_comp_start_{node.lineno}"
         self._current_state.add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
@@ -753,15 +754,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
 
         for generator in node.generators:
-            temp_iterable_node = (
-                f"iterable_{generator.iter.lineno}_{generator.iter.col_offset}"
-            )
-            self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
-            original_variable = self._current_state.current_variable
-            self._current_state.set_current_variable(temp_iterable_node)
-            self.visit(generator.iter)
-            self._current_state.set_current_variable(None)
-            #self._current_state.set_current_variable(original_variable) # Restore
+            temp_iterable_node = self._handle_iterable(generator.iter)
             raw_targets = self._get_names(generator.target)
             all_targets = self._get_target_components(raw_targets) if raw_targets else []
             
@@ -816,7 +809,17 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.end_col_offset,
         )
         self._current_state.set_current_variable(None)
-        # Merge the list comprehension state back to the parent
+
+        for generator in node.generators:
+            raw_targets = self._get_names(generator.target)
+            all_targets = (
+                self._get_target_components(raw_targets) if raw_targets else []
+            )
+            for components in all_targets:
+                base_name = components[0]
+                if base_name in self._current_state.variable_versions:
+                    del self._current_state.variable_versions[base_name]
+
         self._state_stack.merge_states(
             parent_context,
             [(self._current_state, "list_comp", EDGE_TYPES["CALLER"])],
@@ -1435,3 +1438,19 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         else:  # Base case: a single target's components
             components.append(raw_target_list)
         return components
+
+    def _handle_iterable(self, iterable_node: ast.AST) -> str:
+        """
+        Handles the processing of an iterable node in a loop or comprehension.
+        Creates a temporary node for the iterable, visits it to connect its data flow,
+        and returns the name of the temporary iterable node.
+        """
+        temp_iterable_node = f"iterable_{iterable_node.lineno}_{iterable_node.col_offset}"
+        self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
+
+        original_variable = self._current_state.current_variable
+        self._current_state.set_current_variable(temp_iterable_node)
+        self.visit(iterable_node)
+        self._current_state.set_current_variable(original_variable)
+
+        return temp_iterable_node
