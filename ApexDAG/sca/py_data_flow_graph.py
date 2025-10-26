@@ -327,6 +327,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self.visit_FunctionDef(node)
         return node
 
+    def visit_Await(self, node: ast.Await) -> ast.Await:
+        return node
+
     def visit_Call(self, node: ast.Call) -> ast.Call:
         # Visit all arguments first to ensure any nested calls are processed
         for arg in node.args:
@@ -502,8 +505,16 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         ):
             self._logger.debug("Processing library attribute %s", var_name)
             self._process_library_attr(node, var_name)
+            return node
         else:
             var_version = self._get_last_variable_version(var_name)
+            is_base_of_attribute = hasattr(node, "parent") and isinstance(
+                node.parent, ast.Attribute
+            )
+            if is_base_of_attribute:
+                self._current_state.set_last_variable(var_version)
+                return node
+
             edge_type = EDGE_TYPES["INPUT"]
             # Determine the full code context for more complex structures
             if hasattr(node, "parent") and isinstance(node.parent, ast.Subscript):
@@ -524,7 +535,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     node.end_lineno,
                     node.end_col_offset,
                 )
-                self._current_state.set_last_variable(var_version)
+            self._current_state.set_last_variable(None)
 
         return node
 
@@ -547,6 +558,16 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.end_lineno,
             node.end_col_offset,
         )
+
+        is_part_of_chain = hasattr(node, "parent") and isinstance(
+            node.parent, ast.Attribute
+        )
+        if is_part_of_chain:
+            self._current_state.set_last_variable(
+                self._current_state.current_variable
+            )
+        else:
+            self._current_state.set_last_variable(None)
 
         return node
 
@@ -665,32 +686,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_For(self, node: ast.For) -> ast.For:
-        temp_iterable_node = f"iterable_{node.lineno}_{node.col_offset}"
-        self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
-        original_variable = self._current_state.current_variable
-        self._current_state.set_current_variable(temp_iterable_node)
-        self.visit(node.iter)
-
-        self._current_state.set_current_variable(original_variable)
-
-        def get_target_components(raw_target_list: list) -> list[list[str]]:
-            """
-            Takes the raw output of _get_names and returns a clean list of component lists.
-            e.g., [['a'], ['b', 'c']] for (a, b.c)
-            """
-            components = []
-            if not raw_target_list:
-                return []
-
-            if isinstance(raw_target_list[0], list):  # Nested structure from a tuple
-                for sub_list in raw_target_list:
-                    components.extend(get_target_components(sub_list))
-            else:  # Base case: a single target's components
-                components.append(raw_target_list)
-            return components
+        temp_iterable_node = self._handle_iterable(node.iter)
 
         raw_targets = self._get_names(node.target)
-        all_targets = get_target_components(raw_targets) if raw_targets else []
+        all_targets = self._get_target_components(raw_targets) if raw_targets else []
 
         parent_context = self._current_state.context
         for_context = f"for_loop_{node.lineno}"
@@ -732,8 +731,117 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 self.visit(stmt)
             contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
 
+        for components in all_targets:
+            base_name = components[0]
+            if base_name in self._current_state.variable_versions:
+                del self._current_state.variable_versions[base_name]
         self._state_stack.merge_states(parent_context, contexts)
         self._current_state = self._state_stack.get_current_state()
+        return node
+
+    def visit_ListComp(self, node: ast.ListComp) -> ast.ListComp:
+        final_list_variable = self._current_state.current_variable
+        if not final_list_variable:
+            final_list_variable = f"list_comp_result_{node.lineno}"
+            self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
+
+        parent_context = self._current_state.context
+        list_comp_context = f"list_comp_{node.lineno}"
+        self._state_stack.create_child_state(list_comp_context, parent_context)
+        self._current_state = self._state_stack.get_current_state()
+
+        start_loop_node = f"{final_list_variable}_start_loop"
+        # print(start_loop_node) <- beam_search_task_17_start_loop
+        self._current_state.add_node(start_loop_node, NODE_TYPES["LOOP"])
+        initial_list_node = f"list_comp_start_{node.lineno}"
+        self._current_state.add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
+        self._current_state.add_edge(
+            start_loop_node,
+            initial_list_node,
+            "start_loop",
+            EDGE_TYPES["LOOP"],
+            node.lineno,
+            node.col_offset,
+            node.end_lineno,
+            node.end_col_offset,
+        )
+
+        current_list_version = initial_list_node
+        self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
+
+        for generator in node.generators:
+            temp_iterable_node = self._handle_iterable(generator.iter)
+            raw_targets = self._get_names(generator.target)
+            all_targets = self._get_target_components(raw_targets) if raw_targets else []
+            
+            for components in all_targets:
+                base_name = components[0]
+                target_version = self._get_versioned_name(
+                    base_name, generator.target.lineno
+                )
+                self._current_state.add_node(target_version, NODE_TYPES["VARIABLE"])
+                self._current_state.variable_versions[base_name] = [target_version]
+                # Link iterable to loop var
+                self._current_state.add_edge(
+                    temp_iterable_node,
+                    target_version,
+                    "iterate",
+                    EDGE_TYPES["LOOP"],
+                    generator.target.lineno,
+                    generator.target.col_offset,
+                    generator.target.end_lineno,
+                    generator.target.end_col_offset,
+                )
+
+            intermediate_list_node = f"list_iter_node_{node.elt.lineno}_{node.elt.col_offset}"
+            self._current_state.add_node(intermediate_list_node, NODE_TYPES["VARIABLE"])
+            self._current_state.add_edge(
+                current_list_version,
+                intermediate_list_node,
+                "append",
+                EDGE_TYPES["CALLER"],
+                node.elt.lineno,
+                node.elt.col_offset,
+                node.elt.end_lineno,
+                node.elt.end_col_offset,
+            )
+            self._current_state.set_current_variable(intermediate_list_node)
+            self.visit(node.elt)
+            self._current_state.set_current_variable(None)
+            current_list_version = intermediate_list_node
+
+            for if_cond in generator.ifs:
+                self._current_state.set_current_variable(current_list_version)
+                self.visit(if_cond)
+
+        self._current_state.add_edge(
+            current_list_version,
+            final_list_variable,
+            "end_loop", 
+            EDGE_TYPES["LOOP"],
+            node.lineno,
+            node.col_offset,
+            node.end_lineno,
+            node.end_col_offset,
+        )
+        self._current_state.set_current_variable(None)
+
+        for generator in node.generators:
+            raw_targets = self._get_names(generator.target)
+            all_targets = (
+                self._get_target_components(raw_targets) if raw_targets else []
+            )
+            for components in all_targets:
+                base_name = components[0]
+                if base_name in self._current_state.variable_versions:
+                    del self._current_state.variable_versions[base_name]
+
+        self._state_stack.merge_states(
+            parent_context,
+            [(self._current_state, "list_comp", EDGE_TYPES["CALLER"])],
+        )
+        self._current_state = self._state_stack.get_current_state()
+
         return node
 
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
@@ -875,24 +983,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_names = self._get_names(arg)
-                if not arg_names:
-                    continue
-                arg_name = flatten_list(arg_names)[0]
-
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._current_state.add_edge(
-                        arg_version,
-                        self._current_state.current_variable,
-                        code_segment,
-                        EDGE_TYPES["INPUT"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
+                self._process_name_attr_sub_args(node, arg)
             elif isinstance(arg, (ast.Tuple)):
                 arg_names = self._get_names(arg)
                 if not arg_names:
@@ -942,26 +1033,29 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_names = self._get_names(arg)
-                if not arg_names:
-                    continue
-                arg_name = flatten_list(arg_names)[0]
-
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._current_state.add_edge(
-                        arg_version,
-                        self._current_state.current_variable,
-                        code_segment,
-                        EDGE_TYPES["INPUT"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
+                self._process_name_attr_sub_args(node, arg)
 
         self._current_state.set_last_variable(import_node)
+
+    def _process_name_attr_sub_args(self, node: ast.Call, arg: ast.AST) -> None:
+        arg_names = self._get_names(arg)
+        if not arg_names:
+            return
+        arg_name = flatten_list(arg_names)[0]
+
+        if arg_name:
+            arg_version = self._get_last_variable_version(arg_name)
+            code_segment = self._tokenize_method(arg_name)
+            self._current_state.add_edge(
+                arg_version,
+                self._current_state.current_variable,
+                code_segment,
+                EDGE_TYPES["INPUT"],
+                node.lineno,
+                node.col_offset,
+                node.end_lineno,
+                node.end_col_offset,
+            )
 
     def _process_class_call(
         self, node: ast.Call, caller_object_name: str, tokens: str = None
@@ -984,24 +1078,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                arg_names = self._get_names(arg)
-                if not arg_names:
-                    continue
-                arg_name = flatten_list(arg_names)[0]
-
-                if arg_name:
-                    arg_version = self._get_last_variable_version(arg_name)
-                    code_segment = self._tokenize_method(arg_name)
-                    self._current_state.add_edge(
-                        arg_version,
-                        self._current_state.current_variable,
-                        code_segment,
-                        EDGE_TYPES["INPUT"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
+                self._process_name_attr_sub_args(node, arg)
 
         self._current_state.set_last_variable(class_node)
 
@@ -1052,30 +1129,49 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         if should_inline:
             caller_return_variable = self._current_state.current_variable
-
+            current_context = self._current_state.context
             function_context = self._state_stack.functions[function_name]["context"]
             function_name_tokens = self._tokenize_method(function_name)
-
-            # Simplified argument mapping
-            arg_mapping = {}
             f_args = self._state_stack.functions[function_name]["args"]["args"]
-            for i, arg in enumerate(node.args):
+            param_to_caller_version = {}
+
+            for i, arg_node in enumerate(node.args):
                 if i < len(f_args):
-                    arg_mapping[self._get_base_name(arg)] = f_args[i]
+                    param_name = f_args[i]
+                    caller_base_name = self._get_base_name(arg_node)
+                    if caller_base_name:
+                        caller_version = self._get_last_variable_version(
+                            caller_base_name
+                        )
+                        if caller_version:
+                            param_to_caller_version[param_name] = caller_version
 
             for kw in node.keywords:
-                arg_mapping[self._get_base_name(kw.value)] = kw.arg
+                param_name = kw.arg
+                caller_base_name = self._get_base_name(kw.value)
+                if caller_base_name:
+                    caller_version = self._get_last_variable_version(caller_base_name)
+                    if caller_version:
+                        param_to_caller_version[param_name] = caller_version
 
-            current_context = self._current_state.context
             self._state_stack.restore_state(function_context)
             self._current_state = self._state_stack.get_current_state()
 
-            for key, value in arg_mapping.items():
-                if key in self._current_state.variable_versions:
-                    self._current_state.variable_versions[value] = (
-                        self._current_state.variable_versions[key]
+            for param_name, caller_node in param_to_caller_version.items():
+                if param_name in self._current_state.variable_versions:
+                    func_param_node = self._current_state.variable_versions[
+                        param_name
+                    ][0]
+                    self._current_state.add_edge(
+                        caller_node,
+                        func_param_node,
+                        "arg_pass",
+                        EDGE_TYPES["FUNCTION_CALL"],
+                        node.lineno,
+                        node.col_offset,
+                        node.end_lineno,
+                        node.end_col_offset,
                     )
-                    del self._current_state.variable_versions[key]
 
             if caller_return_variable:
                 return_nodes = self._state_stack.functions[function_name].get(
@@ -1092,7 +1188,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         node.end_lineno,
                         node.end_col_offset,
                     )
-
+            
             self._state_stack.merge_states(
                 current_context,
                 [
@@ -1114,7 +1210,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     self._tokenize_method(function_name),
                     EDGE_TYPES[
                         "FUNCTION_CALL"
-                    ],  # Using a specific edge type is good practice
+                    ],
                     node.lineno,
                     node.col_offset,
                     node.end_lineno,
@@ -1361,3 +1457,35 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             return flat_names[0] if flat_names else None
 
         return get_name(left), get_name(right)
+
+    def _get_target_components(self, raw_target_list: list) -> list[list[str]]:
+        """
+        Takes the raw output of _get_names and returns a clean list of component lists.
+        e.g., [['a'], ['b', 'c']] for (a, b.c)
+        """
+        components = []
+        if not raw_target_list:
+            return []
+
+        if isinstance(raw_target_list[0], list):  # Nested structure from a tuple
+            for sub_list in raw_target_list:
+                components.extend(self._get_target_components(sub_list))
+        else:  # Base case: a single target's components
+            components.append(raw_target_list)
+        return components
+
+    def _handle_iterable(self, iterable_node: ast.AST) -> str:
+        """
+        Handles the processing of an iterable node in a loop or comprehension.
+        Creates a temporary node for the iterable, visits it to connect its data flow,
+        and returns the name of the temporary iterable node.
+        """
+        temp_iterable_node = f"iterable_{iterable_node.lineno}_{iterable_node.col_offset}"
+        self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
+
+        original_variable = self._current_state.current_variable
+        self._current_state.set_current_variable(temp_iterable_node)
+        self.visit(iterable_node)
+        self._current_state.set_current_variable(original_variable)
+
+        return temp_iterable_node
