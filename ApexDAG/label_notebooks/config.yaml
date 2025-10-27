@@ -1,9 +1,9 @@
 model_name: "gemini-2.5-flash"
-max_tokens: 4000000
+max_tokens: 400000
 max_depth: 2
 llm_provider: "google"
 retry_attempts: 2
-retry_delay: 10
+retry_delay: 30
 success_delay: 5
 sleep_interval: 0
 max_workers: 4

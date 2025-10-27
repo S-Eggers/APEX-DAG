@@ -12,11 +12,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 log_format = "%(asctime)s - %(levelname)s - %(message)s"
+log_dir = "jetbrains_dfg_100k_new/logs"
+os.makedirs(log_dir, exist_ok=True)
+log_file = os.path.join(log_dir, "graph_labeling.log")
 
 logging.basicConfig(
     level=logging.INFO,
     format=log_format,
-    handlers=[logging.FileHandler("graph_labeling.log"), logging.StreamHandler()],
+    handlers=[
+        logging.FileHandler(log_file),
+        logging.StreamHandler()
+    ],
 )
 
 
@@ -60,30 +66,57 @@ if __name__ == "__main__":
         logging.error(f"Source path '{source_path}' does not exist.")
         exit(1)
 
-    os.makedirs(os.path.join(os.getcwd(), args.target_path), exist_ok=True)
-    files = [f for f in os.listdir(source_path) if f.endswith(".execution_graph")]
-    for filename in tqdm(files, desc="Processing graph files"):
-        if filename.endswith(".execution_graph"):
-            graph_file_path = os.path.join(os.path.join(os.getcwd(), args.source_path), filename)
-            logging.info(f"Processing file: {graph_file_path}")
+    target_dir = os.path.join(os.getcwd(), args.target_path)
+    os.makedirs(target_dir, exist_ok=True)
 
-            try:
-                G = load_graph(graph_file_path)
-                code_file_path = get_code_file_path(graph_file_path)
+    logging.info(f"Initializing processed files set from {target_dir}...")
+    processed_files = set(os.listdir(target_dir))
+    logging.info(f"Found {len(processed_files)} already processed files.")
 
-                labeler = GraphLabeler(config, graph_file_path, code_file_path)
-                G, G_with_context = labeler.label_graph()
-                total_tokens_used = labeler.get_total_tokens_used()
-                logging.info(f"Total tokens used: {total_tokens_used}")
-                config.max_tokens = config.max_tokens - total_tokens_used
-                logging.info(f"Remaining tokens: {config.max_tokens}")
+    try:
+        while True:
+            files = [f for f in os.listdir(source_path) if f.endswith(".execution_graph")]
+            
+            new_files = [f for f in files if f not in processed_files]
 
+            if not new_files:
+                logging.info("No new files found. Waiting for new files...")
+                time.sleep(60)
+                continue
+
+            for filename in tqdm(new_files, desc="Processing graph files"):
                 output_directory = os.path.join(os.getcwd(), args.target_path)
-                os.makedirs(output_directory, exist_ok=True)
-
                 output_file = os.path.join(output_directory, filename)
-                nx.write_gml(G, output_file)
 
-                logging.info(f"Saved labeled graph to: {output_file}")
-            except Exception as e:
-                logging.error(f"Failed to process {filename}: {e}", exc_info=True)
+                if os.path.exists(output_file):
+                    logging.info(f"Skipping already processed file: {filename}")
+                    processed_files.add(filename)
+                    continue
+
+                graph_file_path = os.path.join(source_path, filename)
+                logging.info(f"Processing file: {graph_file_path}")
+
+                try:
+                    G = load_graph(graph_file_path)
+                    code_file_path = get_code_file_path(graph_file_path)
+
+                    labeler = GraphLabeler(config, graph_file_path, code_file_path)
+                    G, G_with_context = labeler.label_graph()
+                    total_tokens_used = labeler.get_total_tokens_used()
+                    logging.info(f"Total tokens used: {total_tokens_used}")
+                    config.max_tokens = config.max_tokens - total_tokens_used
+                    logging.info(f"Remaining tokens: {config.max_tokens}")
+
+                    os.makedirs(output_directory, exist_ok=True)
+                    nx.write_gml(G, output_file)
+
+                    logging.info(f"Saved labeled graph to: {output_file}")
+                    processed_files.add(filename)
+                except Exception as e:
+                    logging.error(f"Failed to process {filename}: {e}", exc_info=True)
+            
+            logging.info("Finished processing all new files. Waiting for new files...")
+            time.sleep(60)
+
+    except KeyboardInterrupt:
+        logging.info("Graph labeling process interrupted by user.")
