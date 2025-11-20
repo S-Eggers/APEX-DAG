@@ -856,6 +856,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         self._state_stack.classes[name].append(target.id)
                     elif isinstance(target, ast.Attribute):
                         self._state_stack.classes[name].append(target.attr)
+            # add funct definitions maybe here as well 
 
         return node
 
@@ -1428,6 +1429,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self._current_state = self._state_stack.get_current_state()
             return reachable
 
+        # class instanced maybe
         return False
 
     def _function_accessible(self, name: str, max_depth: int = 99) -> bool:
