@@ -50,9 +50,9 @@ def main(argv=None):
 
 
 if __name__ == "__main__":
-    import fasttext.util
+    # import fasttext.util
 
-    fasttext.util.download_model("en", if_exists="ignore")
+    # fasttext.util.download_model("en", if_exists="ignore")
     matplotlib.use("agg")
 
     main(sys.argv[1:])

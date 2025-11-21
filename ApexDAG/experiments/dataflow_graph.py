@@ -27,7 +27,7 @@ def data_flow_graph_test(args, logger: logging.Logger) -> None:
     logger.debug(f"Building dataflow graph took {end_time - start_time}s")
 
     start_time = time.time()
-    dfg.draw(save_path = os.path.join("output", "dfg_images_unoptimized.png"))
+    # dfg.draw(save_path = os.path.join("output", "dfg_images_unoptimized.png"))
     end_time = time.time()
     logger.debug(f"Drawing dataflow graph images took {end_time - start_time}s")
 
@@ -38,7 +38,7 @@ def data_flow_graph_test(args, logger: logging.Logger) -> None:
     logger.debug(f"Optimizing dataflow graph took {end_time - start_time}s")
 
     start_time = time.time()
-    dfg.draw(save_path = os.path.join("output", "dfg_images.png"))
+    # dfg.draw(save_path = os.path.join("output", "dfg_images.png"))
     end_time = time.time()
     logger.debug(f"Drawing dataflow graph images took {end_time - start_time}s")
 

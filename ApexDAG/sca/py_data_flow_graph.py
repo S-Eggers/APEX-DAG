@@ -348,6 +348,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         elif isinstance(node.func, ast.Name):
             caller_object_name = self._get_caller_object(node.func)
             function_name = node.func.id
+            
+            names = self._get_names(node.func)
+            if names and self._class_accessible(names[0]):
+                self._state_stack.add_instantiated_class(names[0])
         elif isinstance(node.func, (ast.Call, ast.Subscript)):
             caller_object_name = self._get_caller_object(node.func)
             function_name = "__call__"
@@ -548,10 +552,16 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if self._current_state.last_variable:
             var_name = self._current_state.last_variable
 
+        if var_name in self._state_stack.instances:
+            #if method in 
+            method_name = self._state_stack.instances[var_name] + self._tokenize_method(node.attr)
+        else:
+            method_name = self._tokenize_method(node.attr)
+     
         self._current_state.add_edge(
             var_name,
             self._current_state.current_variable,
-            self._tokenize_method(node.attr),
+            method_name,
             EDGE_TYPES["CALLER"],
             node.lineno,
             node.col_offset,
@@ -856,7 +866,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         self._state_stack.classes[name].append(target.id)
                     elif isinstance(target, ast.Attribute):
                         self._state_stack.classes[name].append(target.attr)
-            # add funct definitions maybe here as well 
+            # add funct definitions maybe here as well  target should now be of type
 
         return node
 
@@ -1077,6 +1087,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.end_col_offset,
         )
 
+        self._state_stack.add_instance(class_node, self._current_state.current_variable)
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
                 self._process_name_attr_sub_args(node, arg)

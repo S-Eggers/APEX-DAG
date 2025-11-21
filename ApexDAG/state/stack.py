@@ -11,10 +11,14 @@ class Stack:
 
         self.imported_names = {}
         self.import_from_modules = {}
+        
         self.classes = {}
+        self.instantiated_classes = []
+        self.instances = {}
+        self.classes_to_indinstances = {}
+        
         self.functions = {}
         self.branches = []
-
         self._current_state = "module"
         self._state = {"module": State("module")}
 
@@ -32,6 +36,18 @@ class Stack:
 
         self._state[context] = State(context, parent_context)
         self._current_state = context
+        
+    def add_instantiated_class(self, classname):
+        if classname not in self.classes_to_indinstances:
+            self.classes_to_indinstances[classname] = []
+        self.instantiated_classes.append(classname)
+
+    def add_instance(self, classname, instance_name):
+        if classname not in self.classes_to_indinstances:
+            self.classes_to_indinstances[classname] = []
+        self.instantiated_classes.append(instance_name)
+        if instance_name not in self.instances:
+            self.instances[instance_name] = classname
 
     def restore_state(self, context: str) -> None:
         if context in self._state:
