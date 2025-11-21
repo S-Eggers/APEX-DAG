@@ -42,12 +42,36 @@ class Stack:
             self.classes_to_indinstances[classname] = []
         self.instantiated_classes.append(classname)
 
+    def extract_class_instances(self, instance_name):
+        def processed(name: str) -> str:
+            name = "_".join(name.split("_")[:-1])
+            return name
+        
+        instance_name = processed(instance_name)
+        if instance_name in self.instances:
+            classname = self.instances[instance_name]
+            return classname
+        return None
+    
     def add_instance(self, classname, instance_name):
+        def processed(name: str) -> str:
+            name = "_".join(name.split("_")[:-1])
+            return name
+        
+        instance_name = processed(instance_name)
         if classname not in self.classes_to_indinstances:
             self.classes_to_indinstances[classname] = []
         self.instantiated_classes.append(instance_name)
         if instance_name not in self.instances:
             self.instances[instance_name] = classname
+            
+    def is_in_instances(self, instance_name) -> bool:
+        def processed(name: str) -> str:
+            name = "_".join(name.split("_")[:-1])
+            return name
+        
+        instance_name = processed(instance_name)
+        return instance_name in self.instances
 
     def restore_state(self, context: str) -> None:
         if context in self._state:

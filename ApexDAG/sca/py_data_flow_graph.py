@@ -345,6 +345,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             function_name = node.func.attr
             if hasattr(node.func, "value"):
                 node.func.value.parent = node.func
+            if caller_object_name in self._state_stack.instances:
+                function_name = self._state_stack.instances[caller_object_name] + '.' + self._tokenize_method(function_name)
         elif isinstance(node.func, ast.Name):
             caller_object_name = self._get_caller_object(node.func)
             function_name = node.func.id
@@ -552,9 +554,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if self._current_state.last_variable:
             var_name = self._current_state.last_variable
 
-        if var_name in self._state_stack.instances:
-            #if method in 
-            method_name = self._state_stack.instances[var_name] + self._tokenize_method(node.attr)
+        if self._state_stack.is_in_instances(var_name):
+            method_name = self._state_stack.extract_class_instances(var_name) + '.' + self._tokenize_method(node.attr)
         else:
             method_name = self._tokenize_method(node.attr)
      
@@ -980,7 +981,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         previous_version = (
             previous_version if previous_version else self._current_state.last_variable
         )
-        tokens = self._tokenize_method(tokens)
+        tokens = tokens # self._tokenize_method(tokens)
         self._current_state.add_edge(
             previous_version,
             self._current_state.current_variable,
