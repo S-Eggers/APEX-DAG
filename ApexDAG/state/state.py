@@ -17,6 +17,7 @@ class State:
         self.functions: dict = {}
         self.current_target: str = None
         self.current_variable: str = None
+        self.current_class: str = None
         self.last_variable: str = None
         self.payload: dict = None
         self.context: str = name
@@ -29,6 +30,8 @@ class State:
                 return self.current_variable
             case "current_target":
                 return self.current_target
+            case "current_class":
+                return self.current_class
             case "last_variable":
                 return self.last_variable
             case "payload":
@@ -60,6 +63,8 @@ class State:
                 self.current_variable = value
             case "current_target":
                 self.current_target = value
+            case "current_class":
+                self.current_class = value
             case "last_variable":
                 self.last_variable = value
             case "payload":

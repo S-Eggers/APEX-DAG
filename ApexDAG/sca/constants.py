@@ -17,6 +17,7 @@ EDGE_TYPES = {
     "BRANCH": 3,
     "LOOP": 4,
     "FUNCTION_CALL": 5,
+    "CLASS_CALL": 6,
 }
 
 DOMAIN_EDGE_TYPES = {

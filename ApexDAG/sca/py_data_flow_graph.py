@@ -185,7 +185,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             parent = getattr(parent, "parent", None)
 
         if function_def_node:
-            function_name = function_def_node.name
+            function_name = self._get_names(function_def_node)[0]
 
             return_node_name = f"return_{function_name}_{node.lineno}"
             self._current_state.add_node(return_node_name, NODE_TYPES["INTERMEDIATE"])
@@ -214,14 +214,19 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         )
 
         if base_name and (not is_first_order or is_self_defined or is_imported):
-            self._current_state.set_current_variable(
-                self._get_versioned_name(base_name, node.lineno)
-            )
+            # check for prior version of the variable
+            prior_versions = self._current_state.variable_versions.get(base_name, [])
+            if prior_versions:
+                last_version = prior_versions[-1]
+                self._current_state.set_current_variable(last_version)
+            else:
+                self._current_state.set_current_variable(
+                    self._get_versioned_name(base_name, node.lineno)
+                )
+                self._current_state.add_node(
+                    self._current_state.current_variable, NODE_TYPES["VARIABLE"]
+                )
             self._current_state.set_current_target(base_name)
-            self._current_state.add_node(
-                self._current_state.current_variable, NODE_TYPES["VARIABLE"]
-            )
-
             node.value.parent = node
             self.visit(node.value)
 
@@ -298,6 +303,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             "kwargs": bool(node.args.kwarg),
             "vararg": bool(node.args.vararg),
             "return_nodes": [],
+            "parent_class": node.parent.name if isinstance(node.parent, ast.ClassDef) else None,
         }
         self._state_stack.functions[function_name]["args"] = self._process_arguments(
             node.args
@@ -332,10 +338,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> ast.Call:
         # Visit all arguments first to ensure any nested calls are processed
-        for arg in node.args:
-            self.visit(arg)
-        for keyword in node.keywords:
-            self.visit(keyword.value)
+
 
         caller_object_name = None
         function_name = None
@@ -363,17 +366,27 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             caller_object_name in self._state_stack.imported_names
             or caller_object_name in self._state_stack.import_from_modules
         ):
+            for arg in node.args:
+                self.visit(arg)
+            for keyword in node.keywords:
+                self.visit(keyword.value)
             self._process_library_call(node, caller_object_name, function_name)
         # we are calling a user defined class, e.g. dataframe = DataFrame(), ToDo: currently only working for Constructors
         elif (
             caller_object_name in self._state_stack.classes
+            or caller_object_name in self._state_stack.instances
             or function_name in self._state_stack.classes
         ):
-            self._process_class_call(node, caller_object_name, function_name)
+            is_instance = caller_object_name in self._state_stack.instances
+            self._process_class_call(node, caller_object_name, function_name, is_instance)
         # we are calling a user defined function, e.g. a lambda function stored in a variable
         elif (
             not caller_object_name or caller_object_name == function_name
         ) and function_name in self._state_stack.functions:
+            for arg in node.args:
+                self.visit(arg)
+            for keyword in node.keywords:
+                self.visit(keyword.value)
             self._process_function_call(node, function_name)
         elif function_name in [
             "enumerate",
@@ -385,11 +398,23 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             "map",
             "filter",
         ]:
+            for arg in node.args:
+                self.visit(arg)
+            for keyword in node.keywords:
+                self.visit(keyword.value)
             self._process_builtin_call(node, function_name)
         # we are calling a method of a object, e.g. dataframe = dataframe.dropna()
-        elif self._current_state.current_target:
+        elif self._current_state.current_target and not (caller_object_name in self._state_stack.instances):
+            for arg in node.args:
+                self.visit(arg)
+            for keyword in node.keywords:
+                self.visit(keyword.value)
             self._process_method_call(node, caller_object_name, function_name)
         else:
+            for arg in node.args:
+                self.visit(arg)
+            for keyword in node.keywords:
+                self.visit(keyword.value)
             code = ast.get_source_segment(self.code, node)
             self._logger.debug(
                 "Ignoring function call %s as it contains no data flow", code
@@ -847,7 +872,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def visit_ClassDef(self, node: ast.ClassDef) -> ast.ClassDef:
         name = node.name
         self._state_stack.classes[name] = [name]
+        self._current_state.current_class = name
         for stmt in node.body:
+            stmt.parent = node
+            self.visit(stmt)
             if isinstance(stmt, ast.FunctionDef):
                 self._state_stack.classes[name].append(stmt.name)
             elif isinstance(stmt, ast.Assign):
@@ -856,7 +884,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         self._state_stack.classes[name].append(target.id)
                     elif isinstance(target, ast.Attribute):
                         self._state_stack.classes[name].append(target.attr)
-
+        self._current_state.current_class = None
         return node
 
     def generic_visit(self, node: ast.AST) -> None:
@@ -1058,9 +1086,148 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             )
 
     def _process_class_call(
-        self, node: ast.Call, caller_object_name: str, tokens: str = None
+        self, node: ast.Call, caller_object_name: str, tokens: str = None, is_instance: bool = False
     ) -> None:
-        # Add the import node and connect it
+        replace_data_flow = self._replace_dataflow
+        if replace_data_flow:
+            # Extract class name and method name
+            parts = tokens.split(".")
+            if is_instance:
+                class_name = self._state_stack.instances[caller_object_name]
+                method_name = parts[-1]
+            else:
+                class_name = parts[0] if parts else caller_object_name
+                method_name = parts[-1] if len(parts) > 1 else "__init__"
+            
+            self._state_stack.add_class_instance(self._current_state.current_target, class_name)
+            
+            # Check if method exists in the class definition
+            if class_name in self._state_stack.classes:
+                full_method_name = f"{class_name}.{method_name}"
+                
+                if full_method_name in self._state_stack.functions:
+                    # Similar to function inlining:
+                    should_inline = (
+                        not self._state_stack.functions[full_method_name]["is_recursive"]
+                        and replace_data_flow
+                    )
+                    
+                    if should_inline:
+                        caller_return_variable = self._current_state.current_variable
+                        # get newset version of that 
+                        current_context = self._current_state.context
+                        method_context = self._state_stack.functions[full_method_name]["context"]
+                        
+                        # Get method arguments (skip 'self')
+                        f_args = self._state_stack.functions[full_method_name]["args"]["args"][1:]
+                        param_to_caller_version = {}
+                        
+                        # Map caller arguments to method parameters
+                        for i, arg_node in enumerate(node.args):
+                            if i < len(f_args):
+                                param_name = f_args[i]
+                                caller_base_name = self._get_base_name(arg_node)
+                                if caller_base_name:
+                                    caller_version = self._get_last_variable_version(caller_base_name)
+                                    if caller_version:
+                                        param_to_caller_version[param_name] = caller_version
+                        
+                        # Switch to method context
+                        self._state_stack.restore_state(method_context)
+                        self._current_state = self._state_stack.get_current_state()
+                        
+                        # Connect caller args to method params
+                        instance_version = caller_return_variable
+                        
+                        if not is_instance:
+                            # Create instance variable for class method calls
+                            class_node = self._state_stack.classes[caller_object_name][0]
+                            self._current_state.add_node(class_node, NODE_TYPES["CLASS"])
+                            tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
+                            tokens = self._tokenize_method(tokens)
+                            self._current_state.add_edge(
+                                class_node,
+                                caller_return_variable,
+                                tokens,
+                                EDGE_TYPES["CALLER"],
+                                node.lineno,
+                                node.col_offset,
+                                node.end_lineno,
+                                node.end_col_offset,
+                            )
+                                            
+                        for param_name, caller_node in param_to_caller_version.items():
+                            if param_name in self._current_state.variable_versions:
+                                func_param_node = self._current_state.variable_versions[param_name][0]
+                                self._current_state.add_edge(
+                                    caller_node,
+                                    func_param_node,
+                                    "arg_pass",
+                                    EDGE_TYPES["INPUT"],
+                                    node.lineno,
+                                    node.col_offset,
+                                    node.end_lineno,
+                                    node.end_col_offset,
+                                )
+                        
+                        # Handle 'self' parameter - connect to the instance
+                        if instance_version and 'self' in self._current_state.variable_versions:
+                            self_param_node = self._current_state.variable_versions['self'][0]
+                            last_self_param_node = self._get_last_variable_version("self")
+                            self._current_state.add_edge(
+                                instance_version,
+                                self_param_node,
+                                "self_binding",
+                                EDGE_TYPES["OMITTED"],
+                                node.lineno,
+                                node.col_offset,
+                                node.end_lineno,
+                                node.end_col_offset,
+                            )
+                            
+                            self._current_state.add_edge(
+                                last_self_param_node,
+                                instance_version,
+                                "self_binding",
+                                EDGE_TYPES["OMITTED"],
+                                node.lineno,
+                                node.col_offset,
+                                node.end_lineno,
+                                node.end_col_offset,
+                            )
+                        
+                        # Connect return values
+                        if caller_return_variable:
+                            return_nodes = self._state_stack.functions[full_method_name].get("return_nodes", [])
+                            for return_node in return_nodes:
+                                self._current_state.add_edge(
+                                    return_node,
+                                    caller_return_variable,
+                                    "return",
+                                    EDGE_TYPES["OMITTED"],
+                                    node.lineno,
+                                    node.col_offset,
+                                    node.end_lineno,
+                                    node.end_col_offset,
+                                )
+                        
+                        # Merge method context back into caller context
+                        self._state_stack.merge_class_method_state(
+                            current_context,
+                            self._current_state,
+                            self._tokenize_method(tokens),
+                            EDGE_TYPES["CLASS_CALL"],
+                            instance_name=instance_version,
+                            base_name=self._get_base_name(instance_version)
+                        )
+                        self._current_state = self._state_stack.get_current_state()
+                        
+                        # 
+                        
+                        # TOIDO: figure out how to handle scope
+                        return
+        
+        # Fall back to original black-box behavior
         class_node = self._state_stack.classes[caller_object_name][0]
         self._current_state.add_node(class_node, NODE_TYPES["CLASS"])
         tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
@@ -1075,11 +1242,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             node.end_lineno,
             node.end_col_offset,
         )
-
+        
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
                 self._process_name_attr_sub_args(node, arg)
-
+        
         self._current_state.set_last_variable(class_node)
 
     def _process_builtin_call(self, node: ast.Call, function_name: str) -> None:
@@ -1330,6 +1497,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         names.extend(key_names)
                 return names
             case ast.FunctionDef() | ast.AsyncFunctionDef():
+                if isinstance(node.parent, ast.ClassDef):
+                    return [f"{node.parent.name}.{node.name}"]
                 return [node.name]
             case ast.Subscript():
                 return self._get_names(node.value)
