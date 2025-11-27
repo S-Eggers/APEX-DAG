@@ -1137,7 +1137,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         self._current_state = self._state_stack.get_current_state()
                         
                         # Connect caller args to method params
-                        instance_version = caller_return_variable
+                        if is_instance:
+                            instance_version = self._get_last_variable_version(caller_object_name)
+                        else:
+                            instance_version = caller_return_variable
                         
                         if not is_instance:
                             # Create instance variable for class method calls
