@@ -1,4 +1,5 @@
 from typing import Optional
+import networkx as nx
 
 from ApexDAG.util.logging import setup_logging
 from ApexDAG.sca.constants import VERBOSE
@@ -103,7 +104,6 @@ class Stack:
                     self._state['module'].variable_versions[self._state['module'].current_target].append(instance_attr)
         
         # Create a new graph with renamed nodes for merging
-        import networkx as nx
         renamed_graph = nx.MultiDiGraph()
         
         # Add all nodes with mapping applied
@@ -160,9 +160,6 @@ class Stack:
                 base_state.variable_versions[var_name] = versions
         
         # Compose the renamed graph into base state
-        import networkx as nx
-        print("Base graph nodes before merge:", base_state._G.nodes(data=True))
-        print("Renamed graph nodes to merge:", renamed_graph.nodes(data=True))
         base_state._G = nx.compose(base_state._G, renamed_graph)
         
         self._current_state = base_context
