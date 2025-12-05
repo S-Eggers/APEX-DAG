@@ -1,0 +1,454 @@
+======================================================================
+NOTEBOOK DATASET ANALYSIS REPORT
+Generated: 2025-12-05 02:21:39
+Dataset: /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets
+======================================================================
+
+OVERALL SUMMARY
+----------------------------------------
+Total notebooks:     1888
+Successful:          1556 (82.4%)
+Errors:              332 (17.6%)
+
+NODE COUNT DISTRIBUTION (ALL)
+----------------------------------------
+Min:     0
+Max:     468
+Mean:    44.3
+Median:  31
+
+NODE COUNT HISTOGRAM
+----------------------------------------
+       0-9:  212 ██████████████████
+     10-24:  422 ████████████████████████████████████
+     25-49:  468 ████████████████████████████████████████
+     50-99:  308 ██████████████████████████
+   100-249:  133 ███████████
+   250-499:   13 █
+   500-999:    0 
+     1000+:    0 
+
+PER-LIBRARY BREAKDOWN
+======================================================================
+
+ ALBUMENTATIONS
+----------------------------------------
+  Total:     50
+  Success:   38 (76.0%)
+  Errors:    12 (24.0%)
+  Nodes:     min=2, max=160, mean=54.7
+  Top errors:
+    - (2x) State list_comp_62 already exists...
+    - (1x) State list_comp_24 already exists...
+    - (1x) invalid syntax (<unknown>, line 7)...
+
+ AUTOGLUON
+----------------------------------------
+  Total:     50
+  Success:   44 (88.0%)
+  Errors:    6 (12.0%)
+  Nodes:     min=5, max=401, mean=40.4
+  Top errors:
+    - (1x) Unsupported nbformat version 5...
+    - (1x) invalid syntax (<unknown>, line 38)...
+    - (1x) invalid syntax. Maybe you meant '==' or ':=' inste...
+
+ CATBOOST
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=4, max=229, mean=74.2
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+    - (1x) invalid syntax (<unknown>, line 16)...
+    - (1x) State list_comp_38 already exists...
+
+ DARTS
+----------------------------------------
+  Total:     50
+  Success:   42 (84.0%)
+  Errors:    8 (16.0%)
+  Nodes:     min=0, max=208, mean=57.7
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+    - (1x) invalid syntax (<unknown>, line 8)...
+    - (1x) unexpected indent (<unknown>, line 71)...
+
+ DETECTRON2
+----------------------------------------
+  Total:     49
+  Success:   38 (77.6%)
+  Errors:    11 (22.4%)
+  Nodes:     min=0, max=340, mean=61.0
+  Top errors:
+    - (2x) expected an indented block after 'if' statement on...
+    - (1x) unexpected indent (<unknown>, line 202)...
+    - (1x) State list_comp_104 already exists...
+
+ DGL
+----------------------------------------
+  Total:     50
+  Success:   40 (80.0%)
+  Errors:    10 (20.0%)
+  Nodes:     min=0, max=250, mean=42.0
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 55)...
+    - (1x) expected an indented block after 'if' statement on...
+    - (1x) State list_comp_260 already exists...
+
+ DIFFUSERS
+----------------------------------------
+  Total:     50
+  Success:   36 (72.0%)
+  Errors:    14 (28.0%)
+  Nodes:     min=2, max=128, mean=34.6
+  Top errors:
+    - (1x) invalid non-printable character U+2007 (<unknown>,...
+    - (1x) invalid syntax (<unknown>, line 64)...
+    - (1x) expected an indented block after 'if' statement on...
+
+ FLAIR
+----------------------------------------
+  Total:     50
+  Success:   42 (84.0%)
+  Errors:    8 (16.0%)
+  Nodes:     min=0, max=114, mean=34.1
+  Top errors:
+    - (2x) expected an indented block after 'except' statemen...
+    - (1x) State list_comp_178 already exists...
+    - (1x) invalid syntax (<unknown>, line 1)...
+
+ GENSIM
+----------------------------------------
+  Total:     50
+  Success:   34 (68.0%)
+  Errors:    16 (32.0%)
+  Nodes:     min=7, max=468, mean=80.9
+  Top errors:
+    - (3x) invalid syntax (<unknown>, line 1)...
+    - (1x) State list_comp_337 already exists...
+    - (1x) State list_comp_52 already exists...
+
+ GLUONTS
+----------------------------------------
+  Total:     41
+  Success:   37 (90.2%)
+  Errors:    4 (9.8%)
+  Nodes:     min=6, max=252, mean=50.0
+  Top errors:
+    - (1x) invalid character '’' (U+2019) (<unknown>, line 36...
+    - (1x) State list_comp_83 already exists...
+    - (1x) State list_comp_119 already exists...
+
+ GYMNASIUM
+----------------------------------------
+  Total:     50
+  Success:   43 (86.0%)
+  Errors:    7 (14.0%)
+  Nodes:     min=6, max=233, mean=43.0
+  Top errors:
+    - (1x) State list_comp_90 already exists...
+    - (1x) State list_comp_66 already exists...
+    - (1x) State list_comp_18 already exists...
+
+ H2O
+----------------------------------------
+  Total:     49
+  Success:   40 (81.6%)
+  Errors:    9 (18.4%)
+  Nodes:     min=0, max=181, mean=38.7
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you me...
+    - (1x) State list_comp_23 already exists...
+    - (1x) expected an indented block after 'if' statement on...
+
+ JAX
+----------------------------------------
+  Total:     50
+  Success:   40 (80.0%)
+  Errors:    10 (20.0%)
+  Nodes:     min=3, max=412, mean=48.9
+  Top errors:
+    - (1x) State list_comp_161 already exists...
+    - (1x) State list_comp_167 already exists...
+    - (1x) State list_comp_118 already exists...
+
+ KERAS
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=2, max=271, mean=44.0
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you me...
+    - (1x) unexpected indent (<unknown>, line 331)...
+    - (1x) State list_comp_18 already exists...
+
+ LANGCHAIN
+----------------------------------------
+  Total:     50
+  Success:   44 (88.0%)
+  Errors:    6 (12.0%)
+  Nodes:     min=3, max=50, mean=22.8
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 6)...
+    - (1x) State list_comp_82 already exists...
+    - (1x) invalid syntax (<unknown>, line 8)...
+
+ LIGHTGBM
+----------------------------------------
+  Total:     50
+  Success:   38 (76.0%)
+  Errors:    12 (24.0%)
+  Nodes:     min=0, max=252, mean=53.7
+  Top errors:
+    - (1x) State list_comp_54 already exists...
+    - (1x) invalid syntax (<unknown>, line 314)...
+    - (1x) invalid syntax (<unknown>, line 1)...
+
+ LLAMA_INDEX
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=4, max=115, mean=40.7
+  Top errors:
+    - (1x) State list_comp_116 already exists...
+    - (1x) State list_comp_409 already exists...
+    - (1x) unexpected indent (<unknown>, line 22)...
+
+ MXNET
+----------------------------------------
+  Total:     50
+  Success:   37 (74.0%)
+  Errors:    13 (26.0%)
+  Nodes:     min=0, max=129, mean=39.6
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you me...
+    - (1x) invalid syntax (<unknown>, line 1)...
+    - (1x) invalid syntax (<unknown>, line 7)...
+
+ NLTK
+----------------------------------------
+  Total:     50
+  Success:   42 (84.0%)
+  Errors:    8 (16.0%)
+  Nodes:     min=2, max=85, mean=33.9
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 59)...
+    - (1x) invalid syntax (<unknown>, line 1)...
+    - (1x) State list_comp_44 already exists...
+
+ OPENCV
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=7, max=111, mean=29.4
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+    - (1x) Missing parentheses in call to 'print'. Did you me...
+    - (1x) unterminated string literal (detected at line 445)...
+
+ OPTUNA
+----------------------------------------
+  Total:     50
+  Success:   41 (82.0%)
+  Errors:    9 (18.0%)
+  Nodes:     min=2, max=226, mean=47.0
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 237)...
+    - (1x) State list_comp_58 already exists...
+    - (1x) unindent does not match any outer indentation leve...
+
+ PADDLEPADDLE
+----------------------------------------
+  Total:     50
+  Success:   40 (80.0%)
+  Errors:    10 (20.0%)
+  Nodes:     min=0, max=137, mean=34.5
+  Top errors:
+    - (1x) invalid non-printable character U+00A0 (<unknown>,...
+    - (1x) invalid syntax (<unknown>, line 203)...
+    - (1x) State list_comp_131 already exists...
+
+ PROPHET
+----------------------------------------
+  Total:     50
+  Success:   43 (86.0%)
+  Errors:    7 (14.0%)
+  Nodes:     min=0, max=229, mean=40.0
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 32)...
+    - (1x) invalid syntax (<unknown>, line 16)...
+    - (1x) State list_comp_160 already exists...
+
+ PYCARET
+----------------------------------------
+  Total:     49
+  Success:   40 (81.6%)
+  Errors:    9 (18.4%)
+  Nodes:     min=0, max=155, mean=27.0
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 241)...
+    - (1x) '(' was never closed (<unknown>, line 100)...
+    - (1x) invalid syntax (<unknown>, line 72)...
+
+ PYTORCH
+----------------------------------------
+  Total:     50
+  Success:   43 (86.0%)
+  Errors:    7 (14.0%)
+  Nodes:     min=2, max=202, mean=52.5
+  Top errors:
+    - (1x) expected an indented block after function definiti...
+    - (1x) expected ':' (<unknown>, line 16)...
+    - (1x) State list_comp_65 already exists...
+
+ PYTORCH_GEOMETRIC
+----------------------------------------
+  Total:     50
+  Success:   41 (82.0%)
+  Errors:    9 (18.0%)
+  Nodes:     min=0, max=306, mean=46.6
+  Top errors:
+    - (1x) State list_comp_35 already exists...
+    - (1x) State list_comp_69 already exists...
+    - (1x) State list_comp_34 already exists...
+
+ RAY_TUNE
+----------------------------------------
+  Total:     50
+  Success:   39 (78.0%)
+  Errors:    11 (22.0%)
+  Nodes:     min=2, max=356, mean=47.8
+  Top errors:
+    - (2x) expected an indented block after 'except' statemen...
+    - (1x) State list_comp_202 already exists...
+    - (1x) invalid syntax. Perhaps you forgot a comma? (<unkn...
+
+ SKLEARN
+----------------------------------------
+  Total:     50
+  Success:   38 (76.0%)
+  Errors:    12 (24.0%)
+  Nodes:     min=0, max=224, mean=55.2
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you me...
+    - (1x) unindent does not match any outer indentation leve...
+    - (1x) '(' was never closed (<unknown>, line 57)...
+
+ SKTIME
+----------------------------------------
+  Total:     50
+  Success:   42 (84.0%)
+  Errors:    8 (16.0%)
+  Nodes:     min=4, max=144, mean=39.8
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+    - (1x) State list_comp_18 already exists...
+    - (1x) invalid syntax (<unknown>, line 50)...
+
+ SPACY
+----------------------------------------
+  Total:     50
+  Success:   34 (68.0%)
+  Errors:    16 (32.0%)
+  Nodes:     min=0, max=244, mean=34.7
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+    - (1x) State list_comp_63 already exists...
+    - (1x) State list_comp_202 already exists...
+
+ STABLE_BASELINES3
+----------------------------------------
+  Total:     50
+  Success:   42 (84.0%)
+  Errors:    8 (16.0%)
+  Nodes:     min=2, max=74, mean=32.2
+  Top errors:
+    - (1x) State list_comp_172 already exists...
+    - (1x) State list_comp_532 already exists...
+    - (1x) State list_comp_139 already exists...
+
+ STATSMODELS
+----------------------------------------
+  Total:     50
+  Success:   42 (84.0%)
+  Errors:    8 (16.0%)
+  Nodes:     min=4, max=252, mean=55.3
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 35)...
+    - (1x) unexpected indent (<unknown>, line 28)...
+    - (1x) State list_comp_58 already exists...
+
+ TENSORFLOW
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=2, max=100, mean=30.2
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 3)...
+    - (1x) State list_comp_271 already exists...
+    - (1x) State list_comp_57 already exists...
+
+ TIMM
+----------------------------------------
+  Total:     50
+  Success:   40 (80.0%)
+  Errors:    10 (20.0%)
+  Nodes:     min=4, max=318, mean=66.0
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 5)...
+    - (1x) State list_comp_44 already exists...
+    - (1x) State list_comp_184 already exists...
+
+ TORCHVISION
+----------------------------------------
+  Total:     50
+  Success:   38 (76.0%)
+  Errors:    12 (24.0%)
+  Nodes:     min=0, max=118, mean=47.4
+  Top errors:
+    - (2x) State list_comp_107 already exists...
+    - (2x) '(' was never closed (<unknown>, line 11)...
+    - (1x) unmatched ')' (<unknown>, line 363)...
+
+ TRANSFORMERS
+----------------------------------------
+  Total:     50
+  Success:   40 (80.0%)
+  Errors:    10 (20.0%)
+  Nodes:     min=0, max=175, mean=33.1
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+    - (1x) unterminated string literal (detected at line 41) ...
+    - (1x) State list_comp_105 already exists...
+
+ ULTRALYTICS
+----------------------------------------
+  Total:     50
+  Success:   47 (94.0%)
+  Errors:    3 (6.0%)
+  Nodes:     min=0, max=229, mean=30.2
+  Top errors:
+    - (1x) State list_comp_102 already exists...
+    - (1x) invalid syntax (<unknown>, line 17)...
+    - (1x) invalid syntax (<unknown>, line 1)...
+
+ XGBOOST
+----------------------------------------
+  Total:     50
+  Success:   43 (86.0%)
+  Errors:    7 (14.0%)
+  Nodes:     min=0, max=211, mean=51.8
+  Top errors:
+    - (1x) State list_comp_457 already exists...
+    - (1x) invalid syntax (<unknown>, line 156)...
+    - (1x) invalid syntax (<unknown>, line 42)...
+
+======================================================================
+END OF REPORT
+======================================================================
