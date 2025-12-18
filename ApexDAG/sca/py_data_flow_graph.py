@@ -409,6 +409,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 self.visit(arg)
             for keyword in node.keywords:
                 self.visit(keyword.value)
+            # List comp problem otherwise - args would be visited 2 times!!!
             self._process_method_call(node, caller_object_name, function_name)
         else:
             for arg in node.args:
@@ -866,6 +867,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             [(self._current_state, "list_comp", EDGE_TYPES["CALLER"])],
         )
         self._current_state = self._state_stack.get_current_state()
+        del self._state_stack._state[list_comp_context]
 
         return node
 
@@ -1484,7 +1486,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 return [node.id]
             case ast.Attribute():
                 name = self._get_names(node.value)
-                return (name + [node.attr]) if name else [node.attr]
+                return ([name[0] + "." + node.attr]) if name else [node.attr]
             case ast.Tuple() | ast.List() | ast.Set():
                 names = [
                     self._get_names(elt) for elt in node.elts if self._get_names(elt)
