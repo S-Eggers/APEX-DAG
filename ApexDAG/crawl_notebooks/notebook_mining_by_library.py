@@ -15,10 +15,10 @@ from datetime import datetime
 
 GITHUB_TOKEN: Optional[str] = os.getenv("GITHUB_TOKEN")
 # Download settings
-NOTEBOOKS_PER_LIBRARY = 50
+NOTEBOOKS_PER_LIBRARY = 500
 MAX_FILE_SIZE_KB = 50  # Skip notebooks larger than this
 MIN_FILE_SIZE_KB = 2    # Skip notebooks smaller than this (avoid empty/trivial notebooks)
-OUTPUT_DIR = "/home/nina/projects/APEX-DAG/data/notebook_data"
+OUTPUT_DIR = "/home/nina/projects/APEX-DAG/data/notebook_data_larger"
 
 # Rate limiting (GitHub allows 30 search requests/min authenticated, 10 unauth)
 SEARCH_DELAY_SECONDS = 2.5
