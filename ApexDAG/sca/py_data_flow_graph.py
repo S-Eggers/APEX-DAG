@@ -772,7 +772,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
 
         parent_context = self._current_state.context
-        list_comp_context = f"list_comp_{node.lineno}"
+        if self._state_stack.nested:
+            list_comp_context = f"{parent_context}_nested_list_comp_{node.lineno}"
+        else:
+            list_comp_context = f"list_comp_{node.lineno}"
         self._state_stack.create_child_state(list_comp_context, parent_context)
         self._current_state = self._state_stack.get_current_state()
 
@@ -832,7 +835,12 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 node.elt.end_col_offset,
             )
             self._current_state.set_current_variable(intermediate_list_node)
-            self.visit(node.elt)
+            
+            if isinstance(node.elt, ast.ListComp):
+                self._state_stack.nested = True
+                self.visit(node.elt)
+                self._state_stack.nested = False
+            
             self._current_state.set_current_variable(None)
             current_list_version = intermediate_list_node
 
