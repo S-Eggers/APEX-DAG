@@ -196,7 +196,7 @@ def analyze_dataset(root_path: str, output_file: str = "analysis_report.txt") ->
             report_lines.append("  Top errors:")
             for err, cnt in sorted(
                 stats["error_messages"].items(), key=lambda x: -x[1]
-            )[:3]:
+            )[:10]:
                 report_lines.append(f"    - ({cnt}x) {err}...")
 
                 notebooks = stats["error_notebooks"][err][:5]
@@ -229,7 +229,7 @@ def main():
     parser.add_argument(
         "--path",
         help="Path to the root of the notebook dataset",
-        default = "/home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets"
+        default = "/home/nina/projects/APEX-DAG/data/notebook_data_larger"
     )
     parser.add_argument(
         "-o", "--output",
