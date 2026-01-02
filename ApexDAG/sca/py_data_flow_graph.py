@@ -784,6 +784,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._current_state.add_node(start_loop_node, NODE_TYPES["LOOP"])
         initial_list_node = f"list_comp_start_{node.lineno}"
         self._current_state.add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
+        self._current_state.set_current_variable(start_loop_node)
         self._current_state.add_edge(
             start_loop_node,
             initial_list_node,
@@ -821,20 +822,21 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     generator.target.end_lineno,
                     generator.target.end_col_offset,
                 )
+                self._current_state.add_edge(
+                    target_version,
+                    start_loop_node,
+                    "iterate",
+                    EDGE_TYPES["LOOP"],
+                    generator.target.lineno,
+                    generator.target.col_offset,
+                    generator.target.end_lineno,
+                    generator.target.end_col_offset,
+                )
 
-            intermediate_list_node = f"list_iter_node_{node.elt.lineno}_{node.elt.col_offset}"
-            self._current_state.add_node(intermediate_list_node, NODE_TYPES["VARIABLE"])
-            self._current_state.add_edge(
-                current_list_version,
-                intermediate_list_node,
-                "append",
-                EDGE_TYPES["CALLER"],
-                node.elt.lineno,
-                node.elt.col_offset,
-                node.elt.end_lineno,
-                node.elt.end_col_offset,
-            )
-            self._current_state.set_current_variable(intermediate_list_node)
+            for if_cond in generator.ifs:
+                self.visit(if_cond)
+            
+            # self._current_state.set_current_variable(intermediate_list_node)
             
             if isinstance(node.elt, ast.ListComp):
                 self._state_stack.nested = True
@@ -842,7 +844,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 self._state_stack.nested = False
             
             self._current_state.set_current_variable(None)
-            current_list_version = intermediate_list_node
+            # current_list_version = intermediate_list_node
 
             for if_cond in generator.ifs:
                 self._current_state.set_current_variable(current_list_version)

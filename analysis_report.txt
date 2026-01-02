@@ -1,6 +1,6 @@
 ======================================================================
 NOTEBOOK DATASET ANALYSIS REPORT
-Generated: 2025-12-19 04:10:31
+Generated: 2026-01-02 13:52:25
 Dataset: /home/nina/projects/APEX-DAG/data/notebook_data_larger
 ======================================================================
 
@@ -13,18 +13,18 @@ Errors:              343 (11.1%)
 NODE COUNT DISTRIBUTION (ALL)
 ----------------------------------------
 Min:     0
-Max:     588
-Mean:    46.1
-Median:  32
+Max:     585
+Mean:    45.5
+Median:  31
 
 NODE COUNT HISTOGRAM
 ----------------------------------------
        0-9:  374 ███████████████████
-     10-24:  722 █████████████████████████████████████
-     25-49:  779 ████████████████████████████████████████
-     50-99:  591 ██████████████████████████████
-   100-249:  243 ████████████
-   250-499:   28 █
+     10-24:  727 █████████████████████████████████████
+     25-49:  783 ████████████████████████████████████████
+     50-99:  593 ██████████████████████████████
+   100-249:  233 ███████████
+   250-499:   27 █
    500-999:    1 
      1000+:    0 
 
@@ -36,7 +36,7 @@ PER-LIBRARY BREAKDOWN
   Total:     83
   Success:   76 (91.6%)
   Errors:    7 (8.4%)
-  Nodes:     min=0, max=291, mean=50.6
+  Nodes:     min=0, max=285, mean=50.2
   Top errors:
     - (1x) invalid syntax (<unknown>, line 511)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/albumentations/uhlmanngroup_AURA-Net_AURA_net.ipynb
@@ -58,7 +58,7 @@ PER-LIBRARY BREAKDOWN
   Total:     60
   Success:   52 (86.7%)
   Errors:    8 (13.3%)
-  Nodes:     min=0, max=398, mean=34.6
+  Nodes:     min=0, max=395, mean=34.2
   Top errors:
     - (1x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/autogluon/chiharuishida_Tutorialdata_AutoGluon_tabulardata.ipynb
@@ -82,7 +82,7 @@ PER-LIBRARY BREAKDOWN
   Total:     54
   Success:   51 (94.4%)
   Errors:    3 (5.6%)
-  Nodes:     min=2, max=215, mean=65.4
+  Nodes:     min=2, max=209, mean=64.8
   Top errors:
     - (1x) invalid syntax (<unknown>, line 417)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/catboost/rarkhipov_pdd_code_model.ipynb
@@ -96,7 +96,7 @@ PER-LIBRARY BREAKDOWN
   Total:     67
   Success:   60 (89.6%)
   Errors:    7 (10.4%)
-  Nodes:     min=0, max=588, mean=59.7
+  Nodes:     min=0, max=585, mean=59.1
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/darts/dvoskov_DARTS-workshop_3.Dead_oil_model.ipynb
@@ -117,7 +117,7 @@ PER-LIBRARY BREAKDOWN
   Total:     119
   Success:   90 (75.6%)
   Errors:    29 (24.4%)
-  Nodes:     min=0, max=304, mean=62.2
+  Nodes:     min=0, max=301, mean=61.3
   Top errors:
     - (2x) invalid syntax (<unknown>, line 78)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/detectron2/Alex1114_Mask-RCNN-Detectron2_evaluate-MaskRCNN-SubT-checkpoint.ipynb
@@ -147,7 +147,7 @@ PER-LIBRARY BREAKDOWN
   Total:     102
   Success:   94 (92.2%)
   Errors:    8 (7.8%)
-  Nodes:     min=0, max=331, mean=56.7
+  Nodes:     min=0, max=323, mean=56.0
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/dgl/YichengDWu_Restricted-Boltzmann-Machines-in-dgl_RBM.ipynb
@@ -170,7 +170,7 @@ PER-LIBRARY BREAKDOWN
   Total:     88
   Success:   73 (83.0%)
   Errors:    15 (17.0%)
-  Nodes:     min=0, max=198, mean=40.8
+  Nodes:     min=0, max=195, mean=40.4
   Top errors:
     - (2x) invalid syntax (<unknown>, line 15)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/diffusers/psyker-team_mist-v2_mist_v2.ipynb
@@ -199,7 +199,7 @@ PER-LIBRARY BREAKDOWN
   Total:     72
   Success:   61 (84.7%)
   Errors:    11 (15.3%)
-  Nodes:     min=3, max=132, mean=35.7
+  Nodes:     min=3, max=130, mean=35.2
   Top errors:
     - (3x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/flair/Deepank-01_NER_model_-_Stats_Untitled1.ipynb
@@ -227,7 +227,7 @@ PER-LIBRARY BREAKDOWN
   Total:     50
   Success:   42 (84.0%)
   Errors:    8 (16.0%)
-  Nodes:     min=0, max=260, mean=48.0
+  Nodes:     min=0, max=260, mean=47.1
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/gensim/peiyuntsai_BEMM466_PeiYun.ipynb
@@ -250,7 +250,7 @@ PER-LIBRARY BREAKDOWN
   Total:     42
   Success:   40 (95.2%)
   Errors:    2 (4.8%)
-  Nodes:     min=4, max=217, mean=50.5
+  Nodes:     min=4, max=202, mean=49.3
   Top errors:
     - (1x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/gluonts/OneFineStarstuff_State-of-the-Art_GluonTS_for_Time_Series_Models.ipynb
@@ -262,7 +262,7 @@ PER-LIBRARY BREAKDOWN
   Total:     80
   Success:   71 (88.8%)
   Errors:    9 (11.2%)
-  Nodes:     min=0, max=264, mean=48.9
+  Nodes:     min=0, max=263, mean=48.7
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/gymnasium/carlkaziboni_learnRL_unit1.ipynb
@@ -287,7 +287,7 @@ PER-LIBRARY BREAKDOWN
   Total:     67
   Success:   59 (88.1%)
   Errors:    8 (11.9%)
-  Nodes:     min=0, max=168, mean=29.5
+  Nodes:     min=0, max=168, mean=29.3
   Top errors:
     - (2x) Missing parentheses in call to 'print'. Did you mean print(...)? (<unknown>, lin...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/h2o/Brett777_Predict-Risk_H2OandXGBoostonGPU.ipynb
@@ -308,7 +308,7 @@ PER-LIBRARY BREAKDOWN
   Total:     115
   Success:   103 (89.6%)
   Errors:    12 (10.4%)
-  Nodes:     min=0, max=332, mean=57.8
+  Nodes:     min=0, max=326, mean=57.0
   Top errors:
     - (1x) expected an indented block after 'if' statement on line 3 (<unknown>, line 5)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/jax/AryanZoroufi_genjax_tutorial_mcmc.ipynb
@@ -336,7 +336,7 @@ PER-LIBRARY BREAKDOWN
   Total:     118
   Success:   108 (91.5%)
   Errors:    10 (8.5%)
-  Nodes:     min=0, max=431, mean=47.3
+  Nodes:     min=0, max=421, mean=46.5
   Top errors:
     - (3x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/keras/arsalanyaghoubi_BertForTokenClassification-using-keras-BeginnerFriendly_NER.ipynb
@@ -362,7 +362,7 @@ PER-LIBRARY BREAKDOWN
   Total:     122
   Success:   111 (91.0%)
   Errors:    11 (9.0%)
-  Nodes:     min=0, max=161, mean=35.1
+  Nodes:     min=0, max=153, mean=34.7
   Top errors:
     - (4x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/langchain/mateusnobre_oab_1st_phase_brazil_law_exam_RAG_run_benchmark.ipynb
@@ -389,7 +389,7 @@ PER-LIBRARY BREAKDOWN
   Total:     55
   Success:   46 (83.6%)
   Errors:    9 (16.4%)
-  Nodes:     min=4, max=176, mean=54.8
+  Nodes:     min=4, max=168, mean=54.2
   Top errors:
     - (1x) unindent does not match any outer indentation level (<unknown>, line 67)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/lightgbm/Jayesh259_Demand-Forecast_LGBM2.ipynb
@@ -415,7 +415,7 @@ PER-LIBRARY BREAKDOWN
   Total:     116
   Success:   105 (90.5%)
   Errors:    11 (9.5%)
-  Nodes:     min=3, max=261, mean=33.6
+  Nodes:     min=3, max=260, mean=33.3
   Top errors:
     - (2x) invalid syntax (<unknown>, line 12)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/llama_index/MinhHung7_Multimodal-RAG-pipeline-with-LlamaIndex-and-Neo4j_project.ipynb
@@ -444,7 +444,7 @@ PER-LIBRARY BREAKDOWN
   Total:     89
   Success:   70 (78.7%)
   Errors:    19 (21.3%)
-  Nodes:     min=2, max=253, mean=45.7
+  Nodes:     min=2, max=252, mean=45.1
   Top errors:
     - (3x) Missing parentheses in call to 'print'. Did you mean print(...)? (<unknown>, lin...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/mxnet/yinglang_CIFAR10_mxnet_CIFAR10_train.ipynb
@@ -474,7 +474,7 @@ PER-LIBRARY BREAKDOWN
   Total:     86
   Success:   79 (91.9%)
   Errors:    7 (8.1%)
-  Nodes:     min=4, max=367, mean=48.5
+  Nodes:     min=4, max=367, mean=47.4
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/nltk/Gokulsgn_Trailer-Analysis_app.ipynb
@@ -495,7 +495,7 @@ PER-LIBRARY BREAKDOWN
   Total:     107
   Success:   95 (88.8%)
   Errors:    12 (11.2%)
-  Nodes:     min=0, max=155, mean=32.5
+  Nodes:     min=0, max=155, mean=32.1
   Top errors:
     - (3x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/opencv/minhquang1900_nopbai_22.ipynb
@@ -525,7 +525,7 @@ PER-LIBRARY BREAKDOWN
   Total:     56
   Success:   48 (85.7%)
   Errors:    8 (14.3%)
-  Nodes:     min=2, max=293, mean=60.6
+  Nodes:     min=2, max=291, mean=59.9
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/optuna/Thalapathy2002_VIVO_Task.ipynb
@@ -548,7 +548,7 @@ PER-LIBRARY BREAKDOWN
   Total:     94
   Success:   83 (88.3%)
   Errors:    11 (11.7%)
-  Nodes:     min=0, max=175, mean=45.7
+  Nodes:     min=0, max=174, mean=44.7
   Top errors:
     - (2x) invalid syntax (<unknown>, line 3)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/paddlepaddle/MeldaChen_Group-4_串paddle_paddle_評分.ipynb
@@ -577,7 +577,7 @@ PER-LIBRARY BREAKDOWN
   Total:     51
   Success:   43 (84.3%)
   Errors:    8 (15.7%)
-  Nodes:     min=0, max=294, mean=45.1
+  Nodes:     min=0, max=284, mean=44.7
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/prophet/CloudNua_ml-forecast-app_main.ipynb
@@ -600,7 +600,7 @@ PER-LIBRARY BREAKDOWN
   Total:     41
   Success:   38 (92.7%)
   Errors:    3 (7.3%)
-  Nodes:     min=2, max=167, mean=34.2
+  Nodes:     min=2, max=167, mean=33.9
   Top errors:
     - (1x) invalid syntax (<unknown>, line 6)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/pycaret/HEMANTH-AHK_OPS_OPS-Copy.ipynb
@@ -614,7 +614,7 @@ PER-LIBRARY BREAKDOWN
   Total:     98
   Success:   97 (99.0%)
   Errors:    1 (1.0%)
-  Nodes:     min=0, max=160, mean=43.5
+  Nodes:     min=0, max=160, mean=43.0
   Top errors:
     - (1x) expected ':' (<unknown>, line 16)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/pytorch/davanstrien_nlpwithpytorchbook_04.ipynb
@@ -624,7 +624,7 @@ PER-LIBRARY BREAKDOWN
   Total:     96
   Success:   85 (88.5%)
   Errors:    11 (11.5%)
-  Nodes:     min=0, max=308, mean=59.2
+  Nodes:     min=0, max=307, mean=58.6
   Top errors:
     - (1x) invalid character '，' (U+FF0C) (<unknown>, line 388)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/pytorch_geometric/zhiweinju_nju-dl-lab-2025spring_GCN.ipynb
@@ -652,7 +652,7 @@ PER-LIBRARY BREAKDOWN
   Total:     86
   Success:   79 (91.9%)
   Errors:    7 (8.1%)
-  Nodes:     min=2, max=139, mean=30.7
+  Nodes:     min=2, max=137, mean=30.4
   Top errors:
     - (1x) expected an indented block after class definition on line 214 (<unknown>, line 2...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/ray_tune/ChristosPeridis_R3L_Gymnasium_Robotics_Ray_03.ipynb
@@ -674,7 +674,7 @@ PER-LIBRARY BREAKDOWN
   Total:     79
   Success:   76 (96.2%)
   Errors:    3 (3.8%)
-  Nodes:     min=0, max=235, mean=44.5
+  Nodes:     min=0, max=231, mean=43.9
   Top errors:
     - (1x) invalid syntax (<unknown>, line 63)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/sklearn/pooneekhu_MLops_Practical-3_1.ipynb
@@ -688,7 +688,7 @@ PER-LIBRARY BREAKDOWN
   Total:     55
   Success:   49 (89.1%)
   Errors:    6 (10.9%)
-  Nodes:     min=4, max=227, mean=54.7
+  Nodes:     min=4, max=226, mean=54.1
   Top errors:
     - (5x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/sktime/Roan-Schellingerhout_OKRA_ECIR_action_loader.ipynb
@@ -704,7 +704,7 @@ PER-LIBRARY BREAKDOWN
   Total:     88
   Success:   76 (86.4%)
   Errors:    12 (13.6%)
-  Nodes:     min=0, max=228, mean=39.0
+  Nodes:     min=0, max=218, mean=38.3
   Top errors:
     - (4x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/spacy/sabiryassine_TalentSort_AI_2_App.ipynb
@@ -733,7 +733,7 @@ PER-LIBRARY BREAKDOWN
   Total:     98
   Success:   87 (88.8%)
   Errors:    11 (11.2%)
-  Nodes:     min=2, max=238, mean=42.5
+  Nodes:     min=2, max=233, mean=42.3
   Top errors:
     - (1x) The edge NUM_OF_STEPS_449-branch_A2Cmodel_477_A2Cmodel_484_A2Cmodel_487 is not i...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/stable_baselines3/ChirudeepG_RL_project_A2C.ipynb
@@ -761,7 +761,7 @@ PER-LIBRARY BREAKDOWN
   Total:     50
   Success:   46 (92.0%)
   Errors:    4 (8.0%)
-  Nodes:     min=0, max=244, mean=45.6
+  Nodes:     min=0, max=242, mean=45.0
   Top errors:
     - (1x) invalid syntax (<unknown>, line 7)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/statsmodels/Eric-Mulaa_Time-series-in-pyhton_TS.ipynb
@@ -777,7 +777,7 @@ PER-LIBRARY BREAKDOWN
   Total:     76
   Success:   69 (90.8%)
   Errors:    7 (9.2%)
-  Nodes:     min=2, max=260, mean=44.7
+  Nodes:     min=2, max=258, mean=44.2
   Top errors:
     - (1x) unexpected indent (<unknown>, line 27)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/tensorflow/smartinternz02_SI-GuidedProject-2328-1622050197_BC.ipynb
@@ -799,7 +799,7 @@ PER-LIBRARY BREAKDOWN
   Total:     86
   Success:   73 (84.9%)
   Errors:    13 (15.1%)
-  Nodes:     min=0, max=171, mean=37.8
+  Nodes:     min=0, max=171, mean=37.6
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/timm/MZ-Sun_-cs-445-Monocular-Depth-Estimation-for-Minecraft_Midas3_1.ipynb
@@ -828,7 +828,7 @@ PER-LIBRARY BREAKDOWN
   Total:     93
   Success:   84 (90.3%)
   Errors:    9 (9.7%)
-  Nodes:     min=0, max=251, mean=44.7
+  Nodes:     min=0, max=251, mean=44.5
   Top errors:
     - (1x) expected an indented block after 'if' statement on line 94 (<unknown>, line 95)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/torchvision/ajraymond27_D.ai-TRIP-MEDIA_VQ.ipynb
@@ -854,7 +854,7 @@ PER-LIBRARY BREAKDOWN
   Total:     89
   Success:   83 (93.3%)
   Errors:    6 (6.7%)
-  Nodes:     min=0, max=303, mean=45.1
+  Nodes:     min=0, max=303, mean=44.6
   Top errors:
     - (2x) invalid syntax (<unknown>, line 1)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/transformers/Cyebukayire_langchain_QA.ipynb
@@ -873,7 +873,7 @@ PER-LIBRARY BREAKDOWN
   Total:     93
   Success:   79 (84.9%)
   Errors:    14 (15.1%)
-  Nodes:     min=2, max=356, mean=40.5
+  Nodes:     min=2, max=355, mean=40.1
   Top errors:
     - (2x) expected an indented block after 'elif' statement on line 17 (<unknown>, line 23...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/ultralytics/Prometheussx_deneme_tutorial.ipynb
@@ -902,7 +902,7 @@ PER-LIBRARY BREAKDOWN
   Total:     60
   Success:   57 (95.0%)
   Errors:    3 (5.0%)
-  Nodes:     min=0, max=306, mean=71.5
+  Nodes:     min=0, max=303, mean=70.9
   Top errors:
     - (1x) invalid character '👍' (U+1F44D) (<unknown>, line 275)...
         • /home/nina/projects/APEX-DAG/data/notebook_data_larger/xgboost/tzlilLV97_Deep-Learning-Final-Project_V1_2.ipynb
