@@ -834,6 +834,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 )
 
             for if_cond in generator.ifs:
+                self._current_state.set_current_variable(current_list_version)
                 self.visit(if_cond)
             
             # self._current_state.set_current_variable(intermediate_list_node)
@@ -846,9 +847,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self._current_state.set_current_variable(None)
             # current_list_version = intermediate_list_node
 
-            for if_cond in generator.ifs:
-                self._current_state.set_current_variable(current_list_version)
-                self.visit(if_cond)
 
         self._current_state.add_edge(
             current_list_version,
