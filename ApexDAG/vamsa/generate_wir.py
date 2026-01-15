@@ -5,6 +5,8 @@ import numpy as np
 import random
 
 from ast import iter_child_nodes
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 from matplotlib import pyplot as plt
 from typing import Set, Tuple, Optional
 
@@ -479,6 +481,9 @@ def construct_bipartite_graph(
         draw_graph(
             G, input_nodes, output_nodes, caller_nodes, operation_nodes, output_filename
         )
+        # save graph image 
+        plt.savefig(output_filename)
+        
     return G, (input_nodes, output_nodes, caller_nodes, operation_nodes)
 
 
@@ -488,7 +493,14 @@ def draw_graph(
     labels = {node: remove_id(node) for node in G.nodes()}
 
     plt.figure(figsize=(200, 40))
-    pos = graphviz_layout(G, prog="dot")
+    
+    # Try graphviz layout first, fall back to hierarchical layout if it fails
+    try:
+        pos = graphviz_layout(G, prog="dot")
+    except Exception as e:
+        logger.warning(f"Graphviz layout failed: {e}. Using spring layout instead.")
+        # Use hierarchical layout as fallback
+        pos = nx.spring_layout(G, k=2, iterations=50)
 
     nx.draw_networkx_nodes(G, pos, nodelist=input_nodes, node_shape="o")
     nx.draw_networkx_nodes(G, pos, nodelist=caller_nodes, node_shape="o")
@@ -503,7 +515,7 @@ def draw_graph(
 
     plt.legend()
     plt.savefig(output_filename)
-    plt.close()
+    plt.close()  # Close figure to free memory and prevent display
 
 
 if __name__ == "__main__":
