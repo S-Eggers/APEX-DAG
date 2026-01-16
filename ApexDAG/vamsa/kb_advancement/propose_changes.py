@@ -11,30 +11,8 @@ import pandas as pd
 
 from ApexDAG.vamsa.annotate_wir import KB
 from ApexDAG.vamsa.evaluate_kb import KBEvaluator
-
-
-@dataclass
-class KBChangeProposal:
-    """Represents a proposed change to the KB"""
-    change_type: str  # "add_annotation", "add_traversal", "modify", "remove"
-    description: str
-    
-    # For annotation KB changes
-    library: Optional[str] = None
-    module: Optional[str] = None
-    caller: Optional[str] = None
-    api_name: Optional[str] = None
-    inputs: Optional[List[str]] = None
-    outputs: Optional[List[str]] = None
-    
-    # For traversal KB changes
-    traversal_api_name: Optional[str] = None
-    column_exclusion: Optional[bool] = None
-    traversal_rule_name: Optional[str] = None  # Name of function to use
-    
-    # Metadata
-    rationale: str = ""
-    expected_impact: str = ""
+from ApexDAG.vamsa.kb_advancement.KBChangeProposal import KBChangeProposal
+from ApexDAG.vamsa.kb_advancement.proposal_maker import ProposalMaker
 
 
 @dataclass
@@ -151,12 +129,12 @@ class KBChangeManager:
         with open(json_path, 'w') as f:
             json.dump([asdict(p) for p in self.proposals], f, indent=2)
     
-    def apply_proposal(self, proposal: KBChangeProposal, kb: KB) -> KB:
+    def apply_proposal(self, proposalmaker: ProposalMaker, kb: KB, baseline_data: dict) -> KB:
         """Apply a proposal to create an enhanced KB"""
         enhanced_kb = deepcopy(kb)
+        proposal = proposalmaker(KB=enhanced_kb, baseline_report=baseline_data)
         
         if proposal.change_type == "add_annotation":
-            # Add new row to annotation KB
             new_row = pd.DataFrame([{
                 "Library": proposal.library,
                 "Module": proposal.module,
@@ -171,7 +149,6 @@ class KBChangeManager:
             )
         
         elif proposal.change_type == "add_traversal":
-            # Add new traversal rule to knowledge_base_traversal DataFrame
             new_row = pd.DataFrame([{
                 "Library": proposal.library,
                 "Module": proposal.module,
@@ -188,7 +165,7 @@ class KBChangeManager:
             # to the KBC dictionary in track_provenance.py
             print(f"WARNING: Traversal rule '{proposal.traversal_rule_name}' needs to be manually added to KBC in track_provenance.py")
         
-        return enhanced_kb
+        return enhanced_kb, proposal
     
     def evaluate_proposal(
         self, 
@@ -201,8 +178,7 @@ class KBChangeManager:
         os.makedirs(output_dir, exist_ok=True)
         
         # Sanitize filename
-        safe_name = "".join(c for c in proposal.description if c.isalnum() or c in (' ', '_')).rstrip()
-        safe_name = safe_name.replace(' ', '_')[:50]
+        safe_name = "temp_report"
         
         # Baseline evaluation
         print("Step 1/3: Evaluating baseline KB...")
@@ -215,7 +191,7 @@ class KBChangeManager:
         
         # Apply proposal
         print("\nStep 2/3: Applying proposal and creating enhanced KB...")
-        enhanced_kb = self.apply_proposal(proposal_object, baseline_data, self.baseline_kb)
+        enhanced_kb, proposal = self.apply_proposal(proposal_object, self.baseline_kb, baseline_data)
         
         # Enhanced evaluation
         print("\nStep 3/3: Evaluating enhanced KB...")
@@ -264,13 +240,11 @@ class KBChangeManager:
             baseline_avg_kb_hit_rate=baseline_data["summary"]["avg_kb_hit_rate"],
             baseline_avg_c_plus=baseline_data["summary"]["avg_c_plus_size"],
             baseline_avg_c_minus=baseline_data["summary"]["avg_c_minus_size"],
-            baseline_dead_entries=len(baseline_data["dead_entries"]),
             baseline_unannotated_ops=len(baseline_data["most_common_unannotated_operations"]),
             enhanced_avg_annotation_coverage=enhanced_data["summary"]["avg_annotation_coverage"],
             enhanced_avg_kb_hit_rate=enhanced_data["summary"]["avg_kb_hit_rate"],
             enhanced_avg_c_plus=enhanced_data["summary"]["avg_c_plus_size"],
             enhanced_avg_c_minus=enhanced_data["summary"]["avg_c_minus_size"],
-            enhanced_dead_entries=len(enhanced_data["dead_entries"]),
             enhanced_unannotated_ops=len(enhanced_data["most_common_unannotated_operations"]),
             annotation_coverage_delta=annotation_coverage_delta,
             kb_hit_rate_delta=kb_hit_rate_delta,
@@ -305,6 +279,12 @@ class KBChangeManager:
         
         # Print summary
         self._print_impact_summary(impact_report)
+        
+        if annotation_coverage_delta < 0 or kb_hit_rate_delta < 0:
+            print("WARNING: The proposed change resulted in a negative impact on KB performance.")
+        
+        elif annotation_coverage_delta >= 0:
+            print("The proposed change improved KB performance.")
         
         return impact_report
     
@@ -445,6 +425,7 @@ class KBChangeManager:
 if __name__ == "__main__":
     # Example usage
     corpus_path = "C:\\Users\\ismyn\\UNI\\BIFOLD\\APEXDAG_datasets\\catboost"
+    documentation_link = "https://catboost.ai/docs/en/concepts/python-reference_catboost"
     output_dir = "output/proposals"
     
     print("="*80)
@@ -452,13 +433,16 @@ if __name__ == "__main__":
     print("="*80)
     
     # Create manager
-    manager = KBChangeManager(baseline_kb=KB(), corpus_path=corpus_path)
-    
-    # Propose a change
-    proposal_object = proposal_maker() # takes in data, scrapes documentation and outputs a proposal object after querying an llm
-    
-    # Evaluate impact
-    report = manager.evaluate_proposal(proposal_object, output_dir)
-    
+    running_KB = KB()
+    for iteration in range(1):
+        print(f"\n--- ITERATION {iteration+1} ---\n")
+        manager = KBChangeManager(baseline_kb=running_KB, corpus_path=corpus_path)
+        
+        # Propose a change
+        proposal_object = ProposalMaker(link_to_documentation=documentation_link) # takes in data, scrapes documentation and outputs a proposal object after querying an llm
+        
+        # Evaluate impact
+        report = manager.evaluate_proposal(proposal_object, output_dir)
+        
     print("\n=== DONE ===")
     print(f"Results in: {output_dir}")

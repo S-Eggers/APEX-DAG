@@ -41,7 +41,7 @@ class AnnotationMetrics:
     
     # Entry usage tracking
     kb_entry_usage: Dict[str, int] = field(default_factory=dict)
-    dead_entries: List[str] = field(default_factory=list)
+    # dead_entries: List[str] = field(default_factory=list)
     
     # Missed operations
     unannotated_operations: List[Tuple[str, str, str]] = field(default_factory=list)  # (library, caller, operation)
@@ -56,7 +56,7 @@ class TraversalMetrics:
     
     # Traversal rule usage
     traversal_rule_usage: Dict[str, int] = field(default_factory=dict)
-    dead_rules: List[str] = field(default_factory=list)
+    # dead_rules: List[str] = field(default_factory=list)
     
     # Tracking depth
     max_traversal_depth: int = 0
@@ -483,21 +483,21 @@ class KBEvaluator:
                 "avg_c_plus_size": avg_c_plus,
                 "avg_c_minus_size": avg_c_minus
             },
-            "kb_entry_usage": dict(sorted(all_entry_usage.items(), key=lambda x: x[1], reverse=True)),
-            "dead_entries": list(dead_entries),
+            # "kb_entry_usage": dict(sorted(all_entry_usage.items(), key=lambda x: x[1], reverse=True)),
+            # "dead_entries": list(dead_entries),
             "traversal_rule_usage": dict(sorted(all_rule_usage.items(), key=lambda x: x[1], reverse=True)),
-            "most_common_unannotated_operations": Counter(all_unannotated_ops).most_common(20),
-            "per_notebook_details": [
-                {
-                    "path": r.notebook_path,
-                    "annotation_coverage": r.annotation_metrics.operation_annotation_coverage,
-                    "kb_hit_rate": r.annotation_metrics.kb_hit_rate,
-                    "c_plus_size": r.traversal_metrics.c_plus_size,
-                    "c_minus_size": r.traversal_metrics.c_minus_size,
-                    "errors": r.errors
-                }
-                for r in reports
-            ]
+            "most_common_unannotated_operations": Counter(all_unannotated_ops).most_common(40),
+            # "per_notebook_details": [
+            #     {
+            #         "path": r.notebook_path,
+            #         "annotation_coverage": r.annotation_metrics.operation_annotation_coverage,
+            #         "kb_hit_rate": r.annotation_metrics.kb_hit_rate,
+            #         "c_plus_size": r.traversal_metrics.c_plus_size,
+            #         "c_minus_size": r.traversal_metrics.c_minus_size,
+            #         "errors": r.errors
+            #     }
+            #     for r in reports
+            # ]
         }
         
         # Save report
