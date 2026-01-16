@@ -28,7 +28,7 @@ from ApexDAG.vamsa.utils import (
 random.seed(42)
 np.random.seed(42)
 
-logging.basicConfig(level=logging.WARNING)  # Adjust for debugging
+logging.basicConfig(level=logging.ERROR)  # Adjust for debugging
 logger = logging.getLogger(__name__)  # Get a logger for this module
 
 
@@ -231,8 +231,8 @@ def extract_from_node(
             elif field == "operation":
                 return WIRNode(node.__class__.__name__ + add_id())
         case _:
-            logger.warning(f"Field {field} not found in node {node.__class__.__name__}")
-    logger.info(f"Field {field} not found in node {node.__class__.__name__}")
+            pass
+    logger.debug(f"Field {field} not found in node {node.__class__.__name__}")
     return WIRNode(None)
 
 
