@@ -282,9 +282,11 @@ class KBChangeManager:
         
         if annotation_coverage_delta < 0 or kb_hit_rate_delta < 0:
             print("WARNING: The proposed change resulted in a negative impact on KB performance.")
+            return impact_report, self.baseline_kb
         
         elif annotation_coverage_delta >= 0:
             print("The proposed change improved KB performance.")
+            return impact_report, enhanced_kb
         
         return impact_report
     
@@ -442,7 +444,7 @@ if __name__ == "__main__":
         proposal_object = ProposalMaker(link_to_documentation=documentation_link) # takes in data, scrapes documentation and outputs a proposal object after querying an llm
         
         # Evaluate impact
-        report = manager.evaluate_proposal(proposal_object, output_dir)
+        report, running_KB = manager.evaluate_proposal(proposal_object, output_dir)
         
     print("\n=== DONE ===")
     print(f"Results in: {output_dir}")
