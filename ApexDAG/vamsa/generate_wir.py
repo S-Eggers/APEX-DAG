@@ -360,7 +360,7 @@ def GenWIR(
 
     bipartie_check = check_bipartie(PRs_filtered)
 
-    logger.warning(f"Graph is bipartie: {bipartie_check}")
+    logger.info(f"Graph is bipartie: {bipartie_check}")
 
     with open(output_filename.replace(".png", ".txt"), "w") as f:
         for pr in PR_filtered_no_assign:

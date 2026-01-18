@@ -210,7 +210,7 @@ class ProvenanceTracker:
                 continue
 
             # get name
-            print(f"Processing PR: {pr}")
+            # print(f"Processing PR: {pr}")
             operation_name = get_name(operation_node)
             if operation_name in self.kbc:
                 self._guide_eval(pr)

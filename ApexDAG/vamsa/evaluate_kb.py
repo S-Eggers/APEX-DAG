@@ -279,17 +279,12 @@ class KBEvaluator:
                     if filename.endswith((".py", ".ipynb")):
                         files.append(os.path.join(root, filename))
         
-        print(f"Found {len(files)} files to evaluate")
         
         for i, file_path in enumerate(files, 1):
-            print(f"\n[{i}/{len(files)}] Evaluating: {file_path}")
             try:
                 report = self.evaluate_notebook(file_path, what_track)
                 reports.append(report)
-                print(f"  ✓ Success - Coverage: {report.annotation_metrics.annotation_coverage:.1%}, C+: {report.traversal_metrics.c_plus_size}, C-: {report.traversal_metrics.c_minus_size}")
             except Exception as e:
-                print(f"  ✗ FAILED: {str(e)}")
-                # Create error report
                 error_report = KBEvaluationReport(
                     notebook_path=file_path,
                     annotation_metrics=AnnotationMetrics(),
@@ -354,14 +349,6 @@ class KBEvaluator:
             metrics.kb_hit_rate = kb_stats["hit_rate"]
             metrics.kb_entry_usage = kb_stats["entry_usage"]
             metrics.unannotated_operations = kb_stats["unsuccessful_operations"]
-            # Find unannotated operations
-            for node in operation_nodes:
-                annotations = annotated_wir.annotated_wir.nodes[node].get("annotations", [])
-                if not annotations:
-                    # Try to extract context
-                    label = annotated_wir.annotated_wir.nodes[node].get("label", "")
-                    metrics.unannotated_operations.append(("unknown", "unknown", label))
-        
         return metrics
     
     def _collect_traversal_metrics(self, C_plus, C_minus, instrumented_tracker, metrics: TraversalMetrics) -> TraversalMetrics:
@@ -486,7 +473,7 @@ class KBEvaluator:
             # "kb_entry_usage": dict(sorted(all_entry_usage.items(), key=lambda x: x[1], reverse=True)),
             # "dead_entries": list(dead_entries),
             "traversal_rule_usage": dict(sorted(all_rule_usage.items(), key=lambda x: x[1], reverse=True)),
-            "most_common_unannotated_operations": Counter(all_unannotated_ops).most_common(40),
+            "most_common_unannotated_operations": Counter(all_unannotated_ops).most_common(100),
             # "per_notebook_details": [
             #     {
             #         "path": r.notebook_path,

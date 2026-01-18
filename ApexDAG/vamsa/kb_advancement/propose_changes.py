@@ -8,6 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass, asdict
 from copy import deepcopy
 import pandas as pd
+from time import sleep
 
 from ApexDAG.vamsa.annotate_wir import KB
 from ApexDAG.vamsa.evaluate_kb import KBEvaluator
@@ -25,7 +26,7 @@ class ChangeImpactReport:
     baseline_avg_kb_hit_rate: float
     baseline_avg_c_plus: float
     baseline_avg_c_minus: float
-    baseline_dead_entries: int
+    # baseline_dead_entries: int
     baseline_unannotated_ops: int
     
     # After metrics
@@ -33,7 +34,7 @@ class ChangeImpactReport:
     enhanced_avg_kb_hit_rate: float
     enhanced_avg_c_plus: float
     enhanced_avg_c_minus: float
-    enhanced_dead_entries: int
+    # enhanced_dead_entries: int
     enhanced_unannotated_ops: int
     
     # Deltas
@@ -47,7 +48,6 @@ class ChangeImpactReport:
     recommendation: str
     
     # Detailed reports
-    baseline_report_path: str
     enhanced_report_path: str
     comparison_report_path: str
 
@@ -129,7 +129,7 @@ class KBChangeManager:
         with open(json_path, 'w') as f:
             json.dump([asdict(p) for p in self.proposals], f, indent=2)
     
-    def apply_proposal(self, proposalmaker: ProposalMaker, kb: KB, baseline_data: dict) -> KB:
+    def apply_proposal(self, proposalmaker: ProposalMaker, kb: KB, baseline_data: dict=None) -> KB:
         """Apply a proposal to create an enhanced KB"""
         enhanced_kb = deepcopy(kb)
         proposal = proposalmaker(KB=enhanced_kb, baseline_report=baseline_data)
@@ -170,7 +170,7 @@ class KBChangeManager:
     def evaluate_proposal(
         self, 
         proposal_object: KBChangeProposal,
-        baseline_data: dict,
+        baseline_data: dict = None,
         output_dir: str = "output/proposals"
     ) -> ChangeImpactReport:
         """Evaluate the impact of a single proposal"""
@@ -192,6 +192,9 @@ class KBChangeManager:
         # Apply proposal
         print("\nStep 2/3: Applying proposal and creating enhanced KB...")
         enhanced_kb, proposal = self.apply_proposal(proposal_object, self.baseline_kb, baseline_data)
+        
+        # print("\nStep 2/3: Applying proposal and creating enhanced KB...")
+        # enhanced_kb, proposal = self.apply_proposal(proposal_object, self.baseline_kb)
         
         # Enhanced evaluation
         print("\nStep 3/3: Evaluating enhanced KB...")
@@ -252,7 +255,6 @@ class KBChangeManager:
             c_minus_delta=c_minus_delta,
             impact_level=impact_level,
             recommendation=recommendation,
-            baseline_report_path=baseline_report_path,
             enhanced_report_path=enhanced_report_path,
             comparison_report_path=os.path.join(output_dir, f"{safe_name}_comparison.json")
         )
@@ -281,11 +283,11 @@ class KBChangeManager:
         self._print_impact_summary(impact_report)
         
         if annotation_coverage_delta < 0 or kb_hit_rate_delta < 0:
-            print("WARNING: The proposed change resulted in a negative impact on KB performance.")
+            print("WARNING: The proposed change resulted in a negative impact on KB performance. NOT adding to the running KB.")
             return impact_report, self.baseline_kb
         
         elif annotation_coverage_delta >= 0:
-            print("The proposed change improved KB performance.")
+            print("The proposed change improved KB performance. ADDing to the running KB.")
             return impact_report, enhanced_kb
         
         return impact_report
@@ -374,7 +376,6 @@ class KBChangeManager:
         print(f"\nRecommendation:")
         print(f"  {report.recommendation}")
         print(f"\nReports saved:")
-        print(f"  Baseline: {report.baseline_report_path}")
         print(f"  Enhanced: {report.enhanced_report_path}")
         print(f"  Comparison: {report.comparison_report_path}")
         print(f"{'='*80}\n")
@@ -427,16 +428,16 @@ class KBChangeManager:
 if __name__ == "__main__":
     # Example usage
     corpus_path = "C:\\Users\\ismyn\\UNI\\BIFOLD\\APEXDAG_datasets\\catboost"
-    documentation_link = "https://catboost.ai/docs/en/concepts/python-reference_catboost"
+    documentation_link = "https://scikit-learn.org/stable/api/index.html"
     output_dir = "output/proposals"
     
-    print("="*80)
+    print("="*80)    
     print("KB CHANGE PROPOSAL FRAMEWORK")
     print("="*80)
     
     # Create manager
     running_KB = KB()
-    for iteration in range(1):
+    for iteration in range(1000):
         print(f"\n--- ITERATION {iteration+1} ---\n")
         manager = KBChangeManager(baseline_kb=running_KB, corpus_path=corpus_path)
         
@@ -444,7 +445,12 @@ if __name__ == "__main__":
         proposal_object = ProposalMaker(link_to_documentation=documentation_link) # takes in data, scrapes documentation and outputs a proposal object after querying an llm
         
         # Evaluate impact
-        report, running_KB = manager.evaluate_proposal(proposal_object, output_dir)
+        report, running_KB = manager.evaluate_proposal(proposal_object, output_dir=output_dir)
+        sleep(20)
         
     print("\n=== DONE ===")
     print(f"Results in: {output_dir}")
+    # save entries in running KB 
+    running_KB.knowledge_base.to_csv(os.path.join(output_dir, "final_annotation_kb.csv"), index=False)
+    # save final traversals in running KB
+    running_KB.knowledge_base_traversal.to_csv(os.path.join(output_dir, "final_traversal_kb.csv"), index=False)
