@@ -446,7 +446,7 @@ if __name__ == "__main__":
         
         # Evaluate impact
         report, running_KB = manager.evaluate_proposal(proposal_object, output_dir=output_dir)
-        sleep(20)
+        sleep(200)
         
     print("\n=== DONE ===")
     print(f"Results in: {output_dir}")

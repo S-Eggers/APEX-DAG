@@ -178,13 +178,23 @@ Avoid duplicates. Prefer commonly-used APIs.
     def __call__(self, KB, baseline_report) -> KBChangeProposal:
         print(f"🚀 Starting traversal from {self.link_to_documentation}")
 
-        scraped_docs = self.scrape_entire_docs(max_pages=2)
+        try:
+            scraped_docs = self.scrape_entire_docs(max_pages=2)
 
-        proposal = self.query_llm(
-            scraped_docs=scraped_docs,
-            baseline_data=baseline_report,
-            KB=KB,
-        )
+            proposal = self.query_llm(
+                scraped_docs=scraped_docs,
+                baseline_data=baseline_report,
+                KB=KB,
+            )
+        except Exception as e:
+            print(f"❌ Error during proposal generation: {e}")
+            scraped_docs = self.scrape_entire_docs(max_pages=1)
+
+            proposal = self.query_llm(
+                scraped_docs=scraped_docs,
+                baseline_data=baseline_report,
+                KB=KB,
+            )
 
         details = proposal["details"]
 
