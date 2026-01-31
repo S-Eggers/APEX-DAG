@@ -134,7 +134,7 @@ class KBChangeManager:
         enhanced_kb = deepcopy(kb)
         proposal = proposalmaker(KB=enhanced_kb, baseline_report=baseline_data)
         
-        if proposal.change_type == "add_annotation":
+        if "annotation" in proposal.change_type:
             new_row = pd.DataFrame([{
                 "Library": proposal.library,
                 "Module": proposal.module,
@@ -282,11 +282,11 @@ class KBChangeManager:
         # Print summary
         self._print_impact_summary(impact_report)
         
-        if annotation_coverage_delta < 0 or kb_hit_rate_delta < 0:
+        if kb_hit_rate_delta < 0:
             print("WARNING: The proposed change resulted in a negative impact on KB performance. NOT adding to the running KB.")
             return impact_report, self.baseline_kb
         
-        elif annotation_coverage_delta >= 0:
+        else:
             print("The proposed change improved KB performance. ADDing to the running KB.")
             return impact_report, enhanced_kb
         
@@ -437,7 +437,7 @@ if __name__ == "__main__":
     
     # Create manager
     running_KB = KB()
-    for iteration in range(1000):
+    for iteration in range(200):
         print(f"\n--- ITERATION {iteration+1} ---\n")
         manager = KBChangeManager(baseline_kb=running_KB, corpus_path=corpus_path)
         

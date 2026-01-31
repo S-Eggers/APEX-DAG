@@ -288,7 +288,7 @@ class AnnotationWIR:
 
         :param wir: Whole Intermediate Representation (WIR), graph-like data structure.
         :param prs: Process relations (list of PR elements <I, c, p, O>).
-        :param knowledge_base: A function KB(L, L′, c, p) or KB(O, p) that provides annotations.
+        :param : A function KB(L, L′, c, p) or KB(O, p) that provides annotations.
         """
         self.wir = wir
         self.prs = prs

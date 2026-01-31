@@ -5,8 +5,9 @@ import os
 import random
 from typing import Dict, List, Optional
 from urllib.parse import urljoin, urlparse
-
+from typing import Literal
 from groq import Groq
+import google.generativeai as genai
 import instructor
 from pydantic import BaseModel, Field
 
@@ -31,7 +32,7 @@ class ProposalResponse(BaseModel):
     description: str
     rationale: str
     expected_impact: str
-    change_type: str = "annotation_entry"
+    change_type: Literal["add_annotation", "add_traversal"]
     details: KBEntryDetails
 
 
@@ -40,18 +41,38 @@ class ProposalResponse(BaseModel):
 # ============================
 
 class ProposalMaker:
-    def __init__(self, link_to_documentation: str, groq_api_key: Optional[str] = None):
+    def __init__(
+        self, 
+        link_to_documentation: str, 
+        provider: str = "gemini",
+        api_key: Optional[str] = None
+    ):
         self.link_to_documentation = link_to_documentation
         self.past_proposals: List[Dict] = []
         self.impact_of_past_proposals: List[Dict] = []
+        self.provider = provider.lower()
 
-        self.api_key = groq_api_key or os.getenv("GROQ_API_KEY")
-        if not self.api_key:
-            raise ValueError("GROQ_API_KEY not set")
-
-        client = Groq(api_key=self.api_key)
-        self.client = instructor.from_groq(client, mode=instructor.Mode.TOOLS)
-        self.model_name = "moonshotai/kimi-k2-instruct-0905"
+        if self.provider == "groq":
+            self.api_key = api_key or os.getenv("GROQ_API_KEY")
+            if not self.api_key:
+                raise ValueError("GROQ_API_KEY not set")
+            
+            client = Groq(api_key=self.api_key)
+            self.client = instructor.from_groq(client, mode=instructor.Mode.TOOLS)
+            self.model_name = "moonshotai/kimi-k2-instruct-0905"
+        
+        elif self.provider == "gemini":
+            self.api_key = api_key or os.getenv("GEMINI_API_KEY")
+            if not self.api_key:
+                raise ValueError("GEMINI_API_KEY not set")
+            
+            genai.configure(api_key=self.api_key)
+            client = genai.GenerativeModel("gemini-flash-latest")
+            self.client = instructor.from_gemini(client, mode=instructor.Mode.GEMINI_JSON)
+            self.model_name = "gemini-flash-latest"
+        
+        else:
+            raise ValueError(f"Unsupported provider: {provider}. Use 'groq' or 'gemini'.")
 
     # ============================
     # ===== Traversal Logic ======
@@ -158,16 +179,25 @@ Identify ONE high-value API missing from the KB that improves provenance trackin
 Avoid duplicates. Prefer commonly-used APIs.
 """
 
-        messages = [
-            {"role": "system", "content": "You extract structured API metadata from documentation."},
-            {"role": "user", "content": prompt},
-        ]
+        if self.provider == "groq":
+            messages = [
+                {"role": "system", "content": "You extract structured API metadata from documentation."},
+                {"role": "user", "content": prompt},
+            ]
 
-        response = self.client.chat.completions.create(
-            model=self.model_name,
-            messages=messages,
-            response_model=ProposalResponse,
-        )
+            response = self.client.chat.completions.create(
+                model=self.model_name,
+                messages=messages,
+                response_model=ProposalResponse,
+            )
+        
+        elif self.provider == "gemini":
+            full_prompt = "You extract structured API metadata from documentation.\n\n" + prompt
+            
+            response = self.client.create(
+                messages=[{"role": "user", "content": full_prompt}],
+                response_model=ProposalResponse,
+            )
 
         return response.dict()
 
