@@ -7,7 +7,9 @@ def get_operator_description(node: ast.AST) -> Optional[str]:
         if isinstance(node, ast.Compare):
             operator = node.ops[0].__class__.__name__.lower()
         elif isinstance(node, ast.BoolOp):
-            operator = node.op.__class__.__name__.lower()
+            operator = node.ops[0].__class__.__name__.lower()
+        elif isinstance(node, ast.In):
+            operator = node.__doc__.lower()
         else:
             return None  # Or raise an error, depending on desired behavior for unhandled types
 

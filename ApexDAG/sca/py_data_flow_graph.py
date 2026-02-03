@@ -409,6 +409,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 self.visit(arg)
             for keyword in node.keywords:
                 self.visit(keyword.value)
+            # List comp problem otherwise - args would be visited 2 times!!!
             self._process_method_call(node, caller_object_name, function_name)
         else:
             for arg in node.args:
@@ -771,7 +772,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
 
         parent_context = self._current_state.context
-        list_comp_context = f"list_comp_{node.lineno}"
+        if self._state_stack.nested:
+            list_comp_context = f"{parent_context}_nested_list_comp_{node.lineno}"
+        else:
+            list_comp_context = f"list_comp_{node.lineno}"
         self._state_stack.create_child_state(list_comp_context, parent_context)
         self._current_state = self._state_stack.get_current_state()
 
@@ -780,6 +784,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._current_state.add_node(start_loop_node, NODE_TYPES["LOOP"])
         initial_list_node = f"list_comp_start_{node.lineno}"
         self._current_state.add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
+        self._current_state.set_current_variable(start_loop_node)
         self._current_state.add_edge(
             start_loop_node,
             initial_list_node,
@@ -817,27 +822,31 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     generator.target.end_lineno,
                     generator.target.end_col_offset,
                 )
-
-            intermediate_list_node = f"list_iter_node_{node.elt.lineno}_{node.elt.col_offset}"
-            self._current_state.add_node(intermediate_list_node, NODE_TYPES["VARIABLE"])
-            self._current_state.add_edge(
-                current_list_version,
-                intermediate_list_node,
-                "append",
-                EDGE_TYPES["CALLER"],
-                node.elt.lineno,
-                node.elt.col_offset,
-                node.elt.end_lineno,
-                node.elt.end_col_offset,
-            )
-            self._current_state.set_current_variable(intermediate_list_node)
-            self.visit(node.elt)
-            self._current_state.set_current_variable(None)
-            current_list_version = intermediate_list_node
+                self._current_state.add_edge(
+                    target_version,
+                    start_loop_node,
+                    "iterate",
+                    EDGE_TYPES["LOOP"],
+                    generator.target.lineno,
+                    generator.target.col_offset,
+                    generator.target.end_lineno,
+                    generator.target.end_col_offset,
+                )
 
             for if_cond in generator.ifs:
                 self._current_state.set_current_variable(current_list_version)
                 self.visit(if_cond)
+            
+            # self._current_state.set_current_variable(intermediate_list_node)
+            
+            if isinstance(node.elt, ast.ListComp):
+                self._state_stack.nested = True
+                self.visit(node.elt)
+                self._state_stack.nested = False
+            
+            self._current_state.set_current_variable(None)
+            # current_list_version = intermediate_list_node
+
 
         self._current_state.add_edge(
             current_list_version,
@@ -866,6 +875,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             [(self._current_state, "list_comp", EDGE_TYPES["CALLER"])],
         )
         self._current_state = self._state_stack.get_current_state()
+        del self._state_stack._state[list_comp_context]
 
         return node
 
@@ -1484,7 +1494,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 return [node.id]
             case ast.Attribute():
                 name = self._get_names(node.value)
-                return (name + [node.attr]) if name else [node.attr]
+                return ([name[0] + "." + node.attr]) if name else [node.attr]
             case ast.Tuple() | ast.List() | ast.Set():
                 names = [
                     self._get_names(elt) for elt in node.elts if self._get_names(elt)

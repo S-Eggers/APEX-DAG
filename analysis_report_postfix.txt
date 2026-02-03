@@ -1,0 +1,566 @@
+======================================================================
+NOTEBOOK DATASET ANALYSIS REPORT
+Generated: 2025-12-18 22:36:22
+Dataset: /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets
+======================================================================
+
+OVERALL SUMMARY
+----------------------------------------
+Total notebooks:     1888
+Successful:          1683 (89.1%)
+Errors:              205 (10.9%)
+
+NODE COUNT DISTRIBUTION (ALL)
+----------------------------------------
+Min:     0
+Max:     446
+Mean:    45.1
+Median:  31
+
+NODE COUNT HISTOGRAM
+----------------------------------------
+       0-9:  228 ██████████████████
+     10-24:  450 ████████████████████████████████████
+     25-49:  500 ████████████████████████████████████████
+     50-99:  341 ███████████████████████████
+   100-249:  151 ████████████
+   250-499:   13 █
+   500-999:    0 
+     1000+:    0 
+
+PER-LIBRARY BREAKDOWN
+======================================================================
+
+📚 ALBUMENTATIONS
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=2, max=267, mean=59.1
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 7)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/albumentations/aniket21070994_API-Dev_FER.ipynb
+    - (1x) invalid syntax (<unknown>, line 208)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/albumentations/hpicsk_bird_cls_expore.ipynb
+    - (1x) invalid decimal literal (<unknown>, line 355)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/albumentations/Muennighoff_vgaug_vgaug.ipynb
+
+📚 AUTOGLUON
+----------------------------------------
+  Total:     50
+  Success:   44 (88.0%)
+  Errors:    6 (12.0%)
+  Nodes:     min=5, max=398, mean=40.0
+  Top errors:
+    - (1x) Unsupported nbformat version 5...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/autogluon/pemmoura_mdc-projeto-final_critic-autogluon.ipynb
+    - (1x) invalid syntax (<unknown>, line 38)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/autogluon/MichaelDasseville_Autogluon-Workshop_Image_data_exercise.ipynb
+    - (1x) invalid syntax. Maybe you meant '==' or ':=' instead of '='? (<unknown>, line 26...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/autogluon/todd-jang_CP2-Section4p_Income50k_New-Code.ipynb
+
+📚 CATBOOST
+----------------------------------------
+  Total:     50
+  Success:   47 (94.0%)
+  Errors:    3 (6.0%)
+  Nodes:     min=4, max=354, mean=79.7
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/catboost/woglewagle_-NEXT-ML-CHALLENGE-CTR-_cb_42.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/catboost/Yujata22_WiDS_2024_0.816.ipynb
+    - (1x) invalid syntax (<unknown>, line 16)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/catboost/sagagugit_ProBASS_ProBASS.ipynb
+
+📚 DARTS
+----------------------------------------
+  Total:     50
+  Success:   43 (86.0%)
+  Errors:    7 (14.0%)
+  Nodes:     min=0, max=204, mean=54.3
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/darts/dvoskov_DARTS-workshop_3.Dead_oil_model.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/darts/ourownstory_test-of-time_add_custom_model.ipynb
+    - (1x) invalid syntax (<unknown>, line 8)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/darts/lrattonaubay_FLA_DARTS-PyTorch.ipynb
+    - (1x) unexpected indent (<unknown>, line 71)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/darts/WatchTheory_Pytorch-model_Pytorch_Project.ipynb
+
+📚 DETECTRON2
+----------------------------------------
+  Total:     49
+  Success:   41 (83.7%)
+  Errors:    8 (16.3%)
+  Nodes:     min=0, max=218, mean=49.6
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 202)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/detectron2/juliensimon_dlnotebooks_Detectron2_Tutorial.ipynb
+    - (1x) unexpected indent (<unknown>, line 204)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/detectron2/Mukaffi28_ExplainableAI-PotatoGAN-Cutting-Edge-Disease-Identification-for-Potatoes_Potato_disease_Se.ipynb
+    - (1x) expected an indented block after 'if' statement on line 30 (<unknown>, line 31)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/detectron2/rediscovery-io_remo-python_tutorial_pytorch_instance_segmentation.ipynb
+
+📚 DGL
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=0, max=240, mean=46.8
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 55)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/dgl/phunc20_python_04-link_predict.ipynb
+    - (1x) expected an indented block after 'if' statement on line 45 (<unknown>, line 48)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/dgl/graphdeeplearning_benchmarking-gnns_main_TSP_edge_classification.ipynb
+    - (1x) 'self'...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/dgl/yanming-s_Abnormal-Program-Graph-Detection_models.ipynb
+
+📚 DIFFUSERS
+----------------------------------------
+  Total:     50
+  Success:   36 (72.0%)
+  Errors:    14 (28.0%)
+  Nodes:     min=2, max=124, mean=33.0
+  Top errors:
+    - (1x) invalid non-printable character U+2007 (<unknown>, line 25)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/diffusers/wisdomscode_AI-Lab-Deep-Learning-PyTorch_AI_Lab_Project_6_Social_Media_Marketing_at_WQU_6_6_Assignme.ipynb
+    - (1x) invalid syntax (<unknown>, line 64)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/diffusers/Mridhu98_Gen_img_Gen_img_text.ipynb
+    - (1x) 'pipe.safety_checker'...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/diffusers/tcapelle_diffuser_02_coreml_new.ipynb
+
+📚 FLAIR
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=0, max=114, mean=34.8
+  Top errors:
+    - (2x) expected an indented block after 'except' statement on line 3 (<unknown>, line 4...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/flair/emergent-analytics_workstreams_ws2_snr_NOTAMs_1_data_preparation.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/flair/emergent-analytics_workstreams_ws2_snr_NOTAMs_1_data_preparation_mulitplefiles.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/flair/ArefPhD_General-training_Kmeanclustering.ipynb
+    - (1x) State list_comp_157 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/flair/shaunkhoo_nus-dsa4264-materials_TextDataAnalysis-Class.ipynb
+
+📚 GENSIM
+----------------------------------------
+  Total:     50
+  Success:   43 (86.0%)
+  Errors:    7 (14.0%)
+  Nodes:     min=7, max=446, mean=78.4
+  Top errors:
+    - (3x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gensim/Purivaishnavi_NLP-Lab_nlp2.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gensim/chiamchuen_CZ4045-NLP-Group-Project_Task1.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gensim/limitless80_Notes_GEN-4.ipynb
+    - (1x) State list_comp_254 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gensim/victor7246_MRF-LDA_ILJST.ipynb
+    - (1x) invalid decimal literal (<unknown>, line 26)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gensim/agawronski_word-embeddings_LDA.ipynb
+
+📚 GLUONTS
+----------------------------------------
+  Total:     41
+  Success:   39 (95.1%)
+  Errors:    2 (4.9%)
+  Nodes:     min=0, max=188, mean=44.7
+  Top errors:
+    - (1x) invalid character '’' (U+2019) (<unknown>, line 36)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gluonts/Al-Moccardi_Advanced_Time_Series_Analysis_V-AmazonsDeepAR.ipynb
+    - (1x) unexpected indent (<unknown>, line 5)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gluonts/netsharecmu_generative-trace-tutorials_D3VAE_pcap.ipynb
+
+📚 GYMNASIUM
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=6, max=314, mean=48.7
+  Top errors:
+    - (1x) State list_comp_112 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gymnasium/free516_-8BM42_FR4.ipynb
+    - (1x) State list_comp_95 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gymnasium/mehul-anand_MDP-Robot_MDP.ipynb
+    - (1x) State list_comp_35 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/gymnasium/hoodong_Gymnasium_gym4-7.ipynb
+
+📚 H2O
+----------------------------------------
+  Total:     49
+  Success:   41 (83.7%)
+  Errors:    8 (16.3%)
+  Nodes:     min=0, max=179, mean=37.0
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you mean print(...)? (<unknown>, lin...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/h2o/FOSSEE_Python-Textbook-Companions_Chapter14.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/h2o/trustedanalytics_h2o-3_cm_roc.ipynb
+    - (1x) State list_comp_23 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/h2o/yachty66_bio_ml_hackathon_main.ipynb
+    - (1x) expected an indented block after 'if' statement on line 6 (<unknown>, line 9)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/h2o/alexwolson_postdocbootcamp2023_lab_3_1_automl.ipynb
+
+📚 JAX
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=3, max=405, mean=47.0
+  Top errors:
+    - (1x) expected an indented block after 'for' statement on line 102 (<unknown>, line 10...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/jax/micol-altomare_ece421-assignments_a4.ipynb
+    - (1x) State list_comp_148 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/jax/yzimmermann_MSc_Thesis_Fig33.ipynb
+    - (1x) 'self.energy'...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/jax/ion-g-ion_PINNs_wheel.ipynb
+
+📚 KERAS
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=2, max=267, mean=43.3
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you mean print(...)? (<unknown>, lin...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/keras/quinngroup_deep-representations-clustering_ae.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/keras/elbamos_NeuralTopicModels_NTP.ipynb
+    - (1x) unexpected indent (<unknown>, line 331)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/keras/ArinaGri_DL_hw_15.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/keras/Pelmenoff_data_science_hw9.ipynb
+
+📚 LANGCHAIN
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=3, max=50, mean=22.2
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 6)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/langchain/brovalex_public-experiments_rag-gpt-pdf.ipynb
+    - (1x) invalid syntax (<unknown>, line 8)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/langchain/Warishayat_Langchain-GenrativeAI-Series_LLM_Chain.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/langchain/OmRope_GPT-4o-solvathon_Recommender.ipynb
+
+📚 LIGHTGBM
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=0, max=250, mean=57.4
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 314)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/lightgbm/Gangadari11_DepressionPrediction_Model6.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/lightgbm/roklp_MLP34_240214.ipynb
+    - (1x) invalid syntax (<unknown>, line 454)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/lightgbm/TanatB_gosoft_interview_assessment_main2.ipynb
+
+📚 LLAMA_INDEX
+----------------------------------------
+  Total:     50
+  Success:   48 (96.0%)
+  Errors:    2 (4.0%)
+  Nodes:     min=4, max=114, mean=39.0
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 22)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/llama_index/mingqiwangcn_llama_index_query_pipeline_agent.ipynb
+    - (1x) invalid syntax (<unknown>, line 12)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/llama_index/PradipNichite_FutureSmart-AI-Blog_NL2SQL_With_LlamaIndex.ipynb
+
+📚 MXNET
+----------------------------------------
+  Total:     50
+  Success:   39 (78.0%)
+  Errors:    11 (22.0%)
+  Nodes:     min=0, max=127, mean=40.0
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you mean print(...)? (<unknown>, lin...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/mxnet/whatifif_handgesturecode_build-classifier.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/mxnet/vasiloglou_mltrain-nips-2017_MBEM.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/mxnet/rtp-aws_devpost_aws_disaster_response_IWD_PREP-simple-001.ipynb
+    - (1x) invalid syntax (<unknown>, line 7)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/mxnet/jwnichols3_aws-immersion-ml-public_multi_model_endpoint_bring_your_own.ipynb
+
+📚 NLTK
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=2, max=116, mean=37.2
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 59)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/nltk/ponaalagar_NLP_2.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/nltk/TejaswiMuppala_Probailistic-Reasoning-Project_dl.ipynb
+    - (1x) unmatched ')' (<unknown>, line 166)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/nltk/hsnam95_class2024Spring_nlp.ipynb
+
+📚 OPENCV
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=7, max=111, mean=29.3
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/opencv/henryy313_THIGIACMAYTINH_27.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/opencv/Adityarish_biceps_poseDetection.ipynb
+    - (1x) Missing parentheses in call to 'print'. Did you mean print(...)? (<unknown>, lin...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/opencv/akkiittiwari_theia-ai_Y2.ipynb
+    - (1x) unterminated string literal (detected at line 445) (<unknown>, line 445)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/opencv/duchieuvn_anomaly_a.ipynb
+
+📚 OPTUNA
+----------------------------------------
+  Total:     50
+  Success:   48 (96.0%)
+  Errors:    2 (4.0%)
+  Nodes:     min=2, max=226, mean=45.1
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 237)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/optuna/osipov_smlbook_ch12.ipynb
+    - (1x) unindent does not match any outer indentation level (<unknown>, line 29)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/optuna/Timothychen00_predict_tsm_app.ipynb
+
+📚 PADDLEPADDLE
+----------------------------------------
+  Total:     50
+  Success:   43 (86.0%)
+  Errors:    7 (14.0%)
+  Nodes:     min=0, max=136, mean=35.2
+  Top errors:
+    - (1x) invalid non-printable character U+00A0 (<unknown>, line 118)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/paddlepaddle/VedanshSharma53_OCR_paddleocr.ipynb
+    - (1x) invalid syntax (<unknown>, line 203)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/paddlepaddle/Kane0068_OCR_Image_To_Text_OCR_ProjectClean.ipynb
+    - (1x) expected an indented block after 'with' statement on line 5 (<unknown>, line 8)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/paddlepaddle/hansel67_chn_to_eng_subtitler_extract_chinese_subtitles.ipynb
+
+📚 PROPHET
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=0, max=224, mean=37.8
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 32)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/prophet/qistudio_iab303_08-tutorial.ipynb
+    - (1x) invalid syntax (<unknown>, line 16)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/prophet/DominiqueLoyer_project2_timeseries.ipynb
+    - (1x) f-string: unmatched '[' (<unknown>, line 235)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/prophet/nhatipoglu_StockAgentExample_03_stock_agent.ipynb
+
+📚 PYCARET
+----------------------------------------
+  Total:     49
+  Success:   42 (85.7%)
+  Errors:    7 (14.3%)
+  Nodes:     min=0, max=155, mean=29.3
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 241)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pycaret/MathMachado_DSWP_revisao2.ipynb
+    - (1x) '(' was never closed (<unknown>, line 100)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pycaret/OSA7JIMI_genz_kampung_classify_subreddits.ipynb
+    - (1x) invalid syntax (<unknown>, line 72)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pycaret/kristirme_Chem240T_Quest1.ipynb
+
+📚 PYTORCH
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=2, max=198, mean=53.2
+  Top errors:
+    - (1x) expected an indented block after function definition on line 280 (<unknown>, lin...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pytorch/sugoma11_project4global_rs_dl.ipynb
+    - (1x) expected ':' (<unknown>, line 16)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pytorch/davanstrien_nlpwithpytorchbook_04.ipynb
+    - (1x) f-string: unmatched '(' (<unknown>, line 675)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pytorch/hung20gg_olp_MT.ipynb
+
+📚 PYTORCH_GEOMETRIC
+----------------------------------------
+  Total:     50
+  Success:   47 (94.0%)
+  Errors:    3 (6.0%)
+  Nodes:     min=0, max=266, mean=50.5
+  Top errors:
+    - (1x) State list_comp_69 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pytorch_geometric/manuel-dileo_dynamic-gnn_Steemit.ipynb
+    - (1x) State list_comp_34 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pytorch_geometric/zakcory_data-eng-lab_Part2.ipynb
+    - (1x) expected an indented block after 'if' statement on line 3 (<unknown>, line 5)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/pytorch_geometric/twelfth-star_CS224W-Winter2023_CS224W_Colab_4.ipynb
+
+📚 RAY_TUNE
+----------------------------------------
+  Total:     50
+  Success:   40 (80.0%)
+  Errors:    10 (20.0%)
+  Nodes:     min=2, max=356, mean=48.1
+  Top errors:
+    - (1x) 'self.reshape'...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/ray_tune/tobymao25_tumor_dl_image_branch_Linda.ipynb
+    - (1x) invalid syntax. Perhaps you forgot a comma? (<unknown>, line 50)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/ray_tune/anilbek_practice_ray_tune_opt.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/ray_tune/somerl_codespaces-jupyter_Urwithwrappers.ipynb
+
+📚 SKLEARN
+----------------------------------------
+  Total:     50
+  Success:   40 (80.0%)
+  Errors:    10 (20.0%)
+  Nodes:     min=0, max=223, mean=53.8
+  Top errors:
+    - (2x) Missing parentheses in call to 'print'. Did you mean print(...)? (<unknown>, lin...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/sklearn/NoemiRoecklinger_dissertation_7_ML.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/sklearn/ShubhiJain67_MachineLearningAlgorithms_KNN.ipynb
+    - (1x) unindent does not match any outer indentation level (<unknown>, line 21)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/sklearn/Vicks-2019_Datatrained_Project11.ipynb
+    - (1x) '(' was never closed (<unknown>, line 57)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/sklearn/BillG0510_Spatial-Pyramid-Matching_SPM.ipynb
+
+📚 SKTIME
+----------------------------------------
+  Total:     50
+  Success:   47 (94.0%)
+  Errors:    3 (6.0%)
+  Nodes:     min=4, max=300, mean=45.1
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/sktime/Roan-Schellingerhout_OKRA_ECIR_request_location_loader.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/sktime/PacktPublishing_Machine-Learning-for-Time-Series-with-Python_Preprocessing.ipynb
+    - (1x) invalid syntax (<unknown>, line 50)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/sktime/hapatika_microfin_compiled-stat-arb.ipynb
+
+📚 SPACY
+----------------------------------------
+  Total:     50
+  Success:   41 (82.0%)
+  Errors:    9 (18.0%)
+  Nodes:     min=0, max=244, mean=33.1
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/spacy/Rachana-murdare_NLP_NLP1.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/spacy/justinmjoseph2_NLP3_nlp.ipynb
+    - (1x) State list_comp_63 already exists...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/spacy/A-Deb_DSSS_Labs_Lab4.ipynb
+    - (1x) invalid syntax (<unknown>, line 82)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/spacy/TuanTony5_SUDOCODE2024_Ex1.ipynb
+
+📚 STABLE_BASELINES3
+----------------------------------------
+  Total:     50
+  Success:   47 (94.0%)
+  Errors:    3 (6.0%)
+  Nodes:     min=2, max=114, mean=36.7
+  Top errors:
+    - (1x) 'algo.buffer.to_torch'...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/stable_baselines3/brn-dev_pytorch-repository_sac-debugging2.ipynb
+    - (1x) invalid syntax (<unknown>, line 250)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/stable_baselines3/dalki-bot_RL_Quant_action테스트용-1.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/stable_baselines3/huggingface_deep-rl-class_unit1.ipynb
+
+📚 STATSMODELS
+----------------------------------------
+  Total:     50
+  Success:   46 (92.0%)
+  Errors:    4 (8.0%)
+  Nodes:     min=4, max=335, mean=61.3
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 35)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/statsmodels/avinashtrivedi_Python_2021_ols.ipynb
+    - (1x) unexpected indent (<unknown>, line 28)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/statsmodels/Bm08_voila_app.ipynb
+    - (1x) unindent does not match any outer indentation level (<unknown>, line 312)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/statsmodels/PacoBermudez_tfm_modelo_mervado_valores_eda.ipynb
+
+📚 TENSORFLOW
+----------------------------------------
+  Total:     50
+  Success:   49 (98.0%)
+  Errors:    1 (2.0%)
+  Nodes:     min=2, max=162, mean=31.6
+  Top errors:
+    - (1x) unexpected indent (<unknown>, line 3)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/tensorflow/SIBI-MS_ML-Advanced_Q9.ipynb
+
+📚 TIMM
+----------------------------------------
+  Total:     50
+  Success:   47 (94.0%)
+  Errors:    3 (6.0%)
+  Nodes:     min=4, max=246, mean=65.8
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 5)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/timm/JialinMao_private_CNN_vit.ipynb
+    - (1x) expected an indented block after function definition on line 200 (<unknown>, lin...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/timm/ZewiL08_ML_DeepFake_Report.ipynb
+    - (1x) invalid syntax (<unknown>, line 27)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/timm/GongCheng1919_bias-compensation_quantize-demo.ipynb
+
+📚 TORCHVISION
+----------------------------------------
+  Total:     50
+  Success:   42 (84.0%)
+  Errors:    8 (16.0%)
+  Nodes:     min=0, max=114, mean=46.8
+  Top errors:
+    - (2x) '(' was never closed (<unknown>, line 11)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/torchvision/vinayneelam_project3_udacity_app.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/torchvision/Scratch-project_landmark-classification_app.ipynb
+    - (1x) unmatched ')' (<unknown>, line 363)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/torchvision/Eadyn_GAN-Cats_gan.ipynb
+    - (1x) invalid syntax (<unknown>, line 4)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/torchvision/telecombcn-dl_2018-dlai-team10_MLP.ipynb
+
+📚 TRANSFORMERS
+----------------------------------------
+  Total:     50
+  Success:   45 (90.0%)
+  Errors:    5 (10.0%)
+  Nodes:     min=0, max=175, mean=36.5
+  Top errors:
+    - (2x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/transformers/WAZF_PDFBot_bot.ipynb
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/transformers/rahatRiSD_Python_code_LLM.ipynb
+    - (1x) unterminated string literal (detected at line 41) (<unknown>, line 41)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/transformers/himanshu706991_GenAI-QA_QA.ipynb
+    - (1x) invalid syntax (<unknown>, line 53)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/transformers/arjundudile_YOUTUBE-VIDEO-SUMMARIZER_YT.ipynb
+
+📚 ULTRALYTICS
+----------------------------------------
+  Total:     50
+  Success:   48 (96.0%)
+  Errors:    2 (4.0%)
+  Nodes:     min=0, max=229, mean=29.5
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 17)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/ultralytics/adidonner_Machine-Deep-learning-Python-Based_Task8.ipynb
+    - (1x) invalid syntax (<unknown>, line 1)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/ultralytics/Chirag-Sharma-04_Yolo_code_Yolo.ipynb
+
+📚 XGBOOST
+----------------------------------------
+  Total:     50
+  Success:   44 (88.0%)
+  Errors:    6 (12.0%)
+  Nodes:     min=0, max=209, mean=50.7
+  Top errors:
+    - (1x) invalid syntax (<unknown>, line 156)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/xgboost/emilschmitz_Beam-Level-Traffic-Forecasting-Challenge_train.ipynb
+    - (1x) invalid syntax (<unknown>, line 42)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/xgboost/Saivenkat8_Amex_Hack_amex.ipynb
+    - (1x) invalid syntax (<unknown>, line 123)...
+        • /home/nina/projects/APEX-DAG/data/notebook_data/APEXDAG Datasets/xgboost/andre-luiz-croccia_Data-Science-AW_CH5.ipynb
+
+======================================================================
+END OF REPORT
+======================================================================

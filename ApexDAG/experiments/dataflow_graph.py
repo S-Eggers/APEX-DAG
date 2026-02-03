@@ -21,7 +21,7 @@ def data_flow_graph_test(args, logger: logging.Logger) -> None:
     logger.debug(f"Building notebook execution graph took {end_time - start_time}s")
 
     start_time = time.time()
-    dfg = DataFlowGraph(replace_dataflow=True)
+    dfg = DataFlowGraph(replace_dataflow=False)
     dfg.parse_notebook(notebook)
     end_time = time.time()
     logger.debug(f"Building dataflow graph took {end_time - start_time}s")

@@ -16,6 +16,7 @@ class Stack:
         self.functions = {}
         self.instances = {} # Maps instance names to class names
         self.branches = []
+        self._nested = False
 
         self._current_state = "module"
         self._state = {"module": State("module")}
@@ -23,6 +24,14 @@ class Stack:
     def __contains__(self, context: str) -> bool:
         return context in self._state
 
+    @property
+    def nested(self) -> bool:
+        return self._nested
+
+    @nested.setter
+    def nested(self, nested: bool) -> None:
+        self._nested = nested
+        
     def create_child_state(
         self, context: str = None, parent_context: Optional[str] = None
     ) -> None:
@@ -33,6 +42,7 @@ class Stack:
             raise ValueError(f"Parent state {parent_context} does not exist")
 
         self._state[context] = State(context, parent_context)
+        # print(f"Created new state: {context} with parent {parent_context}")
         self._current_state = context
 
     def add_class_instance(self, instance: str, class_name: str):
