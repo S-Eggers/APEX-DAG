@@ -193,6 +193,8 @@ temp/*
 .ipynb_checkpoints/*
 
 *.ipynb
+!docs/examples_classes/**/*.ipynb
+!docs/examples_classes/**/*.png
 
 demo/data/reparyx/*
 demo/customer_clean.json
