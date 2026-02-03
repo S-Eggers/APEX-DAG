@@ -766,6 +766,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_ListComp(self, node: ast.ListComp) -> ast.ListComp:
+        if hasattr(node, "_visited"):
+            return node
+        node._visited = True
         final_list_variable = self._current_state.current_variable
         if not final_list_variable:
             final_list_variable = f"list_comp_result_{node.lineno}"
@@ -1047,8 +1050,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                             node.end_lineno,
                             node.end_col_offset,
                         )
-            else:
-                self.visit(arg)
+            #else:
+            #   self.visit(arg)
 
     def _process_library_call(
         self, node: ast.Call, caller_object_name: str, tokens: str = None

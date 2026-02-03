@@ -19,14 +19,6 @@ from ApexDAG.label_notebooks.pydantic_models import (
     SubgraphContext,
 )
 
-log_format = "{asctime} - {name} - {levelname} - {message}"
-logging.basicConfig(
-    level=logging.INFO,
-    format=log_format,
-    style="{",
-    handlers=[logging.FileHandler("graph_labeling.log"), logging.StreamHandler()],
-)
-
 
 class TokenLimitExceededError(Exception):
     """Custom exception raised when the configured token limit is reached."""
@@ -39,11 +31,18 @@ class GraphLabeler:
     Labels graph edges using an LLM, with support for multiple providers and token counting.
     """
 
-    def __init__(self, config: Config, graph_path: str, code_path: str):
+    def __init__(self, config: Config, graph_path: str, code_path: str, logger=None):
         load_dotenv()
         self.config = config
         self.graph_path = graph_path
         self.G = load_graph(self.graph_path)
+
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = logging.getLogger(__name__)
+            self.logger.setLevel(logging.INFO)
+            self.logger.addHandler(logging.StreamHandler())
 
         self.llm_provider = getattr(config, "llm_provider", "groq")
         self.client = self._initialize_client()
@@ -52,13 +51,13 @@ class GraphLabeler:
         self.code_lines = self.read_code(code_path)
 
         self.total_tokens_used = 0
-        logging.info(
+        self.logger.info(
             f"Initialized GraphLabeler with provider '{self.llm_provider}' and model '{self.config.model_name}'."
         )
         if hasattr(self.config, "max_tokens") and self.config.max_tokens > 0:
-            logging.info(f"Token limit set to {self.config.max_tokens} tokens.")
+            self.logger.info(f"Token limit set to {self.config.max_tokens} tokens.")
         else:
-            logging.warning(
+            self.logger.warning(
                 "No max_tokens limit set in config. Running without a token budget."
             )
             self.config.max_tokens = float("inf")
@@ -67,7 +66,7 @@ class GraphLabeler:
         """
         Initializes and patches the LLM client, importing libraries only when needed.
         """
-        logging.info(f"Initializing client for provider: {self.llm_provider}")
+        self.logger.info(f"Initializing client for provider: {self.llm_provider}")
         if self.llm_provider == "groq":
             from groq import Groq
 
@@ -131,8 +130,8 @@ class GraphLabeler:
                     parsed_response
                 )
             except (json.JSONDecodeError, ValidationError) as e:
-                logging.error(f"Error parsing or validating Gemini response: {e}")
-                logging.error(f"Raw Gemini response: {response.text}")
+                self.logger.error(f"Error parsing or validating Gemini response: {e}")
+                self.logger.error(f"Raw Gemini response: {response.text}")
                 raise
 
             # Extract token usage
@@ -244,7 +243,7 @@ class GraphLabeler:
                     tokens_this_call = prompt_tokens + completion_tokens
 
                 self.total_tokens_used += tokens_this_call
-                logging.info(
+                self.logger.info(
                     f"Tokens used for ({edge.source} -> {edge.target}): {tokens_this_call}. "
                     f"Total used: {self.total_tokens_used}/{self.config.max_tokens}"
                 )
@@ -253,13 +252,13 @@ class GraphLabeler:
                     time.sleep(success_delay)
                     break
                 else:
-                    logging.info(
+                    self.logger.info(
                         "'MORE_CONTEXT_NEEDED' received. Retrying with increased depth."
                     )
                     time.sleep(retry_delay)
                     max_depth += 1
             except instructor.exceptions.InstructorRetryException as e:
-                logging.error(
+                self.logger.error(
                     f"Rate limit error on edge {edge.source} -> {edge.target}: {e}"
                 )
                 if getattr(e, "status_code", None) == 413:
@@ -268,16 +267,16 @@ class GraphLabeler:
                 if wait_time:
                     retry_delay = wait_time + 1
                 if attempt < retry_attempts - 1:
-                    logging.info(f"Retrying in {retry_delay:.2f} seconds...")
+                    self.logger.info(f"Retrying in {retry_delay:.2f} seconds...")
                     time.sleep(retry_delay)
                     retry_delay *= 2
                 else:
-                    logging.error(
+                    self.logger.error(
                         f"Exceeded retries for edge {edge.source} -> {edge.target}"
                     )
                     raise e
             except Exception as e:
-                logging.error(
+                self.logger.error(
                     f"Error on edge {edge.source} -> {edge.target}: {e}. Retrying with more depth."
                 )
                 time.sleep(retry_delay)
@@ -311,11 +310,14 @@ class GraphLabeler:
             edge, "MISSING"
         )
 
+    def get_total_tokens_used(self):
+        return self.total_tokens_used
+
     def label_graph(self):
         self.G_with_context.populate_edge_dict()
 
         if len(self.G_with_context.edges) > 110:
-            logging.warning(
+            self.logger.warning(
                 f"Graph has {len(self.G_with_context.edges)} edges. This may take a long time and be costly."
             )
 
@@ -328,14 +330,14 @@ class GraphLabeler:
         ):
             try:
                 self.label_edge(edge, edge_index, max_depth=self.config.max_depth)
-                logging.info(
+                self.logger.info(
                     f"Successfully labelled edge {edge.source} -> {edge.target}"
                 )
             except TokenLimitExceededError as e:
-                logging.warning(str(e))
-                logging.info("Stopping graph labeling due to token limit.")
+                self.logger.warning(str(e))
+                self.logger.info("Stopping graph labeling due to token limit.")
                 remaining_start_index = edge_index
-                logging.info(
+                self.logger.info(
                     f"Marking the remaining {len(edges_to_process) - remaining_start_index} edges as 'MISSING'."
                 )
                 for i in range(remaining_start_index, len(edges_to_process)):
@@ -345,7 +347,7 @@ class GraphLabeler:
                     )
                 break
             except Exception as e:
-                logging.error(
+                self.logger.error(
                     f"Failed to label edge {edge.source} -> {edge.target}: {e}. Marking as 'MISSING'."
                 )
                 self.insert_missing_value_for_edge(edge, edge_index)

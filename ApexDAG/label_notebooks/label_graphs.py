@@ -11,13 +11,29 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-log_format = "%(asctime)s - %(levelname)s - %(message)s"
+# Create a logger instance
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-logging.basicConfig(
-    level=logging.INFO,
-    format=log_format,
-    handlers=[logging.FileHandler("graph_labeling.log"), logging.StreamHandler()],
-)
+# Define log format
+log_format = "%(asctime)s - %(levelname)s - %(message)s"
+formatter = logging.Formatter(log_format)
+
+# Create log directory if it doesn't exist
+log_dir = "jetbrains_dfg_100k_new/logs"
+os.makedirs(log_dir, exist_ok=True)
+
+# Create file handler
+log_file = os.path.join(log_dir, "graph_labeling.log")
+file_handler = logging.FileHandler(log_file)
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
+# Create stream handler
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+logger.propagate = False
 
 
 def get_code_file_path(filename):
@@ -41,46 +57,78 @@ if __name__ == "__main__":
     parser.add_argument(
         "--source_path",
         type=str,
-        default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new/execution_graphs",
+        default="jetbrains_dfg_100k_new/execution_graphs",
         help="Path to the input graph files",
     )
     parser.add_argument(
         "--target_path",
         type=str,
-        default="/home/eggers/data/apexdag_results/jetbrains_dfg_100k_new_labeled/execution_graphs",
+        default="jetbrains_dfg_100k_new/labelled_execution_graphs",
         help="Path to save labeled graph files",
     )
 
     args = parser.parse_args()
 
     config = load_config(args.config_path)
-    config.max_tokens = 1000000000
 
-    if not os.path.exists(args.source_path):
-        logging.error(f"Source path '{args.source_path}' does not exist.")
+    source_path = os.path.join(os.getcwd(), args.source_path)
+    if not os.path.exists(source_path):
+        logger.error(f"Source path '{source_path}' does not exist.")
         exit(1)
 
-    os.makedirs(args.target_path, exist_ok=True)
-    files = [f for f in os.listdir(args.source_path) if f.endswith(".execution_graph")]
+    target_dir = os.path.join(os.getcwd(), args.target_path)
+    os.makedirs(target_dir, exist_ok=True)
 
-    for filename in tqdm(files, desc="Processing graph files"):
-        if filename.endswith(".execution_graph"):
-            graph_file_path = os.path.join(args.source_path, filename)
-            logging.info(f"Processing file: {graph_file_path}")
+    logger.info(f"Initializing processed files set from {target_dir}...")
+    processed_files = set(os.listdir(target_dir))
+    logger.info(f"Found {len(processed_files)} already processed files.")
 
-            try:
-                G = load_graph(graph_file_path)
-                code_file_path = get_code_file_path(graph_file_path)
+    try:
+        while True:
+            files = [f for f in os.listdir(source_path) if f.endswith(".execution_graph")]
+            
+            new_files = [f for f in files if f not in processed_files]
 
-                labeler = GraphLabeler(config, graph_file_path, code_file_path)
-                G, G_with_context = labeler.label_graph()
+            if not new_files:
+                logger.info("No new files found. Waiting for new files...")
+                time.sleep(60)
+                continue
 
-                output_directory = args.target_path
-                os.makedirs(output_directory, exist_ok=True)
-
+            for filename in tqdm(new_files, desc="Processing graph files"):
+                output_directory = os.path.join(os.getcwd(), args.target_path)
                 output_file = os.path.join(output_directory, filename)
-                nx.write_gml(G, output_file)
 
-                logging.info(f"Saved labeled graph to: {output_file}")
-            except Exception as e:
-                logging.error(f"Failed to process {filename}: {e}", exc_info=True)
+                if os.path.exists(output_file):
+                    logger.info(f"Skipping already processed file: {filename}")
+                    processed_files.add(filename)
+                    continue
+
+                graph_file_path = os.path.join(source_path, filename)
+                logger.info(f"Processing file: {graph_file_path}")
+
+                try:
+                    G = load_graph(graph_file_path)
+                    code_file_path = get_code_file_path(graph_file_path)
+
+                    labeler = GraphLabeler(config, graph_file_path, code_file_path, logger)
+                    G, G_with_context = labeler.label_graph()
+                    total_tokens_used = labeler.get_total_tokens_used()
+                    logger.info(f"Total tokens used: {total_tokens_used}")
+                    config.max_tokens = config.max_tokens - total_tokens_used
+                    logger.info(f"Remaining tokens: {config.max_tokens}")
+                    if config.max_tokens < 0:
+                        raise KeyboardInterrupt()
+
+                    os.makedirs(output_directory, exist_ok=True)
+                    nx.write_gml(G, output_file)
+
+                    logger.info(f"Saved labeled graph to: {output_file}")
+                    processed_files.add(filename)
+                except Exception as e:
+                    logger.error(f"Failed to process {filename}: {e}", exc_info=True)
+            
+            logger.info("Finished processing all new files. Waiting for new files...")
+            time.sleep(60)
+
+    except KeyboardInterrupt:
+        logger.info("Graph labeling process interrupted by user.")
