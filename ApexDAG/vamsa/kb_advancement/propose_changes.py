@@ -4,7 +4,7 @@ Propose, apply, and measure impact of KB changes
 """
 import json
 import os
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional
 from dataclasses import dataclass, asdict
 from copy import deepcopy
 import pandas as pd
@@ -13,7 +13,7 @@ from time import sleep
 from ApexDAG.vamsa.annotate_wir import KB
 from ApexDAG.vamsa.evaluate_kb import KBEvaluator
 from ApexDAG.vamsa.kb_advancement.KBChangeProposal import KBChangeProposal
-from ApexDAG.vamsa.kb_advancement.proposal_maker import ProposalMaker
+from ApexDAG.vamsa.kb_advancement.ProposalMaker import ProposalMaker
 
 
 @dataclass
@@ -186,16 +186,11 @@ class KBChangeManager:
         baseline_reports = evaluator_baseline.evaluate_corpus(self.corpus_path)
         baseline_report_path = os.path.join(output_dir, f"{safe_name}_baseline.json")
         baseline_data = evaluator_baseline.generate_report(baseline_reports, baseline_report_path)
-        
-        # get the baseline reports and pass it as input to the proposal maker
-        
+                
         # Apply proposal
         print("\nStep 2/3: Applying proposal and creating enhanced KB...")
         enhanced_kb, proposal = self.apply_proposal(proposal_object, self.baseline_kb, baseline_data)
-        
-        # print("\nStep 2/3: Applying proposal and creating enhanced KB...")
-        # enhanced_kb, proposal = self.apply_proposal(proposal_object, self.baseline_kb)
-        
+                
         # Enhanced evaluation
         print("\nStep 3/3: Evaluating enhanced KB...")
         evaluator_enhanced = KBEvaluator(enhanced_kb)
@@ -426,31 +421,95 @@ class KBChangeManager:
 
 
 if __name__ == "__main__":
-    # Example usage
-    corpus_path = "C:\\Users\\ismyn\\UNI\\BIFOLD\\APEXDAG_datasets\\catboost"
-    documentation_link = "https://scikit-learn.org/stable/api/index.html"
-    output_dir = "output/proposals"
+    import argparse
+    
+    parser = argparse.ArgumentParser(
+        description="KB Change Proposal Framework - Iteratively propose and evaluate KB improvements",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # CatBoost evaluation
+  python propose_changes.py --corpus /path/to/catboost --docs https://catboost.ai/docs/en/ --output output/catboost
+  
+  # Scikit-learn evaluation
+  python propose_changes.py --corpus /path/to/sklearn --docs https://scikit-learn.org/stable/api/index.html --output output/sklearn
+        """
+    )
+    
+    parser.add_argument(
+        "--corpus",
+        type=str,
+        required=True,
+        help="Path to the corpus directory containing notebooks to evaluate"
+    )
+    parser.add_argument(
+        "--docs",
+        "--documentation",
+        type=str,
+        required=True,
+        dest="documentation_link",
+        help="URL to the library documentation for scraping"
+    )
+    parser.add_argument(
+        "--output",
+        type=str,
+        default="output/proposals",
+        help="Output directory for results (default: output/proposals)"
+    )
+    parser.add_argument(
+        "--iterations",
+        type=int,
+        default=200,
+        help="Number of iterations to run (default: 200)"
+    )
+    parser.add_argument(
+        "--kb-path",
+        type=str,
+        default=None,
+        help="Path to existing KB CSV to continue from (optional)"
+    )
+    
+    args = parser.parse_args()
     
     print("="*80)    
     print("KB CHANGE PROPOSAL FRAMEWORK")
     print("="*80)
+    print(f"Corpus: {args.corpus}")
+    print(f"Documentation: {args.documentation_link}")
+    print(f"Output: {args.output}")
+    print(f"Iterations: {args.iterations}")
+    print("="*80)
     
     # Create manager
-    running_KB = KB()
-    for iteration in range(200):
+    if args.kb_path:
+        print(f"Loading existing KB from: {args.kb_path}")
+        running_KB = KB(kb_cs_path=args.kb_path)
+    else:
+        running_KB = KB()
+    
+    # Ensure output directory exists
+    os.makedirs(args.output, exist_ok=True)
+    
+    # Run iterations
+    for iteration in range(args.iterations):
         print(f"\n--- ITERATION {iteration+1} ---\n")
-        manager = KBChangeManager(baseline_kb=running_KB, corpus_path=corpus_path)
+        manager = KBChangeManager(baseline_kb=running_KB, corpus_path=args.corpus)
         
         # Propose a change
-        proposal_object = ProposalMaker(link_to_documentation=documentation_link) # takes in data, scrapes documentation and outputs a proposal object after querying an llm
+        proposal_object = ProposalMaker(link_to_documentation=args.documentation_link)
         
         # Evaluate impact
-        report, running_KB = manager.evaluate_proposal(proposal_object, output_dir=output_dir)
-        sleep(200)
+        report, running_KB = manager.evaluate_proposal(proposal_object, output_dir=args.output)
         
     print("\n=== DONE ===")
-    print(f"Results in: {output_dir}")
-    # save entries in running KB 
-    running_KB.knowledge_base.to_csv(os.path.join(output_dir, "final_annotation_kb.csv"), index=False)
-    # save final traversals in running KB
-    running_KB.knowledge_base_traversal.to_csv(os.path.join(output_dir, "final_traversal_kb.csv"), index=False)
+    print(f"Results in: {args.output}")
+    
+    # Save final KB entries
+    final_annotation_path = os.path.join(args.output, "final_annotation_kb.csv")
+    final_traversal_path = os.path.join(args.output, "final_traversal_kb.csv")
+    
+    running_KB.knowledge_base.to_csv(final_annotation_path, index=False)
+    running_KB.knowledge_base_traversal.to_csv(final_traversal_path, index=False)
+    
+    print(f"Annotation KB saved to: {final_annotation_path}")
+    print(f"Traversal KB saved to: {final_traversal_path}")

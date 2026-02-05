@@ -99,7 +99,9 @@ class ProposalMaker:
                 continue
 
             # Focus API-generated pages (sklearn / pandas / catboost)
-            if "/generated/" in full_url or "/reference/" in full_url:
+            if "/generated/" in full_url or "/reference/" in full_url or "/features/" in full_url:
+                # for catboos 
+                full_url = full_url.replace("/en/en/", "/en/")
                 links.add(full_url)
 
         return sorted(links)
@@ -242,18 +244,3 @@ Avoid duplicates. Prefer commonly-used APIs.
 
         self.past_proposals.append(proposal)
         return kb_proposal
-
-
-# ============================
-# ===== Example Usage =======
-# ============================
-
-if __name__ == "__main__":
-    maker = ProposalMaker(
-        "https://scikit-learn.org/stable/api/index.html"
-    )
-
-    proposal = maker(KB=None, baseline_report=None)
-
-    print("\n=== Generated Proposal ===")
-    print(proposal)

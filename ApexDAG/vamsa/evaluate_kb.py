@@ -196,10 +196,17 @@ class KBEvaluator:
     """Main evaluation framework for KB entries"""
     
     def __init__(self, kb: Optional[KB] = None):
-        self.kb = InstrumentedKB() # if kb is None else kb
+        self.kb = InstrumentedKB(kb) # if kb is None else kb
         
     def evaluate_notebook(self, notebook_path: str, what_track: Set[str] = {"features"}) -> KBEvaluationReport:
         """Evaluate KB on a single notebook - NO TRY/EXCEPT, errors should propagate"""
+        
+        # Reset KB logs for per-notebook metrics
+        if isinstance(self.kb, InstrumentedKB):
+            self.kb.query_log = []
+            self.kb.hit_log = []
+            self.kb.entry_usage = defaultdict(int)
+            self.kb.unsuccessful_operations = set()
         
         metrics = AnnotationMetrics()
         traversal_metrics = TraversalMetrics()
@@ -251,6 +258,9 @@ class KBEvaluator:
         from ApexDAG.vamsa.track_provenance import ProvenanceTracker
         tracker = ProvenanceTracker(annotated_wir, prs[::-1])
         instrumented_tracker = InstrumentedProvenanceTracker(tracker)
+        # Reset tracker state for clean per-notebook metrics
+        instrumented_tracker.rule_usage = defaultdict(int)
+        instrumented_tracker.traversal_depth = []
         
         C_plus, C_minus = instrumented_tracker.track(what_track)
         
@@ -279,6 +289,8 @@ class KBEvaluator:
                     if filename.endswith((".py", ".ipynb")):
                         files.append(os.path.join(root, filename))
         
+        # Sort files for deterministic ordering across runs
+        files = sorted(files)
         
         for i, file_path in enumerate(files, 1):
             try:
@@ -303,13 +315,21 @@ class KBEvaluator:
     def compare_kbs(self, kb1: KB, kb2: KB, corpus_path: str) -> Dict:
         """Compare two KBs on the same corpus"""
         print("Evaluating KB 1 (baseline)...")
-        self.kb = kb1 if isinstance(kb1, InstrumentedKB) else InstrumentedKB()
-        self.kb.knowledge_base = kb1.knowledge_base
+        if isinstance(kb1, InstrumentedKB):
+            self.kb = kb1
+        else:
+            self.kb = InstrumentedKB()
+            self.kb.knowledge_base = kb1.knowledge_base.copy()
+            self.kb.knowledge_base_traversal = kb1.knowledge_base_traversal.copy()
         reports1 = self.evaluate_corpus(corpus_path)
         
         print("\nEvaluating KB 2 (enhanced)...")
-        self.kb = kb2 if isinstance(kb2, InstrumentedKB) else InstrumentedKB()
-        self.kb.knowledge_base = kb2.knowledge_base
+        if isinstance(kb2, InstrumentedKB):
+            self.kb = kb2
+        else:
+            self.kb = InstrumentedKB()
+            self.kb.knowledge_base = kb2.knowledge_base.copy()
+            self.kb.knowledge_base_traversal = kb2.knowledge_base_traversal.copy()
         reports2 = self.evaluate_corpus(corpus_path)
         
         return self._generate_comparison_report(reports1, reports2)
