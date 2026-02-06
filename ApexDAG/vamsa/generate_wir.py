@@ -5,6 +5,8 @@ import numpy as np
 import random
 
 from ast import iter_child_nodes
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
 from matplotlib import pyplot as plt
 from typing import Set, Tuple, Optional
 
@@ -26,7 +28,7 @@ from ApexDAG.vamsa.utils import (
 random.seed(42)
 np.random.seed(42)
 
-logging.basicConfig(level=logging.WARNING)  # Adjust for debugging
+logging.basicConfig(level=logging.ERROR)  # Adjust for debugging
 logger = logging.getLogger(__name__)  # Get a logger for this module
 
 
@@ -229,8 +231,8 @@ def extract_from_node(
             elif field == "operation":
                 return WIRNode(node.__class__.__name__ + add_id())
         case _:
-            logger.warning(f"Field {field} not found in node {node.__class__.__name__}")
-    logger.info(f"Field {field} not found in node {node.__class__.__name__}")
+            pass
+    logger.debug(f"Field {field} not found in node {node.__class__.__name__}")
     return WIRNode(None)
 
 
@@ -358,7 +360,7 @@ def GenWIR(
 
     bipartie_check = check_bipartie(PRs_filtered)
 
-    logger.warning(f"Graph is bipartie: {bipartie_check}")
+    logger.info(f"Graph is bipartie: {bipartie_check}")
 
     with open(output_filename.replace(".png", ".txt"), "w") as f:
         for pr in PR_filtered_no_assign:
@@ -479,6 +481,9 @@ def construct_bipartite_graph(
         draw_graph(
             G, input_nodes, output_nodes, caller_nodes, operation_nodes, output_filename
         )
+        # save graph image 
+        plt.savefig(output_filename)
+        
     return G, (input_nodes, output_nodes, caller_nodes, operation_nodes)
 
 
@@ -488,7 +493,14 @@ def draw_graph(
     labels = {node: remove_id(node) for node in G.nodes()}
 
     plt.figure(figsize=(200, 40))
-    pos = graphviz_layout(G, prog="dot")
+    
+    # Try graphviz layout first, fall back to hierarchical layout if it fails
+    try:
+        pos = graphviz_layout(G, prog="dot")
+    except Exception as e:
+        logger.warning(f"Graphviz layout failed: {e}. Using spring layout instead.")
+        # Use hierarchical layout as fallback
+        pos = nx.spring_layout(G, k=2, iterations=50)
 
     nx.draw_networkx_nodes(G, pos, nodelist=input_nodes, node_shape="o")
     nx.draw_networkx_nodes(G, pos, nodelist=caller_nodes, node_shape="o")
@@ -503,7 +515,7 @@ def draw_graph(
 
     plt.legend()
     plt.savefig(output_filename)
-    plt.close()
+    plt.close()  # Close figure to free memory and prevent display
 
 
 if __name__ == "__main__":

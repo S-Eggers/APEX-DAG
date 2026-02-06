@@ -1,0 +1,413 @@
+{
+  "summary": {
+    "total_notebooks": 50,
+    "successful_notebooks": 33,
+    "avg_annotation_coverage": 0.015281230228534282,
+    "avg_kb_hit_rate": 0.031041843479736438,
+    "avg_c_plus_size": 0.0,
+    "avg_c_minus_size": 0.0
+  },
+  "traversal_rule_usage": {},
+  "most_common_unannotated_operations": [
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'ImportAs'}",
+      33
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'ImportFrom'}",
+      31
+    ],
+    [
+      "{'library': 'catboost', 'caller': None, 'operation': 'ImportFrom'}",
+      30
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'ImportAs'}",
+      28
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'Subscript'}",
+      24
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Subscript'}",
+      21
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'drop'}",
+      18
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'fit'}",
+      17
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'train_test_split'}",
+      16
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'keyword'}",
+      16
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'predict'}",
+      14
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'print'}",
+      14
+    ],
+    [
+      "{'library': 'catboost', 'caller': None, 'operation': 'CatBoostRegressor'}",
+      13
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'For'}",
+      13
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'drop'}",
+      12
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'DataFrame'}",
+      12
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'len'}",
+      11
+    ],
+    [
+      "{'library': 'matplotlib', 'caller': None, 'operation': 'ImportAs'}",
+      11
+    ],
+    [
+      "{'library': 'seaborn', 'caller': None, 'operation': 'ImportAs'}",
+      9
+    ],
+    [
+      "{'library': 'os', 'caller': None, 'operation': 'ImportAs'}",
+      8
+    ],
+    [
+      "{'library': 'xgboost', 'caller': None, 'operation': 'ImportFrom'}",
+      8
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'to_csv'}",
+      8
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Dict'}",
+      8
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'columns'}",
+      8
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'values'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'fit_transform'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Eq'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'to_csv'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Mult'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'astype'}",
+      7
+    ],
+    [
+      "{'library': 'warnings', 'caller': None, 'operation': 'ImportAs'}",
+      7
+    ],
+    [
+      "{'library': 'catboost', 'caller': None, 'operation': 'ImportAs'}",
+      7
+    ],
+    [
+      "{'library': 'xgboost', 'caller': None, 'operation': 'XGBClassifier'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'ListComp'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'list'}",
+      7
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'columns'}",
+      7
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'keyword'}",
+      6
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'OneHotEncoder'}",
+      6
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'cross_val_score'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'transform'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'value_counts'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Sub'}",
+      6
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'accuracy_score'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Add'}",
+      6
+    ],
+    [
+      "{'library': 'warnings', 'caller': None, 'operation': 'filterwarnings'}",
+      6
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'RandomForestClassifier'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'comprehension'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'copy'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'shape'}",
+      6
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'map'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'RobustScaler'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'fillna'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Pool'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'reset_index'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'apply'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'f1_score'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'sum'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'mean_squared_error'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'UnaryOp'}",
+      5
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'tolist'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'mean_absolute_error'}",
+      4
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'mean_squared_error'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'head'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'index'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Gt'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'isin'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'groupby'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'predict_proba'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'to_datetime'}",
+      4
+    ],
+    [
+      "{'library': 'pickle', 'caller': None, 'operation': 'ImportAs'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'agg'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Div'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'drop_duplicates'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'range'}",
+      4
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'random'}",
+      4
+    ],
+    [
+      "{'library': 'xgboost', 'caller': None, 'operation': 'ImportAs'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'enumerate'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'split'}",
+      4
+    ],
+    [
+      "{'library': 'optuna', 'caller': None, 'operation': 'ImportAs'}",
+      4
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'keyword'}",
+      4
+    ],
+    [
+      "{'library': 'gc', 'caller': None, 'operation': 'ImportAs'}",
+      4
+    ],
+    [
+      "{'library': 'gc', 'caller': None, 'operation': 'collect'}",
+      4
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'precision_score'}",
+      4
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'recall_score'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'dropna'}",
+      4
+    ],
+    [
+      "{'library': 'matplotlib', 'caller': None, 'operation': 'figure'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'mean'}",
+      4
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'KFold'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'List'}",
+      4
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'RandomForestRegressor'}",
+      3
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'groupby'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'List'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'GridSearchCV'}",
+      3
+    ],
+    [
+      "{'library': 'catboost', 'caller': None, 'operation': 'List'}",
+      3
+    ],
+    [
+      "{'library': 'xgboost', 'caller': None, 'operation': 'XGBRegressor'}",
+      3
+    ],
+    [
+      "{'library': 'catboost', 'caller': None, 'operation': 'keyword'}",
+      3
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'to_dict'}",
+      3
+    ],
+    [
+      "{'library': 'catboost', 'caller': None, 'operation': 'CatBoost'}",
+      3
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'unique'}",
+      3
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'sort_values'}",
+      3
+    ]
+  ]
+}
