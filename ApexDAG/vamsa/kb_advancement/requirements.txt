@@ -4,3 +4,10 @@ beautifulsoup4
 pandas
 networkx
 nbconvert
+wandb
+python-dotenv
+matplotlib
+scikit-learn
+torch
+instructor
+groq

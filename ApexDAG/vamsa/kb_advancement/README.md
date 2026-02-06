@@ -25,14 +25,9 @@ pip install -r ApexDAG/vamsa/kb_advancement/requirements.txt
 
 ## Quick Start
 
-### CatBoost
 ```bash
-./run_kb_proposals.sh catboost --iterations 100
-```
-
-### Scikit-learn
-```bash
-./run_kb_proposals.sh sklearn --iterations 50
+chmod +x ./ApexDAG/vamsa/kb_advancement/run_kb_proposals.sh
+./ApexDAG/vamsa/kb_advancement/run_kb_proposals.sh
 ```
 
 ### Custom Configuration
