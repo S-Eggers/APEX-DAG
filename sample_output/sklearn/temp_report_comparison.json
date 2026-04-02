@@ -1,0 +1,45 @@
+{
+  "proposal": {
+    "change_type": "add_annotation",
+    "description": "Add an entry for the scikit-learn LocallyLinearEmbedding class instantiation, which is used for non-linear dimensionality reduction (manifold learning).",
+    "library": "sklearn",
+    "module": "manifold",
+    "caller": "None",
+    "api_name": "LocallyLinearEmbedding",
+    "inputs": [
+      "hyperparameter"
+    ],
+    "outputs": [
+      "data transformer"
+    ],
+    "traversal_api_name": null,
+    "column_exclusion": null,
+    "traversal_rule_name": null,
+    "rationale": "This class is a key component for manifold learning, transforming high-dimensional input features into lower-dimensional embeddings. Tracking its configuration (hyperparameters) and instantiation is essential for data provenance, as it significantly alters the input data structure.",
+    "expected_impact": ""
+  },
+  "impact": {
+    "annotation_coverage_delta": 5.175090564083634e-07,
+    "kb_hit_rate_delta": 3.805175038052583e-06,
+    "c_plus_delta": 0.0,
+    "c_minus_delta": 0.0,
+    "impact_level": "LOW",
+    "recommendation": "\u26a0\ufe0f OPTIONAL - Minimal impact (coverage: +0.00%, hit rate: +0.00%). Consider if this entry will be used more in future datasets."
+  },
+  "baseline_summary": {
+    "total_notebooks": 50,
+    "successful_notebooks": 23,
+    "avg_annotation_coverage": 0.009344137747028409,
+    "avg_kb_hit_rate": 0.014488684949606116,
+    "avg_c_plus_size": 0.0,
+    "avg_c_minus_size": 0.0
+  },
+  "enhanced_summary": {
+    "total_notebooks": 50,
+    "successful_notebooks": 23,
+    "avg_annotation_coverage": 0.009344655256084817,
+    "avg_kb_hit_rate": 0.014492490124644168,
+    "avg_c_plus_size": 0.0,
+    "avg_c_minus_size": 0.0
+  }
+}

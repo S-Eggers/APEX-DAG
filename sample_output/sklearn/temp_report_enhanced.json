@@ -1,0 +1,413 @@
+{
+  "summary": {
+    "total_notebooks": 50,
+    "successful_notebooks": 23,
+    "avg_annotation_coverage": 0.009344655256084817,
+    "avg_kb_hit_rate": 0.014492490124644168,
+    "avg_c_plus_size": 0.0,
+    "avg_c_minus_size": 0.0
+  },
+  "traversal_rule_usage": {},
+  "most_common_unannotated_operations": [
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'ImportFrom'}",
+      21
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'ImportAs'}",
+      18
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'ImportAs'}",
+      18
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'ImportAs'}",
+      14
+    ],
+    [
+      "{'library': 'matplotlib', 'caller': None, 'operation': 'ImportAs'}",
+      11
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'train_test_split'}",
+      9
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'Subscript'}",
+      7
+    ],
+    [
+      "{'library': 'pickle', 'caller': None, 'operation': 'ImportAs'}",
+      6
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'array'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'metrics'}",
+      5
+    ],
+    [
+      "{'library': 'random', 'caller': None, 'operation': 'ImportAs'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'print'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'KNeighborsClassifier'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'fit'}",
+      5
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'confusion_matrix'}",
+      4
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'print'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'train_test_split'}",
+      4
+    ],
+    [
+      "{'library': 'tensorflow', 'caller': None, 'operation': 'ImportAs'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'Subscript'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'shape'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'predict'}",
+      4
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'values'}",
+      4
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'keyword'}",
+      4
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'datasets'}",
+      4
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'reshape'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'GridSearchCV'}",
+      3
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'Subscript'}",
+      3
+    ],
+    [
+      "{'library': 'time', 'caller': None, 'operation': 'ImportAs'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'OneHotEncoder'}",
+      3
+    ],
+    [
+      "{'library': 'seaborn', 'caller': None, 'operation': 'ImportAs'}",
+      3
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'List'}",
+      3
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'random'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'cross_val_score'}",
+      3
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'fit'}",
+      3
+    ],
+    [
+      "{'library': 'math', 'caller': None, 'operation': 'ImportAs'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'Subscript'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'predict'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'load_breast_cancer'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'accuracy_score'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'model_selection'}",
+      3
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'load_iris'}",
+      3
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'print'}",
+      3
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'len'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'svm'}",
+      2
+    ],
+    [
+      "{'library': 'cv2', 'caller': None, 'operation': 'ImportAs'}",
+      2
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'shape'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'classification_report'}",
+      2
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'Mult'}",
+      2
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'format'}",
+      2
+    ],
+    [
+      "{'library': 'json', 'caller': None, 'operation': 'ImportAs'}",
+      2
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'drop'}",
+      2
+    ],
+    [
+      "{'library': 'tqdm', 'caller': None, 'operation': 'ImportFrom'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'MinMaxScaler'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'mean_squared_error'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'LinearRegression'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'dump'}",
+      2
+    ],
+    [
+      "{'library': 'pickle', 'caller': None, 'operation': 'load'}",
+      2
+    ],
+    [
+      "{'library': 're', 'caller': None, 'operation': 'ImportAs'}",
+      2
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'ImportFrom'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'RandomForestClassifier'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'DataFrame'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'load_boston'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'DecisionTreeClassifier'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'mean'}",
+      2
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'DataFrame'}",
+      2
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'head'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'score'}",
+      2
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'accuracy_score'}",
+      2
+    ],
+    [
+      "{'library': 'pandas', 'caller': '[', 'operation': 'loc'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn.feature_extraction', 'caller': None, 'operation': 'ImportFrom'}",
+      2
+    ],
+    [
+      "{'library': 'pandas', 'caller': None, 'operation': 'For'}",
+      2
+    ],
+    [
+      "{'library': 'sklearn.feature_extraction', 'caller': None, 'operation': 'CountVectorizer'}",
+      2
+    ],
+    [
+      "{'library': 'nltk', 'caller': None, 'operation': 'ImportAs'}",
+      2
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'randint'}",
+      2
+    ],
+    [
+      "{'library': 'mglearn', 'caller': None, 'operation': 'ImportAs'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'spatial_pyramid_matching'}",
+      1
+    ],
+    [
+      "{'library': 'itertools', 'caller': None, 'operation': 'ImportAs'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'asarray'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'uint8'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'int'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'Assign'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'comprehension'}",
+      1
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'plot_confusion_matrix'}",
+      1
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'neighbors'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'range'}",
+      1
+    ],
+    [
+      "{'library': 'struct', 'caller': None, 'operation': 'ImportAs'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'ListComp'}",
+      1
+    ],
+    [
+      "{'library': 'scipy.cluster', 'caller': None, 'operation': 'ImportAs'}",
+      1
+    ],
+    [
+      "{'library': 'utils', 'caller': None, 'operation': 'ImportFrom'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'where'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'svm_classifier'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'extract_DenseSift_descriptors'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'T'}",
+      1
+    ],
+    [
+      "{'library': 'numpy', 'caller': None, 'operation': 'Eq'}",
+      1
+    ],
+    [
+      "{'library': 'sklearn', 'caller': None, 'operation': 'KMeans'}",
+      1
+    ],
+    [
+      "{'library': 'utils', 'caller': None, 'operation': 'load_mnist'}",
+      1
+    ],
+    [
+      "{'library': 'sagemaker', 'caller': None, 'operation': 'columns'}",
+      1
+    ],
+    [
+      "{'library': 'sagemaker', 'caller': None, 'operation': 'For'}",
+      1
+    ],
+    [
+      "{'library': 'sagemaker', 'caller': None, 'operation': 'client'}",
+      1
+    ],
+    [
+      "{'library': 'sagemaker', 'caller': None, 'operation': 'tolist'}",
+      1
+    ]
+  ]
+}

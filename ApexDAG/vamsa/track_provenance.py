@@ -210,7 +210,7 @@ class ProvenanceTracker:
                 continue
 
             # get name
-            print(f"Processing PR: {pr}")
+            # print(f"Processing PR: {pr}")
             operation_name = get_name(operation_node)
             if operation_name in self.kbc:
                 self._guide_eval(pr)
@@ -276,27 +276,30 @@ def track_provenance(annotated_wir, prs, what_track):
     return C_plus, C_minus
 
 
-if __name__ == "__main__":
-    file_path = "data/raw/test_vamsa.py"
-    location_related_attributes = [
-        "lineno",
-        "col_offset",
-        "end_lineno",
-        "end_col_offset",
-    ]
-
-    output_dir = "output"
+def process_single_file(file_path, output_dir, what_track={"features"}):
+    """Process a single Python file and track provenance."""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
     with open(file_path, "r") as file:
-        file_content = file.read()
-    file_lines = file_content.split("\n")
+        if file_path.endswith(".ipynb"):
+            # read python stuff drom notebook lol 
+            from nbconvert import PythonExporter
+            from nbformat import read
+            nb_node = read(file, as_version=4)
+            exporter = PythonExporter()
+            file_content, _ = exporter.from_notebook_node(nb_node)
+        elif file_path.endswith(".py"):
+            file_content = file.read()
 
     parsed_ast = ast.parse(file_content)
+    
+    file_name = os.path.basename(file_path).replace(".py", "")
+    output_filename = os.path.join(output_dir, f"{file_name}-wir.png")
+    
     wir, prs, tuples = GenWIR(
         parsed_ast,
-        output_filename=output_dir + "/wir-unannotated-test.png",
+        output_filename=output_filename,
         if_draw_graph=True,
     )
 
@@ -305,7 +308,49 @@ if __name__ == "__main__":
 
     input_nodes, caller_nodes, operation_nodes, output_nodes = tuples
 
-    what_track = {"features"}  # 'labels' # Specify what to track
     C_plus, C_minus = track_provenance(annotated_wir, prs[::-1], what_track=what_track)
-    print(f"Columns included in {what_track} (C_plus):", C_plus)
-    print(f"Columns excluded from {what_track} (C_minus):", C_minus)
+    
+    return C_plus, C_minus, output_filename
+
+
+def traverse_files(input_dir):
+    """Traverse directory and yield Python files."""
+    for root, dirs, files in os.walk(input_dir):
+        for file in files:
+            if file.endswith(".py"):
+                yield os.path.join(root, file)
+            if file.endswith(".ipynb"):
+                yield os.path.join(root, file)
+
+
+if __name__ == "__main__":
+    # Configuration
+    input_path = "C:\\Users\\ismyn\\UNI\\BIFOLD\\APEXDAG_datasets\\catboost\\"
+    output_dir = "output"
+    what_track = {"features"}  # Can also use {'labels'}
+
+    # Check if input_path is a file or directory
+    if os.path.isfile(input_path):
+        # Process single file
+        print(f"Processing single file: {input_path}")
+        C_plus, C_minus, wir_path = process_single_file(input_path, output_dir, what_track)
+        print(f"Columns included in {what_track} (C_plus):", C_plus)
+        print(f"Columns excluded from {what_track} (C_minus):", C_minus)
+        print(f"WIR written to {wir_path}")
+    elif os.path.isdir(input_path):
+        # Process multiple files
+        print(f"Processing directory: {input_path}")
+        for file_path in traverse_files(input_path):
+            print(f"\n{'='*60}")
+            print(f"Processing: {file_path}")
+            print('='*60)
+            try:
+                C_plus, C_minus, wir_path = process_single_file(file_path, output_dir, what_track)
+                print(f"Columns included in {what_track} (C_plus):", C_plus)
+                print(f"Columns excluded from {what_track} (C_minus):", C_minus)
+                print(f"WIR written to {wir_path}")
+            except Exception as e:
+                print(f"Error processing {file_path}: {e}")
+        print(f"\nAll outputs written to {output_dir}")
+    else:
+        print(f"Error: {input_path} is not a valid file or directory")
