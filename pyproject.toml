@@ -1,9 +1,38 @@
+[project]
+name = "apexdag"
+version = "0.1.0"
+description = "DAG processing and AI pipeline"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "astpretty==3.0.0",
+    "fasttext==0.9.3",
+    "google-genai",
+    "groq",
+    "ijson",
+    "instructor",
+    "ipykernel==6.29.5",
+    "jupyter",
+    "matplotlib==3.8.4",
+    "nbformat==5.10.4",
+    "networkx==3.3",
+    "numpy==1.26.4",
+    "pandas==2.2.3",
+    "pydantic==2.10.6",
+    "python-dotenv==1.0.1",
+    "scikit-learn==1.6.1",
+    "seaborn==0.13.2",
+    "torch",
+    "tqdm==4.66.4",
+    "transformers==4.41.2",
+    "wandb==0.19.8",
+    "watchdog==6.0.0",
+]
+
 [tool.ruff]
-# Target the ApexDAG and tests directories
 src = ["ApexDAG", "tests"]
 line-length = 88
 indent-width = 4
-
 exclude = [
     ".git",
     ".ruff_cache",
@@ -11,12 +40,13 @@ exclude = [
     "build",
     "dist",
     "node_modules",
-    "venv",
+    ".venv",
+    "apex-dag-jupyter",
+    "jetbains_dfg_100k_new",
 ]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B"]
-
 ignore = ["ARG001", "ARG002"]
 
 [tool.ruff.format]
