@@ -6,7 +6,7 @@ argparser.add_argument(
     "-n",
     "--notebook",
     type=str,
-    default="./data/raw/demo.ipynb",
+    default="./demo/2_pandas_polars_custom.ipynb",
     help="Jupyter notebook filename",
 )
 argparser.add_argument(
