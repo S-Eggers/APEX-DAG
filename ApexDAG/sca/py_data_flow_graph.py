@@ -597,6 +597,29 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         return node
 
+    def visit_Constant(self, node: ast.Constant) -> ast.Constant:
+        if self._current_state.current_variable:
+            literal_val = str(node.value)
+
+            if len(literal_val) > 50:
+                literal_val = literal_val[:47] + "..."
+
+            literal_val = self._tokenize_literal(literal_val)
+            literal_node_name = f"literal_{node.lineno}_{node.col_offset}"
+            
+            self._current_state.add_node(literal_node_name, NODE_TYPES["LITERAL"])
+            self._current_state.add_edge(
+                literal_node_name,
+                self._current_state.current_variable,
+                literal_val,
+                EDGE_TYPES["INPUT"],
+                node.lineno,
+                node.col_offset,
+                node.end_lineno,
+                node.end_col_offset,
+            )
+        return node
+
     def visit_IfExp(self, node: ast.IfExp) -> ast.IfExp:
         self._current_state.add_edge(
             self._get_last_variable_version(self._current_state.current_target),
@@ -1562,6 +1585,21 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 tokens.remove(library_alias)
 
         return " ".join(tokens).lower()
+
+    def _tokenize_literal(self, literal: str) -> str:
+        # Remove common string delimiters and special characters
+        clean_literal = re.sub(r"['\"\[\]\(\)\{\}]", "", literal)
+        
+        # Add spaces before uppercase letters (CamelCase to space)
+        s1 = re.sub("(.)([A-Z][a-z]+)", r"\1 \2", clean_literal)
+        s2 = re.sub("([a-z0-9])([A-Z])", r"\1 \2", s1)
+
+        # Split by common separators: period, underscore, space, hyphen, and slash
+        tokens = re.split(r"[._\s\-/]", s2)
+
+        # Filter out empty strings and convert to lowercase
+        return " ".join(filter(None, tokens)).lower()
+
 
     def _get_last_variable_version(
         self, variable: str, max_depth: int = 99

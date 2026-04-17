@@ -7,7 +7,7 @@ cd ..
 # Create and activate a virtual environment if not already in one
 if [ -z "$VIRTUAL_ENV" ]; then
     echo "Creating and activating virtual environment..."
-    python3 -m venv .venv
+    uv venv .venv
     source .venv/bin/activate
 else
     echo "Already in a virtual environment: $VIRTUAL_ENV"
@@ -28,7 +28,7 @@ sed -i.bak -E 's/"version": "[0-9]+\.[0-9]+\.[0-9]+"/"version": "'$new_version'"
 
 # install ApexDAG as module
 
-./.venv/bin/pip install -e .
+uv pip install -e .
 
 # install Jupyter extension
 cd ./apex-dag-jupyter
@@ -37,4 +37,4 @@ cd ./apex-dag-jupyter
 jlpm install
 jlpm build
 
-../.venv/bin/pip install -e .
+uv pip install -e .

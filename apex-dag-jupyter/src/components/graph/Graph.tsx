@@ -78,6 +78,13 @@ const initialLegendItems: LegendItemType[] = [
     numericType: 7
   },
   {
+    type: 'node',
+    color: colors.powder_blue,
+    label: 'Literal',
+    borderStyle: 'solid',
+    numericType: 8
+  },
+  {
     type: 'edge',
     color: colors.light_salmon,
     label: 'Caller',
@@ -317,6 +324,8 @@ export default function Graph({
         return colors.very_soft_lime_green;
       case 7:
         return colors.very_soft_purple;
+      case 8:
+        return colors.powder_blue;
       default:
         return '#000';
     }

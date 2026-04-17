@@ -8,6 +8,7 @@ NODE_TYPES = {
     "IF": 5,
     "LOOP": 6,
     "CLASS": 7,
+    "LITERAL": 8,
 }
 
 EDGE_TYPES = {
