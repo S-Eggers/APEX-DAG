@@ -2,7 +2,11 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import { ICommandPalette, MainAreaWidget } from '@jupyterlab/apputils';
+import {
+  ICommandPalette,
+  MainAreaWidget,
+  CommandToolbarButton
+} from '@jupyterlab/apputils';
 import { ILauncher } from '@jupyterlab/launcher';
 import { IMainMenu } from '@jupyterlab/mainmenu';
 import {
@@ -11,15 +15,19 @@ import {
   NotebookPanel
 } from '@jupyterlab/notebook';
 import { ISettingRegistry } from '@jupyterlab/settingregistry';
+import { toArray } from '@lumino/algorithm';
+import { Widget } from '@lumino/widgets';
 
 import { GraphWidget } from './components/widget/GraphWidget';
+import { EnvironmentWidget } from './components/widget/EnvironmentWidget';
 import CommandIDs from './types/CommandIDs';
 import ApexIcon from './utils/ApexIcon';
 import updateLineageWidget from './utils/updateLineageWidget';
 import updateWidget from './utils/updateWidget';
+import updateEnvironmentWidget from './utils/updateEnvironmentWidget';
 
 class AppSettings {
-  debounceDelay = -1;
+  debounceDelay = 1000;
   replaceDataflowInUDFs = false;
   highlightRelevantSubgraphs = false;
   greedyNotebookExtraction = true;
@@ -37,50 +45,11 @@ class AppSettings {
       (settings.get('greedyNotebookExtraction').composite as boolean) ?? true;
     this.llmClassification =
       (settings.get('llmClassification').composite as boolean) ?? false;
-    console.debug('APEX-DAG settings updated:', this);
   }
 }
 
-function createAndShowWidget(
-  app: JupyterFrontEnd,
-  label: string,
-  type?: 'lineage'
-): GraphWidget {
-  const content = new GraphWidget(type);
-  const widget = new MainAreaWidget<GraphWidget>({ content });
-  widget.title.label = label;
-  widget.title.icon = ApexIcon;
-  widget.title.closable = true;
-  app.shell.add(widget, 'main');
-  return content;
-}
+type WidgetType = 'dataflow' | 'lineage' | 'environment';
 
-function addMenuWidget(
-  app: JupyterFrontEnd,
-  palette: ICommandPalette,
-  launcher: ILauncher,
-  commandId: string,
-  label: string,
-  category: string,
-  rank: number,
-  onExecute: () => void
-): { command: string; category: string; rank: number } {
-  app.commands.addCommand(commandId, {
-    caption: label,
-    label: label,
-    icon: args => (args['isPalette'] ? undefined : ApexIcon),
-    execute: onExecute
-  });
-
-  const commandItem = { command: commandId, category, rank };
-  palette.addItem(commandItem);
-  launcher.add(commandItem);
-  return commandItem;
-}
-
-/**
- * Initialization data for the apex-dag-jupyter extension.
- */
 const plugin: JupyterFrontEndPlugin<void> = {
   id: CommandIDs.plugin,
   description: 'APEX-DAG Jupyter Frontend Extension.',
@@ -95,67 +64,63 @@ const plugin: JupyterFrontEndPlugin<void> = {
     mainMenu: IMainMenu,
     settingRegistry: ISettingRegistry | null
   ) => {
-    console.debug('JupyterLab extension apex-dag-jupyter is activated!');
     const appSettings = new AppSettings();
 
-    let dataflowGraphWidget: GraphWidget;
-    let lineageGraphWidget: GraphWidget;
-    let lastActiveNotebook: NotebookPanel | null = null;
+    // Centralized wrapper tracking
+    const wrappers: Record<WidgetType, MainAreaWidget<Widget> | null> = {
+      dataflow: null,
+      lineage: null,
+      environment: null
+    };
 
-    const dataflowCmd = addMenuWidget(
-      app,
-      palette,
-      launcher,
-      CommandIDs.dataflow,
-      'Dataflow Widget',
-      'APEX-DAG',
-      1,
-      () => {
-        dataflowGraphWidget = createAndShowWidget(app, 'Dataflow Widget');
-        if (lastActiveNotebook) {
-          updateDataflow(lastActiveNotebook);
-        }
+    const getOrCreateWidget = (
+      label: string,
+      type: WidgetType
+    ): MainAreaWidget<Widget> => {
+      let wrapper = wrappers[type];
+
+      if (wrapper && !wrapper.isDisposed) {
+        return wrapper;
       }
-    );
 
-    const lineageCmd = addMenuWidget(
-      app,
-      palette,
-      launcher,
-      CommandIDs.lineage,
-      'Lineage Widget',
-      'APEX-DAG',
-      2,
-      () => {
-        lineageGraphWidget = createAndShowWidget(
-          app,
-          'Lineage Widget',
-          'lineage'
-        );
-        if (lastActiveNotebook) {
-          updateLineage(lastActiveNotebook);
-        }
+      let content: Widget;
+      if (type === 'environment') {
+        content = new EnvironmentWidget();
+      } else {
+        content = new GraphWidget(type === 'lineage' ? 'lineage' : undefined);
       }
-    );
 
-    mainMenu.fileMenu.newMenu.addGroup([dataflowCmd, lineageCmd]);
+      wrapper = new MainAreaWidget({ content });
+      wrapper.title.label = label;
+      wrapper.title.icon = ApexIcon;
+      wrapper.title.closable = true;
 
-    const updateDataflow = (notebookPanel: NotebookPanel) => {
-      if (dataflowGraphWidget) {
+      wrappers[type] = wrapper;
+      return wrapper;
+    };
+
+    const updateUI = (notebookPanel: NotebookPanel) => {
+      if (wrappers.dataflow && !wrappers.dataflow.isDisposed) {
         updateWidget(
-          dataflowGraphWidget,
+          wrappers.dataflow.content as GraphWidget,
           appSettings.replaceDataflowInUDFs,
           appSettings.greedyNotebookExtraction,
           appSettings.highlightRelevantSubgraphs,
           notebookPanel
         );
       }
+      if (wrappers.environment && !wrappers.environment.isDisposed) {
+        updateEnvironmentWidget(
+          //wrappers.environment.content as EnvironmentWidget,
+          notebookPanel
+        );
+      }
     };
 
     const updateLineage = (notebookPanel: NotebookPanel) => {
-      if (lineageGraphWidget) {
+      if (wrappers.lineage && !wrappers.lineage.isDisposed) {
         updateLineageWidget(
-          lineageGraphWidget,
+          wrappers.lineage.content as GraphWidget,
           appSettings.replaceDataflowInUDFs,
           appSettings.highlightRelevantSubgraphs,
           appSettings.greedyNotebookExtraction,
@@ -165,6 +130,135 @@ const plugin: JupyterFrontEndPlugin<void> = {
       }
     };
 
+    const registerCommand = (
+      commandId: string,
+      label: string,
+      type: WidgetType,
+      rank: number
+    ) => {
+      app.commands.addCommand(commandId, {
+        caption: label,
+        label: label,
+        icon: args => (args['isPalette'] ? undefined : ApexIcon),
+        execute: () => {
+          const wrapper = getOrCreateWidget(label, type);
+          const currentNb = tracker.currentWidget;
+
+          if (!wrapper.isAttached) {
+            app.shell.add(wrapper, 'main', {
+              mode: 'split-right',
+              ref: currentNb?.id
+            });
+          }
+          app.shell.activateById(wrapper.id);
+
+          if (currentNb) {
+            type === 'lineage' ? updateLineage(currentNb) : updateUI(currentNb);
+          }
+        }
+      });
+
+      const item = { command: commandId, category: 'APEX-DAG', rank };
+      palette.addItem(item);
+      launcher.add(item);
+      return commandId;
+    };
+
+    const dataflowCmd = registerCommand(
+      CommandIDs.dataflow,
+      'Dataflow',
+      'dataflow',
+      1
+    );
+    const lineageCmd = registerCommand(
+      CommandIDs.lineage,
+      'Lineage',
+      'lineage',
+      2
+    );
+    const envCmd = registerCommand(
+      CommandIDs.environment,
+      'Environment',
+      'environment',
+      3
+    );
+
+    mainMenu.fileMenu.newMenu.addGroup([
+      { command: dataflowCmd },
+      { command: lineageCmd },
+      { command: envCmd }
+    ]);
+
+    tracker.widgetAdded.connect((sender, notebookPanel) => {
+      const dfButton = new CommandToolbarButton({
+        commands: app.commands,
+        id: CommandIDs.dataflow,
+        label: 'Dataflow'
+      });
+      const linButton = new CommandToolbarButton({
+        commands: app.commands,
+        id: CommandIDs.lineage,
+        label: 'Lineage'
+      });
+      const envButton = new CommandToolbarButton({
+        commands: app.commands,
+        id: CommandIDs.environment,
+        label: 'Environment'
+      });
+
+      const names = toArray(notebookPanel.toolbar.names());
+      const cellTypeIdx = names.indexOf('cellType');
+      const insertIdx = cellTypeIdx !== -1 ? cellTypeIdx + 1 : 10;
+
+      notebookPanel.toolbar.insertItem(
+        insertIdx,
+        'apex-dataflow-btn',
+        dfButton
+      );
+      notebookPanel.toolbar.insertItem(
+        insertIdx + 1,
+        'apex-lineage-btn',
+        linButton
+      );
+      notebookPanel.toolbar.insertItem(
+        insertIdx + 2,
+        'apex-environment-btn',
+        envButton
+      );
+
+      let debounceTimer: ReturnType<typeof setTimeout>;
+
+      notebookPanel.context.ready.then(() => {
+        const model = notebookPanel.content.model;
+        if (!model) return;
+
+        model.contentChanged.connect(() => {
+          updateUI(notebookPanel);
+
+          if (appSettings.debounceDelay >= 0) {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+              updateLineage(notebookPanel);
+            }, appSettings.debounceDelay);
+          }
+        });
+      });
+    });
+
+    NotebookActions.executed.connect((sender, { notebook }) => {
+      if (appSettings.debounceDelay < 0) {
+        const panel = tracker.find(p => p.content === notebook);
+        if (panel) updateLineage(panel);
+      }
+    });
+
+    tracker.currentChanged.connect(async (sender, notebookPanel) => {
+      if (!notebookPanel) return;
+      await notebookPanel.revealed;
+      updateUI(notebookPanel);
+      updateLineage(notebookPanel);
+    });
+
     if (settingRegistry) {
       const settings = await settingRegistry.load(plugin.id);
       const onSettingsChanged = (
@@ -173,68 +267,13 @@ const plugin: JupyterFrontEndPlugin<void> = {
         appSettings.update(newSettings);
         const notebookPanel = tracker.currentWidget;
         if (notebookPanel) {
-          updateDataflow(notebookPanel);
+          updateUI(notebookPanel);
           updateLineage(notebookPanel);
         }
       };
       onSettingsChanged(settings);
       settings.changed.connect(onSettingsChanged);
     }
-
-    let interval: NodeJS.Timeout;
-    tracker.currentChanged.connect(
-      async (sender, notebookPanel: NotebookPanel | null) => {
-        if (notebookPanel) {
-          lastActiveNotebook = notebookPanel;
-        }
-
-        console.debug('Current notebook changed', notebookPanel);
-        if (!notebookPanel) {
-          if (interval) {
-            clearTimeout(interval);
-          }
-          console.info('No active notebook or dataflow widget.');
-          return;
-        }
-
-        await notebookPanel.revealed;
-        console.debug('Notebook revealed');
-        const content = notebookPanel.content;
-        const model = content.model;
-        if (!content || !model) {
-          console.error('NotebookPanel has no content or model.');
-          return;
-        }
-
-        console.debug('Initial call to update widgets on notebook open');
-        updateDataflow(notebookPanel);
-        updateLineage(notebookPanel);
-
-        model.contentChanged.connect(() => {
-          console.debug('Notebook model changed!');
-          updateDataflow(notebookPanel);
-
-          if (appSettings.debounceDelay >= 0) {
-            if (interval) {
-              clearTimeout(interval);
-            }
-
-            interval = setTimeout(() => {
-              console.debug('Executing debounced lineage update.');
-              updateLineage(notebookPanel);
-            }, appSettings.debounceDelay);
-          }
-        });
-
-        if (appSettings.debounceDelay < 0) {
-          NotebookActions.executed.connect((sender, { notebook }) => {
-            if (notebookPanel && notebookPanel.content === notebook) {
-              updateLineage(notebookPanel);
-            }
-          });
-        }
-      }
-    );
   }
 };
 
