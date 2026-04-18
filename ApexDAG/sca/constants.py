@@ -32,6 +32,17 @@ DOMAIN_EDGE_TYPES = {
     "NOT_INTERESTING": 4,
 }
 
+DOMAIN_NODE_TYPES = {
+    "VARIABLE": 0,
+    "LIBRARY": 1,
+    "DATASET": 2,
+    "UDF": 3,
+    "MODEL": 4,
+    "COLUMN": 5,
+    "NOT_INTERESTING": 7,
+    "LITERAL": 8,
+}
+
 VERBOSE = False
 
 REVERSE_NODE_TYPES = {v: k for k, v in NODE_TYPES.items()}

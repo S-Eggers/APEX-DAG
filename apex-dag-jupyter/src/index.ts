@@ -68,7 +68,7 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
     type: 'ast',
     commandId: CommandIDs.ast,
     label: 'AST',
-    rank: 4,
+    rank: 1,
     debouncedUpdate: false,
     factory: () => new GraphWidget('ast'),
     update: (content, nbPanel, settings) => {
@@ -79,7 +79,7 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
     type: 'dataflow',
     commandId: CommandIDs.dataflow,
     label: 'Dataflow',
-    rank: 1,
+    rank: 2,
     debouncedUpdate: false,
     factory: () => new GraphWidget('dataflow'),
     update: (content, nbPanel, settings) => {
@@ -90,7 +90,7 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
     type: 'lineage',
     commandId: CommandIDs.lineage,
     label: 'Lineage',
-    rank: 2,
+    rank: 3,
     debouncedUpdate: true,
     factory: () => new GraphWidget('lineage'),
     update: (content, nbPanel, settings) => {
@@ -175,15 +175,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         label: config.label,
         icon: args =>
           args['isPalette'] || args['isToolbar'] ? undefined : ApexIcon,
-        execute: () => {
+        execute: args => {
           const wrapper = getOrCreateWidget(config);
           const currentNb = tracker.currentWidget;
 
           if (!wrapper.isAttached) {
-            app.shell.add(wrapper, 'main', {
-              mode: 'split-right',
-              ref: currentNb?.id
-            });
+            const attachOptions: any = args['isToolbar']
+              ? { mode: 'split-right', ref: currentNb?.id }
+              : {};
+
+            app.shell.add(wrapper, 'main', attachOptions);
           }
           app.shell.activateById(wrapper.id);
 
@@ -202,6 +203,22 @@ const plugin: JupyterFrontEndPlugin<void> = {
     });
 
     mainMenu.fileMenu.newMenu.addGroup(menuGroup);
+
+    const settingsCmdId = 'apex-dag:open-settings';
+    app.commands.addCommand(settingsCmdId, {
+      label: 'Settings',
+      caption: 'Open APEX-DAG Configuration',
+      icon: args => (args['isPalette'] ? undefined : ApexIcon),
+      execute: () => {
+        app.commands.execute('settingeditor:open', { query: 'APEX-DAG' });
+      }
+    });
+
+    launcher.add({
+      command: settingsCmdId,
+      category: 'APEX-DAG',
+      rank: 100
+    });
 
     tracker.widgetAdded.connect((sender, notebookPanel) => {
       const names = toArray(notebookPanel.toolbar.names());

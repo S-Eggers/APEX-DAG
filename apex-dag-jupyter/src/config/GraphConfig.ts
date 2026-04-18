@@ -47,6 +47,13 @@ const sharedLineageConfig = {
       numericType: 3
     },
     {
+      type: 'node',
+      color: colors.powder_blue,
+      label: 'Literal',
+      borderStyle: 'solid',
+      numericType: 8
+    },
+    {
       type: 'edge',
       color: colors.light_salmon,
       label: 'Model Train/Eval',
@@ -87,7 +94,11 @@ const sharedLineageConfig = {
       0: colors.light_steel_blue,
       1: colors.pink,
       2: colors.light_green,
-      3: colors.very_soft_blue
+      3: colors.very_soft_blue,
+      4: colors.very_soft_yellow,
+      5: colors.very_soft_purple,
+      7: colors.very_soft_lime_green,
+      8: colors.powder_blue
     };
     return map[type] || colors.light_steel_blue;
   },
