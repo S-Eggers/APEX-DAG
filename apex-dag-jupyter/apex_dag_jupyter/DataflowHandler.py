@@ -6,8 +6,7 @@ from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 
 
 class DataflowHandler(APIHandler):
-    def initialize(self, model, jupyter_server_app_config=None):
-        self.model = model
+    def initialize(self, jupyter_server_app_config=None):
         self.jupyter_server_app_config = jupyter_server_app_config
         self.last_analysis_results = {}
 

@@ -3,6 +3,7 @@ from jupyter_server.utils import url_path_join
 from .LineageHandler import LineageHandler
 from .DataflowHandler import DataflowHandler
 from .ASTHandler import ASTHandler
+from .EnvironmentHandler import EnvironmentHandler
 
 
 def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
@@ -21,7 +22,6 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
             dataflow_pattern,
             DataflowHandler,
             dict(
-                model=model_instance,
                 jupyter_server_app_config=jupyter_server_app_config,
             ),
         ),
@@ -37,7 +37,13 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
             ast_pattern,
             ASTHandler,
             dict(
-                model=model_instance,
+                jupyter_server_app_config=jupyter_server_app_config,
+            ), 
+        ),
+        (
+            environment_pattern,
+            EnvironmentHandler,
+            dict(
                 jupyter_server_app_config=jupyter_server_app_config,
             ), 
         )

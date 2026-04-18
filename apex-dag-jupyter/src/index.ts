@@ -116,7 +116,7 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
     debouncedUpdate: false,
     factory: () => new EnvironmentWidget(),
     update: (content, nbPanel, settings) => {
-      updateEnvironmentWidget(nbPanel);
+      updateEnvironmentWidget(content as EnvironmentWidget, nbPanel, settings);
     }
   }
 ];

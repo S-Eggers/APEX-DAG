@@ -174,7 +174,7 @@ export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
                 setSelectedNode(null);
                 cyRef.current?.elements().removeClass('selected');
               }}
-              className="text-gray-400 hover:text-gray-800 hover:bg-gray-200 p-1 rounded transition-colors focus:outline-none"
+              className="!text-gray-400 !hover:text-gray-800 !hover:bg-gray-200 !p-1 !rounded !transition-colors !focus:outline-none"
               aria-label="Close panel"
             >
               <svg
@@ -253,7 +253,7 @@ export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
 
             <div className="mb-6">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider block mb-2">
-                Original Assignment Code
+                Original Code
               </span>
               {selectedNode.code ? (
                 <pre className="bg-gray-100 p-2 rounded text-xs text-gray-700 overflow-x-auto whitespace-pre-wrap border border-gray-200">

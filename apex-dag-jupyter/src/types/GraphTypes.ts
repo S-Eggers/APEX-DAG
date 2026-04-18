@@ -1,4 +1,5 @@
 export type GraphMode = 'dataflow' | 'lineage' | 'ast' | 'vamsa';
+export type TableMode = 'environment';
 
 export interface LegendItemType {
   type: 'node' | 'edge';

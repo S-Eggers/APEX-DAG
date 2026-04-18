@@ -1,7 +1,10 @@
 import { ServerConnection } from '@jupyterlab/services';
-import { GraphMode } from '../types/GraphTypes';
+import { GraphMode, TableMode } from '../types/GraphTypes';
 
-async function callBackend(endpoint: GraphMode, payload: object): Promise<any> {
+async function callBackend(
+  endpoint: GraphMode | TableMode,
+  payload: object
+): Promise<any> {
   const settings = ServerConnection.makeSettings();
   const url = `${settings.baseUrl}apex-dag/${endpoint}`;
 
