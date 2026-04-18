@@ -1,0 +1,14 @@
+/* Import only the theme and utilities. Explicitly OMIT 'tailwindcss/preflight' to save Jupyter's UI */
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+
+/* Custom configuration is now done in pure CSS inside this block */
+@theme {
+  /* Example: --color-brand: #1da1f2; */
+}
+
+/* Ensure your widget inherits Jupyter's dark/light mode defaults */
+.apex-environment-widget {
+  background-color: var(--jp-layout-color1);
+  color: var(--jp-ui-font-color1);
+}

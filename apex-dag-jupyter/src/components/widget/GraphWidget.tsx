@@ -1,39 +1,38 @@
-import { ReactWidget } from "@jupyterlab/ui-components";
-import React from "react";
-import GraphComponent from "./GraphComponent"
+import { ReactWidget } from '@jupyterlab/apputils';
+import React from 'react';
+import GraphComponent from './GraphComponent';
 
-
-
-/**
- * A Counter Lumino Widget that wraps a CounterComponent.
- */
 export class GraphWidget extends ReactWidget {
-  private eventTarget: EventTarget;
-  private mode: "dataflow" | "lineage";
+  private mode: 'dataflow' | 'lineage';
+  private graphData: any = { elements: [] };
+  private resetTrigger: number = 0;
 
-  /**
-   * Constructs a new DFG widget.
-   */
-  constructor(mode: "dataflow" | "lineage" = "dataflow") {
+  constructor(mode: 'dataflow' | 'lineage' = 'dataflow') {
     super();
     this.mode = mode;
-    this.addClass("jp-react-widget");
-    this.eventTarget = new EventTarget();
+    this.addClass('jp-react-widget');
   }
 
+  // Lumino seamlessly bridges to React here
   render(): JSX.Element {
-    return <GraphComponent eventTarget={this.eventTarget} mode={this.mode} />;
+    return (
+      <GraphComponent
+        graphData={this.graphData}
+        mode={this.mode}
+        resetTrigger={this.resetTrigger}
+      />
+    );
   }
 
   updateGraphData(graphData: any): void {
-    console.log("Updating graph")
-    const event = new CustomEvent("graph-update", { detail: JSON.parse(graphData) });
-    this.eventTarget.dispatchEvent(event);
+    console.debug('Updating graph data via Lumino state');
+    this.graphData = JSON.parse(graphData);
+    this.update();
   }
 
   resetView(): void {
-    console.log("Resetting graph view");
-    const event = new CustomEvent("reset-view");
-    this.eventTarget.dispatchEvent(event);
+    console.debug('Resetting graph view');
+    this.resetTrigger += 1;
+    this.update();
   }
 }

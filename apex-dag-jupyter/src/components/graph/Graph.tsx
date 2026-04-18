@@ -2,7 +2,10 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
 
-cytoscape.use(dagre);
+// Ensure the layout is registered only once per module load
+if (!cytoscape.prototype.dagre) {
+  cytoscape.use(dagre);
+}
 
 const colors = {
   light_steel_blue: '#B0C4DE',
@@ -24,7 +27,7 @@ interface LegendItemType {
   color: string;
   label: string;
   borderStyle: 'solid' | 'dashed';
-  numericType: number; // Corresponds to node_type or edge_type
+  numericType: number;
 }
 
 const initialLegendItems: LegendItemType[] = [
@@ -194,272 +197,232 @@ const initialLegendItemsLineage: LegendItemType[] = [
   }
 ];
 
-interface ElementData {
-  id: string;
-  label?: string;
-  node_type?: number;
-  edge_type?: number;
-  source?: string;
-  target?: string;
-  predicted_label?: number;
-}
-
-interface CytoscapeElement {
-  data: ElementData;
-  group: 'nodes' | 'edges';
-}
-
-interface GraphData {
-  elements: CytoscapeElement[];
-}
-
 interface GraphProps {
-  graphData?: GraphData;
-  mode?: string;
-  eventTarget: EventTarget;
+  graphData: { elements: any[] };
+  mode: string;
+  resetTrigger: number;
 }
 
 const filterLegendItems = (
-  elements: CytoscapeElement[],
+  elements: any[],
   allLegendItems: LegendItemType[]
 ): LegendItemType[] => {
-  if (!elements || elements.length === 0) {
-    return []; // No elements in graph, so no legend items to show
-  }
+  if (!elements || elements.length === 0) return [];
 
   const presentNodeTypes = new Set<number>();
   const presentEdgeTypes = new Set<number>();
 
   elements.forEach(element => {
-    if (
-      element.data.node_type !== undefined &&
-      typeof element.data.node_type === 'number'
-    ) {
+    if (typeof element.data.node_type === 'number') {
       presentNodeTypes.add(element.data.node_type);
-    } else if (
-      element.data.predicted_label !== undefined &&
-      typeof element.data.predicted_label === 'number'
-    ) {
+    } else if (typeof element.data.predicted_label === 'number') {
       presentEdgeTypes.add(element.data.predicted_label);
-    } else if (
-      element.data.edge_type !== undefined &&
-      typeof element.data.edge_type === 'number'
-    ) {
+    } else if (typeof element.data.edge_type === 'number') {
       presentEdgeTypes.add(element.data.edge_type);
     }
   });
 
-  return allLegendItems.filter(item => {
-    if (item.type === 'node') {
-      return presentNodeTypes.has(item.numericType);
-    } else if (item.type === 'edge') {
-      return presentEdgeTypes.has(item.numericType);
-    }
-    return false;
-  });
+  return allLegendItems.filter(item =>
+    item.type === 'node'
+      ? presentNodeTypes.has(item.numericType)
+      : presentEdgeTypes.has(item.numericType)
+  );
 };
 
-export default function Graph({
-  graphData = { elements: [] },
-  mode = 'dataflow',
-  eventTarget
-}: GraphProps) {
-  const layout = {
-    name: 'dagre',
-    rankDir: 'TB'
-  };
+export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
+  const layout = { name: 'dagre', rankDir: 'TB', animate: false, fit: false };
+  const graphRef = useRef<HTMLDivElement>(null);
+  const cyRef = useRef<cytoscape.Core | null>(null);
 
-  const edgeType = (element: cytoscape.SingularElementReturnValue) => {
-    const caseType =
-      mode == 'dataflow'
-        ? element.data('edge_type')
-        : element.data('predicted_label');
-    switch (caseType) {
-      case 0:
-        return colors.light_salmon;
-      case 1:
-        return colors.pale_green;
-      case 2:
-        return colors.gray;
-      case 3:
-        return colors.powder_blue;
-      case 4:
-        return colors.peach_puff;
-      case 5:
-        return colors.light_green;
-      default:
-        return '#000';
-    }
-  };
+  const [activeLegendItems, setActiveLegendItems] = useState<LegendItemType[]>(
+    []
+  );
 
-  const nodeType = (element: cytoscape.SingularElementReturnValue) => {
-    const caseType = element.data('node_type');
-    if (mode === 'lineage') {
+  // Bypassing brittle Cytoscape type definitions with `any` for structural stability
+  const edgeType = useCallback(
+    (element: any) => {
+      const caseType =
+        mode === 'dataflow'
+          ? element.data('edge_type')
+          : element.data('predicted_label');
+      switch (caseType) {
+        case 0:
+          return colors.light_salmon;
+        case 1:
+          return colors.pale_green;
+        case 2:
+          return colors.gray;
+        case 3:
+          return colors.powder_blue;
+        case 4:
+          return colors.peach_puff;
+        case 5:
+          return colors.light_green;
+        default:
+          return '#000';
+      }
+    },
+    [mode]
+  );
+
+  const nodeType = useCallback(
+    (element: any) => {
+      const caseType = element.data('node_type');
+      if (mode === 'lineage') {
+        switch (caseType) {
+          case 0:
+            return colors.light_steel_blue;
+          case 1:
+            return colors.pink;
+          case 2:
+            return colors.light_green;
+          case 3:
+            return colors.very_soft_blue;
+          default:
+            return colors.light_steel_blue;
+        }
+      }
       switch (caseType) {
         case 0:
           return colors.light_steel_blue;
         case 1:
           return colors.pink;
-        case 2:
-          return colors.light_green;
         case 3:
+          return colors.light_green;
+        case 4:
           return colors.very_soft_blue;
+        case 5:
+          return colors.very_soft_yellow;
+        case 6:
+          return colors.very_soft_lime_green;
+        case 7:
+          return colors.very_soft_purple;
+        case 8:
+          return colors.powder_blue;
         default:
-          return colors.light_steel_blue;
-      }
-    }
-    switch (caseType) {
-      case 0:
-        return colors.light_steel_blue;
-      case 1:
-        return colors.pink;
-      /*case 2: return colors.light_green; <- not used yet*/
-      case 3:
-        return colors.light_green;
-      case 4:
-        return colors.very_soft_blue;
-      case 5:
-        return colors.very_soft_yellow;
-      case 6:
-        return colors.very_soft_lime_green;
-      case 7:
-        return colors.very_soft_purple;
-      case 8:
-        return colors.powder_blue;
-      default:
-        return '#000';
-    }
-  };
-
-  const lineType = (element: cytoscape.SingularElementReturnValue) => {
-    const caseType = element.data('edge_type');
-    switch (caseType) {
-      case 2:
-        return 'dashed';
-      default:
-        return 'solid';
-    }
-  };
-
-  const style = [
-    {
-      selector: 'node',
-      style: {
-        shape: 'round-rectangle',
-        'background-color': (element: cytoscape.SingularElementReturnValue) =>
-          nodeType(element),
-        label: 'data(label)',
-        width: '60px',
-        height: '35px',
-        'text-valign': 'center' as 'center' | 'top' | 'bottom',
-        'text-halign': 'center' as 'center' | 'left' | 'right',
-        'font-size': '12px',
-        color: '#333'
+          return '#000';
       }
     },
-    {
-      selector: 'edge',
-      style: {
-        width: 2,
-        'line-color': (element: cytoscape.SingularElementReturnValue) =>
-          edgeType(element),
-        'target-arrow-shape': 'triangle',
-        'target-arrow-color': (element: cytoscape.SingularElementReturnValue) =>
-          edgeType(element),
-        'curve-style': 'bezier',
-        label: 'data(label)',
-        'line-style': (element: cytoscape.SingularElementReturnValue) =>
-          lineType(element) as 'solid' | 'dashed'
-      }
-    }
-  ];
+    [mode]
+  );
 
-  const graphRef = useRef(null);
-  const [pan, setPan] = useState<cytoscape.Position | null>(null);
-  const [zoom, setZoom] = useState(1);
-  const [activeLegendItems, setActiveLegendItems] =
-    useState<LegendItemType[]>(initialLegendItems);
+  const lineType = useCallback((element: any) => {
+    const caseType = element.data('edge_type');
+    return caseType === 2 ? 'dashed' : 'solid';
+  }, []);
 
-  const cyRef = useRef<cytoscape.Core | null>(null);
+  useEffect(() => {
+    if (!graphRef.current) return;
 
-  const drawGraph = () => {
-    const cy = cytoscape({
+    cyRef.current = cytoscape({
       container: graphRef.current,
-      style: style,
+      elements: [],
       layout: layout,
-      elements: graphData.elements
+      panningEnabled: true,
+      zoomingEnabled: true,
+      wheelSensitivity: 0.2
     });
-
-    cyRef.current = cy; // Store the cy instance
-
-    if (pan) {
-      cy.pan(pan);
-    } else {
-      console.log('Centering the graph');
-      cy.center();
-    }
-    cy.zoom(zoom);
-    cy.on('pan', () => {
-      setPan(cy.pan());
-    });
-
-    cy.on('zoom', () => {
-      setZoom(cy.zoom());
-    });
-
-    setPan(cy.pan());
-    setZoom(cy.zoom());
-  };
-
-  useEffect(() => {
-    drawGraph();
-  }, [graphData]);
-
-  useEffect(() => {
-    const filtered = filterLegendItems(
-      graphData.elements,
-      mode === 'dataflow' ? initialLegendItems : initialLegendItemsLineage
-    );
-    console.log('Filtered legend items:', filtered);
-    setActiveLegendItems(filtered);
-  }, [graphData]);
-
-  const handleResetView = useCallback(() => {
-    if (cyRef.current) {
-      console.log('Resetting Cytoscape view (fit and zoom 1)');
-      cyRef.current.fit(); // Fit the graph to the viewport
-      cyRef.current.zoom(1); // Reset zoom to 1
-      setPan(cyRef.current.pan()); // Update React state
-      setZoom(cyRef.current.zoom()); // Update React state
-    }
-  }, [setPan, setZoom]); // Add setPan and setZoom to dependencies for useCallback
-
-  useEffect(() => {
-    eventTarget.addEventListener('reset-view', handleResetView);
 
     return () => {
-      eventTarget.removeEventListener('reset-view', handleResetView);
+      cyRef.current?.destroy();
+      cyRef.current = null;
     };
-  }, [eventTarget, handleResetView]); // Add handleResetView to dependencies for useEffect
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!cyRef.current) return;
+
+    cyRef.current.style([
+      {
+        selector: 'node',
+        style: {
+          shape: 'round-rectangle',
+          'background-color': (ele: any) => nodeType(ele),
+          label: 'data(label)',
+          width: '60px',
+          height: '35px',
+          'text-valign': 'center',
+          'text-halign': 'center',
+          'font-size': '12px',
+          color: '#333',
+          'text-wrap': 'ellipsis',
+          'text-max-width': '80px'
+        }
+      },
+      {
+        selector: 'edge',
+        style: {
+          width: 2,
+          'line-color': (ele: any) => edgeType(ele),
+          'target-arrow-shape': 'triangle',
+          'target-arrow-color': (ele: any) => edgeType(ele),
+          'curve-style': 'bezier',
+          label: 'data(label)',
+          'line-style': (ele: any) => lineType(ele) as 'solid' | 'dashed'
+        }
+      }
+    ] as cytoscape.StylesheetStyle[]);
+
+    // CRITICAL FIX: Explicit bulk removal and addition correctly resolves order-dependent edge references
+    cyRef.current.elements().remove();
+    cyRef.current.add(graphData.elements);
+
+    const prevTrigger = cyRef.current.data('prevResetTrigger');
+    if (prevTrigger !== undefined && resetTrigger !== prevTrigger) {
+      cyRef.current.fit(undefined, 50);
+    }
+    cyRef.current.data('prevResetTrigger', resetTrigger);
+
+    setActiveLegendItems(
+      filterLegendItems(
+        graphData.elements,
+        mode === 'dataflow' ? initialLegendItems : initialLegendItemsLineage
+      )
+    );
+
+    const layoutInstance = cyRef.current.layout(layout);
+    layoutInstance.on('layoutstop', () => {
+      if (cyRef.current) {
+        cyRef.current.fit(undefined, 50);
+      }
+    });
+    layoutInstance.run();
+  }, [graphData, mode, resetTrigger, nodeType, edgeType, lineType]);
 
   return (
-    <>
-      <div id="cy" className={'cy'} ref={graphRef}></div>
-      <ul className={'legend'}>
+    <div className="flex flex-col h-full bg-white overflow-hidden">
+      <div
+        id="cy"
+        className="w-full grow min-h-0 relative border-b border-gray-200 bg-[#fafafa]"
+        ref={graphRef}
+      />
+
+      <ul className="flex flex-row justify-center items-center bg-white text-gray-700 list-none p-4 m-0 flex-wrap shrink-0 shadow-inner z-10">
         {activeLegendItems.map((item, index) => (
-          <li key={index}>
+          <li
+            key={index}
+            className="mr-6 flex flex-col justify-center items-center last:mr-0 min-w-[60px]"
+          >
             <div
-              className={item.type}
+              className={
+                item.type === 'node'
+                  ? 'w-[50px] h-[25px] rounded m-1 inline-block border border-gray-300/50'
+                  : 'w-full h-0 inline-block border-t-[3px] bg-transparent mb-2 mt-2'
+              }
               style={{
-                backgroundColor: item.color,
+                backgroundColor:
+                  item.type === 'node' ? item.color : 'transparent',
                 borderColor: item.color,
-                borderStyle: item.borderStyle as 'solid' | 'dashed'
+                borderStyle: item.borderStyle
               }}
-            ></div>{' '}
-            {item.label}
+            />
+            <span className="text-xs font-medium tracking-wide">
+              {item.label}
+            </span>
           </li>
         ))}
       </ul>
-    </>
+    </div>
   );
 }

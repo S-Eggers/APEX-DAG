@@ -1,35 +1,24 @@
-import React, { useEffect, useState } from "react";
-import Graph from "../graph/Graph";
-import GraphComponentProps from "../../types/GraphComponentProps";
+import React from 'react';
+import Graph from '../graph/Graph';
 
-/**
- * React component for a dataflow graph.
- *
- * @returns The React component
- */
-const GraphComponent = ({ eventTarget, mode = "dataflow" }: GraphComponentProps): JSX.Element => {
-  const [graphData, setGraphData] = useState({ elements: [] });
+interface GraphComponentProps {
+  graphData: { elements: any[] };
+  mode: 'dataflow' | 'lineage';
+  resetTrigger: number;
+}
 
-  useEffect(() => {
-    const handler = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const newData = customEvent.detail;
-      console.log("Received update from parent:", newData);
-      setGraphData(newData);
-    };
-
-    eventTarget.addEventListener("graph-update", handler);
-    // The reset-view event is now handled directly by Graph.tsx via eventTarget
-
-    return () => {
-      eventTarget.removeEventListener("graph-update", handler);
-    };
-  }, [eventTarget]);
-
+const GraphComponent: React.FC<GraphComponentProps> = ({
+  graphData,
+  mode,
+  resetTrigger
+}) => {
   return (
-    <div className={"apexDagPage"}>
-      <Graph graphData={graphData} mode={mode} eventTarget={eventTarget} />
+    // Replaced .apexDagPage with Tailwind.
+    // Notice h-full instead of h-screen (100vh) to prevent Jupyter scrollbar bugs.
+    <div className="flex flex-col h-full max-h-full w-full max-w-full bg-[#171717]">
+      <Graph graphData={graphData} mode={mode} resetTrigger={resetTrigger} />
     </div>
-  );};
+  );
+};
 
-  export default GraphComponent;
+export default GraphComponent;
