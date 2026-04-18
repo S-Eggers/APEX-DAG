@@ -57,6 +57,42 @@ class Draw:
 
         return json.dumps({"elements": elements})
 
+    def ast_to_json(self, G: nx.DiGraph) -> str:
+        """
+        Serializes the NetworkX DiGraph into a Cytoscape-compatible JSON payload.
+        """
+        import json
+        elements = []
+        
+        # Convert nodes
+        for node, data in G.nodes(data=True):
+            elements.append(
+                {
+                    "data": {
+                        "id": str(node),
+                        "label": data.get("label", str(node)),
+                        "node_type": data.get("node_type", 0),
+                        "code": data.get("code", "")
+                    }
+                }
+            )
+
+        # Convert edges
+        for src, tgt, data in G.edges(data=True):
+            elements.append(
+                {
+                    "data": {
+                        "source": str(src),
+                        "target": str(tgt),
+                        "edge_type": data.get("edge_type", 0), 
+                        "label": data.get("label", ""), 
+                        "predicted_label": data.get("predicted_label", 0)
+                    }
+                }
+            )
+
+        return json.dumps({"elements": elements})
+
     def dfg(self, G: nx.DiGraph, save_path: str = None):
         file_name = (
             os.path.splitext(os.path.basename(save_path))[0]

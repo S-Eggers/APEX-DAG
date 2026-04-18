@@ -1,0 +1,76 @@
+import { NotebookPanel } from '@jupyterlab/notebook';
+import { GraphWidget } from '../components/widget/GraphWidget';
+import callBackend from './callBackend';
+import { getNotebookCode } from './getNotebookCode';
+import { GraphMode } from '../types/GraphTypes';
+
+export const updateGraphWidget = (
+  graphWidget: GraphWidget | null,
+  notebookPanel: NotebookPanel,
+  mode: GraphMode,
+  settings: any
+) => {
+  if (!graphWidget) return;
+
+  const cells = notebookPanel.content.model?.cells;
+  if (!cells) {
+    console.warn('No notebook cells available for extraction.');
+    return;
+  }
+
+  const content = getNotebookCode(cells, settings.greedyNotebookExtraction);
+  console.debug(
+    `[${mode.toUpperCase()}] Extracted notebook content:\n${content}`
+  );
+
+  const payload: any = {
+    code: content,
+    replaceDataflowInUDFs: settings.replaceDataflowInUDFs,
+    highlightRelevantSubgraphs: settings.highlightRelevantSubgraphs
+  };
+
+  if (mode === 'lineage' || mode === 'vamsa') {
+    payload.llmClassification = settings.llmClassification;
+  }
+
+  callBackend(mode, payload)
+    .then(response => {
+      console.info(`[${mode.toUpperCase()}] Response received:`, response);
+
+      if (!response.success) {
+        console.error(
+          `[${mode.toUpperCase()}] Backend returned failure.`,
+          response
+        );
+        return;
+      }
+
+      let graphDataString;
+      switch (mode) {
+        case 'dataflow':
+          graphDataString = response.dataflow;
+          break;
+        case 'lineage':
+        case 'vamsa':
+          graphDataString = response.lineage_predictions;
+          break;
+        case 'ast':
+          graphDataString = response.ast_graph;
+          break;
+        default:
+          console.error('Unknown graph mode:', mode);
+          return;
+      }
+
+      if (graphDataString) {
+        graphWidget.updateGraphData(
+          typeof graphDataString === 'string'
+            ? graphDataString
+            : JSON.stringify(graphDataString)
+        );
+      }
+    })
+    .catch(error => {
+      console.error(`[${mode.toUpperCase()}] Network or parsing error:`, error);
+    });
+};

@@ -1,9 +1,10 @@
 import React from 'react';
 import Graph from '../graph/Graph';
+import { GraphMode } from '../../types/GraphTypes';
 
 interface GraphComponentProps {
   graphData: { elements: any[] };
-  mode: 'dataflow' | 'lineage';
+  mode: GraphMode;
   resetTrigger: number;
 }
 
@@ -13,8 +14,6 @@ const GraphComponent: React.FC<GraphComponentProps> = ({
   resetTrigger
 }) => {
   return (
-    // Replaced .apexDagPage with Tailwind.
-    // Notice h-full instead of h-screen (100vh) to prevent Jupyter scrollbar bugs.
     <div className="flex flex-col h-full max-h-full w-full max-w-full bg-[#171717]">
       <Graph graphData={graphData} mode={mode} resetTrigger={resetTrigger} />
     </div>

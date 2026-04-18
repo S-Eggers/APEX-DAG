@@ -2,6 +2,7 @@ from jupyter_server.utils import url_path_join
 
 from .LineageHandler import LineageHandler
 from .DataflowHandler import DataflowHandler
+from .ASTHandler import ASTHandler
 
 
 def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
@@ -11,6 +12,10 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
 
     dataflow_pattern = url_path_join(base_url, "apex-dag", "dataflow")
     lineage_pattern = url_path_join(base_url, "apex-dag", "lineage")
+    environment_pattern = url_path_join(base_url, "apex-dag", "environment")
+    ast_pattern = url_path_join(base_url, "apex-dag", "ast")
+    vamsa_pattern = url_path_join(base_url, "apex-dag", "vamsa")
+
     handlers = [
         (
             dataflow_pattern,
@@ -28,6 +33,14 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
                 jupyter_server_app_config=jupyter_server_app_config,
             ),
         ),
+        (
+            ast_pattern,
+            ASTHandler,
+            dict(
+                model=model_instance,
+                jupyter_server_app_config=jupyter_server_app_config,
+            ), 
+        )
     ]
 
     web_app.add_handlers(host_pattern, handlers)

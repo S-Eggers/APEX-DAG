@@ -212,3 +212,6 @@ web_path.json
 jetbrains_dfg_*
 customer_clean.json
 debug_dfg.py
+
+yarn.lock
+tailwind-generated.css

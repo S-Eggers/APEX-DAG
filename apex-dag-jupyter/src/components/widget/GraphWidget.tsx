@@ -1,19 +1,19 @@
 import { ReactWidget } from '@jupyterlab/apputils';
 import React from 'react';
 import GraphComponent from './GraphComponent';
+import { GraphMode } from '../../types/GraphTypes';
 
 export class GraphWidget extends ReactWidget {
-  private mode: 'dataflow' | 'lineage';
+  private mode: GraphMode;
   private graphData: any = { elements: [] };
   private resetTrigger: number = 0;
 
-  constructor(mode: 'dataflow' | 'lineage' = 'dataflow') {
+  constructor(mode: GraphMode = 'dataflow') {
     super();
     this.mode = mode;
     this.addClass('jp-react-widget');
   }
 
-  // Lumino seamlessly bridges to React here
   render(): JSX.Element {
     return (
       <GraphComponent

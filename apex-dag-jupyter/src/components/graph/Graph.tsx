@@ -1,233 +1,12 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
 import dagre from 'cytoscape-dagre';
+import { GraphProps, LegendItemType } from '../../types/GraphTypes';
+import { MODE_CONFIG, filterLegendItems } from '../../config/GraphConfig';
 
-// Ensure the layout is registered only once per module load
 if (!cytoscape.prototype.dagre) {
   cytoscape.use(dagre);
 }
-
-const colors = {
-  light_steel_blue: '#B0C4DE',
-  very_soft_blue: '#b3b0de',
-  pink: '#FFC0CB',
-  light_green: '#c4deb0',
-  very_soft_yellow: '#DEDAB0',
-  very_soft_purple: '#DEB0DE',
-  very_soft_lime_green: '#B0DEB9',
-  light_salmon: '#FFA07A',
-  pale_green: '#98FB98',
-  gray: '#d3d3d3',
-  powder_blue: '#B0E0E6',
-  peach_puff: '#FFDAB9'
-};
-
-interface LegendItemType {
-  type: 'node' | 'edge';
-  color: string;
-  label: string;
-  borderStyle: 'solid' | 'dashed';
-  numericType: number;
-}
-
-const initialLegendItems: LegendItemType[] = [
-  {
-    type: 'node',
-    color: colors.light_steel_blue,
-    label: 'Variable',
-    borderStyle: 'solid',
-    numericType: 0
-  },
-  {
-    type: 'node',
-    color: colors.very_soft_blue,
-    label: 'Intermediate',
-    borderStyle: 'solid',
-    numericType: 4
-  },
-  {
-    type: 'node',
-    color: colors.light_green,
-    label: 'Function',
-    borderStyle: 'solid',
-    numericType: 3
-  },
-  {
-    type: 'node',
-    color: colors.pink,
-    label: 'Import',
-    borderStyle: 'solid',
-    numericType: 1
-  },
-  {
-    type: 'node',
-    color: colors.very_soft_yellow,
-    label: 'If',
-    borderStyle: 'solid',
-    numericType: 5
-  },
-  {
-    type: 'node',
-    color: colors.very_soft_lime_green,
-    label: 'Loop',
-    borderStyle: 'solid',
-    numericType: 6
-  },
-  {
-    type: 'node',
-    color: colors.very_soft_purple,
-    label: 'Class',
-    borderStyle: 'solid',
-    numericType: 7
-  },
-  {
-    type: 'node',
-    color: colors.powder_blue,
-    label: 'Literal',
-    borderStyle: 'solid',
-    numericType: 8
-  },
-  {
-    type: 'edge',
-    color: colors.light_salmon,
-    label: 'Caller',
-    borderStyle: 'solid',
-    numericType: 0
-  },
-  {
-    type: 'edge',
-    color: colors.gray,
-    label: 'Reassign',
-    borderStyle: 'dashed',
-    numericType: 2
-  },
-  {
-    type: 'edge',
-    color: colors.pale_green,
-    label: 'Input',
-    borderStyle: 'solid',
-    numericType: 1
-  },
-  {
-    type: 'edge',
-    color: colors.powder_blue,
-    label: 'Branch',
-    borderStyle: 'solid',
-    numericType: 3
-  },
-  {
-    type: 'edge',
-    color: colors.peach_puff,
-    label: 'Loop',
-    borderStyle: 'solid',
-    numericType: 4
-  },
-  {
-    type: 'edge',
-    color: colors.light_green,
-    label: 'Function',
-    borderStyle: 'solid',
-    numericType: 5
-  }
-];
-
-const initialLegendItemsLineage: LegendItemType[] = [
-  {
-    type: 'node',
-    color: colors.light_steel_blue,
-    label: 'Variable',
-    borderStyle: 'solid',
-    numericType: 0
-  },
-  {
-    type: 'node',
-    color: colors.pink,
-    label: 'Library',
-    borderStyle: 'solid',
-    numericType: 1
-  },
-  {
-    type: 'node',
-    color: colors.light_green,
-    label: 'Dataset',
-    borderStyle: 'solid',
-    numericType: 2
-  },
-  {
-    type: 'node',
-    color: colors.very_soft_blue,
-    label: 'UDF',
-    borderStyle: 'solid',
-    numericType: 3
-  },
-  {
-    type: 'edge',
-    color: colors.light_salmon,
-    label: 'Model Train/Eval',
-    borderStyle: 'solid',
-    numericType: 0
-  },
-  {
-    type: 'edge',
-    color: colors.peach_puff,
-    label: 'Environment+Data Export',
-    borderStyle: 'solid',
-    numericType: 4
-  },
-  {
-    type: 'edge',
-    color: colors.powder_blue,
-    label: 'EDA',
-    borderStyle: 'solid',
-    numericType: 3
-  },
-  {
-    type: 'edge',
-    color: colors.pale_green,
-    label: 'Data Import',
-    borderStyle: 'solid',
-    numericType: 1
-  },
-  {
-    type: 'edge',
-    color: colors.gray,
-    label: 'Data Transform',
-    borderStyle: 'solid',
-    numericType: 2
-  }
-];
-
-interface GraphProps {
-  graphData: { elements: any[] };
-  mode: string;
-  resetTrigger: number;
-}
-
-const filterLegendItems = (
-  elements: any[],
-  allLegendItems: LegendItemType[]
-): LegendItemType[] => {
-  if (!elements || elements.length === 0) return [];
-
-  const presentNodeTypes = new Set<number>();
-  const presentEdgeTypes = new Set<number>();
-
-  elements.forEach(element => {
-    if (typeof element.data.node_type === 'number') {
-      presentNodeTypes.add(element.data.node_type);
-    } else if (typeof element.data.predicted_label === 'number') {
-      presentEdgeTypes.add(element.data.predicted_label);
-    } else if (typeof element.data.edge_type === 'number') {
-      presentEdgeTypes.add(element.data.edge_type);
-    }
-  });
-
-  return allLegendItems.filter(item =>
-    item.type === 'node'
-      ? presentNodeTypes.has(item.numericType)
-      : presentEdgeTypes.has(item.numericType)
-  );
-};
 
 export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
   const layout = { name: 'dagre', rankDir: 'TB', animate: false, fit: false };
@@ -238,77 +17,26 @@ export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
     []
   );
 
-  // Bypassing brittle Cytoscape type definitions with `any` for structural stability
-  const edgeType = useCallback(
+  const edgeTypeColor = useCallback(
     (element: any) => {
       const caseType =
         mode === 'dataflow'
           ? element.data('edge_type')
           : element.data('predicted_label');
-      switch (caseType) {
-        case 0:
-          return colors.light_salmon;
-        case 1:
-          return colors.pale_green;
-        case 2:
-          return colors.gray;
-        case 3:
-          return colors.powder_blue;
-        case 4:
-          return colors.peach_puff;
-        case 5:
-          return colors.light_green;
-        default:
-          return '#000';
-      }
+      return MODE_CONFIG[mode].getEdgeColor(caseType);
     },
     [mode]
   );
 
-  const nodeType = useCallback(
+  const nodeTypeColor = useCallback(
     (element: any) => {
-      const caseType = element.data('node_type');
-      if (mode === 'lineage') {
-        switch (caseType) {
-          case 0:
-            return colors.light_steel_blue;
-          case 1:
-            return colors.pink;
-          case 2:
-            return colors.light_green;
-          case 3:
-            return colors.very_soft_blue;
-          default:
-            return colors.light_steel_blue;
-        }
-      }
-      switch (caseType) {
-        case 0:
-          return colors.light_steel_blue;
-        case 1:
-          return colors.pink;
-        case 3:
-          return colors.light_green;
-        case 4:
-          return colors.very_soft_blue;
-        case 5:
-          return colors.very_soft_yellow;
-        case 6:
-          return colors.very_soft_lime_green;
-        case 7:
-          return colors.very_soft_purple;
-        case 8:
-          return colors.powder_blue;
-        default:
-          return '#000';
-      }
+      return MODE_CONFIG[mode].getNodeColor(element.data('node_type'));
     },
     [mode]
   );
 
-  const lineType = useCallback((element: any) => {
-    const caseType = element.data('edge_type');
-    return caseType === 2 ? 'dashed' : 'solid';
+  const lineTypeStyle = useCallback((element: any) => {
+    return element.data('edge_type') === 2 ? 'dashed' : 'solid';
   }, []);
 
   useEffect(() => {
@@ -338,7 +66,7 @@ export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
         selector: 'node',
         style: {
           shape: 'round-rectangle',
-          'background-color': (ele: any) => nodeType(ele),
+          'background-color': (ele: any) => nodeTypeColor(ele),
           label: 'data(label)',
           width: '60px',
           height: '35px',
@@ -354,17 +82,16 @@ export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
         selector: 'edge',
         style: {
           width: 2,
-          'line-color': (ele: any) => edgeType(ele),
+          'line-color': (ele: any) => edgeTypeColor(ele),
           'target-arrow-shape': 'triangle',
-          'target-arrow-color': (ele: any) => edgeType(ele),
+          'target-arrow-color': (ele: any) => edgeTypeColor(ele),
           'curve-style': 'bezier',
           label: 'data(label)',
-          'line-style': (ele: any) => lineType(ele) as 'solid' | 'dashed'
+          'line-style': (ele: any) => lineTypeStyle(ele) as 'solid' | 'dashed'
         }
       }
     ] as cytoscape.StylesheetStyle[]);
 
-    // CRITICAL FIX: Explicit bulk removal and addition correctly resolves order-dependent edge references
     cyRef.current.elements().remove();
     cyRef.current.add(graphData.elements);
 
@@ -375,10 +102,7 @@ export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
     cyRef.current.data('prevResetTrigger', resetTrigger);
 
     setActiveLegendItems(
-      filterLegendItems(
-        graphData.elements,
-        mode === 'dataflow' ? initialLegendItems : initialLegendItemsLineage
-      )
+      filterLegendItems(graphData.elements, MODE_CONFIG[mode].legends)
     );
 
     const layoutInstance = cyRef.current.layout(layout);
@@ -388,7 +112,14 @@ export default function Graph({ graphData, mode, resetTrigger }: GraphProps) {
       }
     });
     layoutInstance.run();
-  }, [graphData, mode, resetTrigger, nodeType, edgeType, lineType]);
+  }, [
+    graphData,
+    mode,
+    resetTrigger,
+    nodeTypeColor,
+    edgeTypeColor,
+    lineTypeStyle
+  ]);
 
   return (
     <div className="flex flex-col h-full bg-white overflow-hidden">

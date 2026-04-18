@@ -22,8 +22,7 @@ import { GraphWidget } from './components/widget/GraphWidget';
 import { EnvironmentWidget } from './components/widget/EnvironmentWidget';
 import CommandIDs from './types/CommandIDs';
 import ApexIcon from './utils/ApexIcon';
-import updateLineageWidget from './utils/updateLineageWidget';
-import updateWidget from './utils/updateWidget';
+import { updateGraphWidget } from './utils/GraphService';
 import updateEnvironmentWidget from './utils/updateEnvironmentWidget';
 
 class AppSettings {
@@ -48,7 +47,79 @@ class AppSettings {
   }
 }
 
-type WidgetType = 'dataflow' | 'lineage' | 'environment';
+type WidgetType = 'dataflow' | 'lineage' | 'environment' | 'ast' | 'vamsa';
+
+interface WidgetConfig {
+  type: WidgetType;
+  commandId: string;
+  label: string;
+  rank: number;
+  debouncedUpdate: boolean;
+  factory: () => Widget;
+  update: (
+    content: Widget,
+    nbPanel: NotebookPanel,
+    settings: AppSettings
+  ) => void;
+}
+
+const WIDGET_REGISTRY: WidgetConfig[] = [
+  {
+    type: 'ast',
+    commandId: CommandIDs.ast,
+    label: 'AST',
+    rank: 4,
+    debouncedUpdate: false,
+    factory: () => new GraphWidget('ast'),
+    update: (content, nbPanel, settings) => {
+      updateGraphWidget(content as GraphWidget, nbPanel, 'ast', settings);
+    }
+  },
+  {
+    type: 'dataflow',
+    commandId: CommandIDs.dataflow,
+    label: 'Dataflow',
+    rank: 1,
+    debouncedUpdate: false,
+    factory: () => new GraphWidget('dataflow'),
+    update: (content, nbPanel, settings) => {
+      updateGraphWidget(content as GraphWidget, nbPanel, 'dataflow', settings);
+    }
+  },
+  {
+    type: 'lineage',
+    commandId: CommandIDs.lineage,
+    label: 'Lineage',
+    rank: 2,
+    debouncedUpdate: true,
+    factory: () => new GraphWidget('lineage'),
+    update: (content, nbPanel, settings) => {
+      updateGraphWidget(content as GraphWidget, nbPanel, 'lineage', settings);
+    }
+  },
+  {
+    type: 'vamsa',
+    commandId: CommandIDs.vamsa,
+    label: 'Lineage (Vamsa)',
+    rank: 4,
+    debouncedUpdate: true,
+    factory: () => new EnvironmentWidget(), // Placeholder
+    update: (content, nbPanel, settings) => {
+      // updateVamsaWidget(content, nbPanel);
+    }
+  },
+  {
+    type: 'environment',
+    commandId: CommandIDs.environment,
+    label: 'Environment',
+    rank: 5,
+    debouncedUpdate: false,
+    factory: () => new EnvironmentWidget(),
+    update: (content, nbPanel, settings) => {
+      updateEnvironmentWidget(nbPanel);
+    }
+  }
+];
 
 const plugin: JupyterFrontEndPlugin<void> = {
   id: CommandIDs.plugin,
@@ -65,83 +136,47 @@ const plugin: JupyterFrontEndPlugin<void> = {
     settingRegistry: ISettingRegistry | null
   ) => {
     const appSettings = new AppSettings();
-
-    // Centralized wrapper tracking
-    const wrappers: Record<WidgetType, MainAreaWidget<Widget> | null> = {
-      dataflow: null,
-      lineage: null,
-      environment: null
-    };
+    const activeWrappers = new Map<WidgetType, MainAreaWidget<Widget>>();
 
     const getOrCreateWidget = (
-      label: string,
-      type: WidgetType
+      config: WidgetConfig
     ): MainAreaWidget<Widget> => {
-      let wrapper = wrappers[type];
-
+      let wrapper = activeWrappers.get(config.type);
       if (wrapper && !wrapper.isDisposed) {
         return wrapper;
       }
 
-      let content: Widget;
-      if (type === 'environment') {
-        content = new EnvironmentWidget();
-      } else {
-        content = new GraphWidget(type === 'lineage' ? 'lineage' : undefined);
-      }
-
-      wrapper = new MainAreaWidget({ content });
-      wrapper.title.label = label;
+      wrapper = new MainAreaWidget({ content: config.factory() });
+      wrapper.title.label = config.label;
       wrapper.title.icon = ApexIcon;
       wrapper.title.closable = true;
 
-      wrappers[type] = wrapper;
+      activeWrappers.set(config.type, wrapper);
       return wrapper;
     };
 
-    const updateUI = (notebookPanel: NotebookPanel) => {
-      if (wrappers.dataflow && !wrappers.dataflow.isDisposed) {
-        updateWidget(
-          wrappers.dataflow.content as GraphWidget,
-          appSettings.replaceDataflowInUDFs,
-          appSettings.greedyNotebookExtraction,
-          appSettings.highlightRelevantSubgraphs,
-          notebookPanel
-        );
-      }
-      if (wrappers.environment && !wrappers.environment.isDisposed) {
-        updateEnvironmentWidget(
-          //wrappers.environment.content as EnvironmentWidget,
-          notebookPanel
-        );
+    const triggerUpdate = (type: WidgetType, nbPanel: NotebookPanel) => {
+      const wrapper = activeWrappers.get(type);
+      if (wrapper && !wrapper.isDisposed) {
+        const config = WIDGET_REGISTRY.find(c => c.type === type);
+        if (config) config.update(wrapper.content, nbPanel, appSettings);
       }
     };
 
-    const updateLineage = (notebookPanel: NotebookPanel) => {
-      if (wrappers.lineage && !wrappers.lineage.isDisposed) {
-        updateLineageWidget(
-          wrappers.lineage.content as GraphWidget,
-          appSettings.replaceDataflowInUDFs,
-          appSettings.highlightRelevantSubgraphs,
-          appSettings.greedyNotebookExtraction,
-          appSettings.llmClassification,
-          notebookPanel
-        );
-      }
+    const triggerAllUpdates = (nbPanel: NotebookPanel) => {
+      WIDGET_REGISTRY.forEach(config => triggerUpdate(config.type, nbPanel));
     };
 
-    const registerCommand = (
-      commandId: string,
-      label: string,
-      type: WidgetType,
-      rank: number
-    ) => {
-      app.commands.addCommand(commandId, {
-        caption: label,
-        label: label,
-        icon: args => (args['isPalette'] ? undefined : ApexIcon),
+    const menuGroup: { command: string }[] = [];
+
+    WIDGET_REGISTRY.forEach(config => {
+      app.commands.addCommand(config.commandId, {
+        caption: config.label,
+        label: config.label,
+        icon: args =>
+          args['isPalette'] || args['isToolbar'] ? undefined : ApexIcon,
         execute: () => {
-          const wrapper = getOrCreateWidget(label, type);
+          const wrapper = getOrCreateWidget(config);
           const currentNb = tracker.currentWidget;
 
           if (!wrapper.isAttached) {
@@ -152,79 +187,40 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
           app.shell.activateById(wrapper.id);
 
-          if (currentNb) {
-            type === 'lineage' ? updateLineage(currentNb) : updateUI(currentNb);
-          }
+          if (currentNb) triggerUpdate(config.type, currentNb);
         }
       });
 
-      const item = { command: commandId, category: 'APEX-DAG', rank };
+      const item = {
+        command: config.commandId,
+        category: 'APEX-DAG',
+        rank: config.rank
+      };
       palette.addItem(item);
       launcher.add(item);
-      return commandId;
-    };
+      menuGroup.push({ command: config.commandId });
+    });
 
-    const dataflowCmd = registerCommand(
-      CommandIDs.dataflow,
-      'Dataflow',
-      'dataflow',
-      1
-    );
-    const lineageCmd = registerCommand(
-      CommandIDs.lineage,
-      'Lineage',
-      'lineage',
-      2
-    );
-    const envCmd = registerCommand(
-      CommandIDs.environment,
-      'Environment',
-      'environment',
-      3
-    );
-
-    mainMenu.fileMenu.newMenu.addGroup([
-      { command: dataflowCmd },
-      { command: lineageCmd },
-      { command: envCmd }
-    ]);
+    mainMenu.fileMenu.newMenu.addGroup(menuGroup);
 
     tracker.widgetAdded.connect((sender, notebookPanel) => {
-      const dfButton = new CommandToolbarButton({
-        commands: app.commands,
-        id: CommandIDs.dataflow,
-        label: 'Dataflow'
-      });
-      const linButton = new CommandToolbarButton({
-        commands: app.commands,
-        id: CommandIDs.lineage,
-        label: 'Lineage'
-      });
-      const envButton = new CommandToolbarButton({
-        commands: app.commands,
-        id: CommandIDs.environment,
-        label: 'Environment'
-      });
-
       const names = toArray(notebookPanel.toolbar.names());
       const cellTypeIdx = names.indexOf('cellType');
-      const insertIdx = cellTypeIdx !== -1 ? cellTypeIdx + 1 : 10;
+      let insertIdx = cellTypeIdx !== -1 ? cellTypeIdx + 1 : 10;
 
-      notebookPanel.toolbar.insertItem(
-        insertIdx,
-        'apex-dataflow-btn',
-        dfButton
-      );
-      notebookPanel.toolbar.insertItem(
-        insertIdx + 1,
-        'apex-lineage-btn',
-        linButton
-      );
-      notebookPanel.toolbar.insertItem(
-        insertIdx + 2,
-        'apex-environment-btn',
-        envButton
-      );
+      WIDGET_REGISTRY.forEach(config => {
+        const button = new CommandToolbarButton({
+          commands: app.commands,
+          id: config.commandId,
+          label: config.label,
+          args: { isToolbar: true }
+        });
+        notebookPanel.toolbar.insertItem(
+          insertIdx++,
+          `apex-${config.type}-btn`,
+          button
+        );
+      });
 
       let debounceTimer: ReturnType<typeof setTimeout>;
 
@@ -233,12 +229,16 @@ const plugin: JupyterFrontEndPlugin<void> = {
         if (!model) return;
 
         model.contentChanged.connect(() => {
-          updateUI(notebookPanel);
+          WIDGET_REGISTRY.filter(w => !w.debouncedUpdate).forEach(w =>
+            triggerUpdate(w.type, notebookPanel)
+          );
 
           if (appSettings.debounceDelay >= 0) {
             clearTimeout(debounceTimer);
             debounceTimer = setTimeout(() => {
-              updateLineage(notebookPanel);
+              WIDGET_REGISTRY.filter(w => w.debouncedUpdate).forEach(w =>
+                triggerUpdate(w.type, notebookPanel)
+              );
             }, appSettings.debounceDelay);
           }
         });
@@ -248,15 +248,18 @@ const plugin: JupyterFrontEndPlugin<void> = {
     NotebookActions.executed.connect((sender, { notebook }) => {
       if (appSettings.debounceDelay < 0) {
         const panel = tracker.find(p => p.content === notebook);
-        if (panel) updateLineage(panel);
+        if (panel) {
+          WIDGET_REGISTRY.filter(w => w.debouncedUpdate).forEach(w =>
+            triggerUpdate(w.type, panel)
+          );
+        }
       }
     });
 
     tracker.currentChanged.connect(async (sender, notebookPanel) => {
       if (!notebookPanel) return;
       await notebookPanel.revealed;
-      updateUI(notebookPanel);
-      updateLineage(notebookPanel);
+      triggerAllUpdates(notebookPanel);
     });
 
     if (settingRegistry) {
@@ -266,10 +269,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
       ): void => {
         appSettings.update(newSettings);
         const notebookPanel = tracker.currentWidget;
-        if (notebookPanel) {
-          updateUI(notebookPanel);
-          updateLineage(notebookPanel);
-        }
+        if (notebookPanel) triggerAllUpdates(notebookPanel);
       };
       onSettingsChanged(settings);
       settings.changed.connect(onSettingsChanged);
