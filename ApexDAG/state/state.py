@@ -170,11 +170,12 @@ class State:
         for node in self._G[node_identifier]:
             yield node
 
-    def add_node(self, node: str, node_type: int):
-        if node not in self._G:
-            self._G.add_node(node, label=node, node_type=node_type)
+    def add_node(self, node_name: str, node_type: int, code: str = "") -> None:
+        if not self._G.has_node(node_name):
+            self._G.add_node(node_name, label=node_name, node_type=node_type, code=code)
         else:
-            self._logger.debug("Node %s already exists in the graph", node)
+            if code and not self._G.nodes[node_name].get("code"):
+                self._G.nodes[node_name]["code"] = code
 
     def node_degree(self, node_identifier: str):
         return {

@@ -49,6 +49,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def visit_Assign(self, node: ast.Assign) -> ast.Assign:
         value = node.value
+        assignment_code = ast.get_source_segment(self.code, node) or ""
 
         for target in node.targets:
             # Get the versioned name of the target variable using the line number
@@ -82,11 +83,13 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         "return_nodes": [],
                     }
                     self._current_state.add_node(
-                        self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"]
+                        self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"], code=assignment_code
                     )
                 else:
                     self._current_state.add_node(
-                        self._current_state.current_variable, NODE_TYPES["VARIABLE"]
+                        self._current_state.current_variable, 
+                        NODE_TYPES["VARIABLE"], 
+                        code=assignment_code
                     )
 
                 value.parent = node

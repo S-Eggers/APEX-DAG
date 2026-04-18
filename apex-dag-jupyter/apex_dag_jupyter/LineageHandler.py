@@ -33,7 +33,7 @@ class LineageHandler(APIHandler):
                 result = {
                     "message": "Cannot process lineage due to a syntax error. Returning last successful result.",
                     "success": False,
-                    "dataflow": self.last_analysis_results,
+                    "lineage_predictions": self.last_analysis_results,
                 }
                 self.set_status(400)
                 self.finish(json.dumps(result))
