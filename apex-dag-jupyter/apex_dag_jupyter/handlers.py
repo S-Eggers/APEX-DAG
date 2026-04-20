@@ -5,47 +5,30 @@ from .DataflowHandler import DataflowHandler
 from .ASTHandler import ASTHandler
 from .EnvironmentHandler import EnvironmentHandler
 
-
 def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
     host_pattern = ".*$"
-
     base_url = web_app.settings["base_url"]
-
-    dataflow_pattern = url_path_join(base_url, "apex-dag", "dataflow")
-    lineage_pattern = url_path_join(base_url, "apex-dag", "lineage")
-    environment_pattern = url_path_join(base_url, "apex-dag", "environment")
-    ast_pattern = url_path_join(base_url, "apex-dag", "ast")
-    vamsa_pattern = url_path_join(base_url, "apex-dag", "vamsa")
 
     handlers = [
         (
-            dataflow_pattern,
+            url_path_join(base_url, "apex-dag", "dataflow"),
             DataflowHandler,
-            dict(
-                jupyter_server_app_config=jupyter_server_app_config,
-            ),
+            dict(jupyter_server_app_config=jupyter_server_app_config),
         ),
         (
-            lineage_pattern,
+            url_path_join(base_url, "apex-dag", "lineage"),
             LineageHandler,
-            dict(
-                model=model_instance,
-                jupyter_server_app_config=jupyter_server_app_config,
-            ),
+            dict(model=model_instance, jupyter_server_app_config=jupyter_server_app_config),
         ),
         (
-            ast_pattern,
+            url_path_join(base_url, "apex-dag", "ast"),
             ASTHandler,
-            dict(
-                jupyter_server_app_config=jupyter_server_app_config,
-            ), 
+            dict(jupyter_server_app_config=jupyter_server_app_config), 
         ),
         (
-            environment_pattern,
+            url_path_join(base_url, "apex-dag", "environment"),
             EnvironmentHandler,
-            dict(
-                jupyter_server_app_config=jupyter_server_app_config,
-            ), 
+            dict(jupyter_server_app_config=jupyter_server_app_config), 
         )
     ]
 

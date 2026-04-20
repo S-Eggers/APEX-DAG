@@ -93,6 +93,14 @@ class ASTGraph(ABC):
         self._check_graph_status()
         return deepcopy(self._G)
 
+    def get_code(self):
+        """
+        Retrieves the source code associated with the graph.
+        """
+        self._check_graph_status()
+        return self.code
+
+
     def get_code_from_node(self, node) -> str:
         """
         Retrieves the source code corresponding to a given AST (Abstract Syntax Tree) node.

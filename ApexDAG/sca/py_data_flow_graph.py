@@ -973,11 +973,6 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def set_domain_node_label(self, attrs: dict, name: str):
         nx.set_node_attributes(self._current_state._G, attrs, name=name)
 
-    def to_json(self) -> str:
-        draw = Draw(NODE_TYPES, EDGE_TYPES)
-        G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
-        return draw.dfg_to_json(G)
-
     def save_dfg(self, path: str) -> None:
         G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
         save_graph(G, path)
@@ -989,8 +984,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def optimize(self) -> None:
         self._current_state.optimize()
 
-    def filter_relevant(self) -> None:
-        self._current_state.filter_relevant()
+    def filter_relevant(self, lineage_mode: bool = False) -> None:
+        self._current_state.filter_relevant(lineage_mode=lineage_mode)
 
     def get_graph(self) -> nx.Graph:
         return self._current_state.get_graph()

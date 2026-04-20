@@ -2,8 +2,7 @@ import json
 import tornado
 from jupyter_server.base.handlers import APIHandler
 
-from ApexDAG.sca.py_ast_graph import PythonASTGraph as ASTGraph
-
+from ApexDAG.pipeline.ast_pipeline_factory import ASTPipelineFactory
 
 class ASTHandler(APIHandler):
     def initialize(self, jupyter_server_app_config=None):
@@ -12,33 +11,38 @@ class ASTHandler(APIHandler):
 
     @tornado.web.authenticated
     def post(self):
-        input_data = self.get_json_body()
-        code = input_data["code"]
-        replace_dataflow = input_data["replaceDataflowInUDFs"]
-        hightlight_relevant = input_data["highlightRelevantSubgraphs"]
-        ast = ASTGraph()
         try:
-            ast.parse_code(code)
-        except SyntaxError as e:
-            print(f"SyntaxError: {e}")
-            result = {
-                "message": "Cannot process AST! Returning last successful result.",
-                "success": False,
-                "ast_graph": self.last_analysis_results,
-            }
-            self.finish(json.dumps(result))
-        else:
+            input_data = self.get_json_body()
+            code = input_data.get("code", "")
+            
+            pipeline = ASTPipelineFactory.create(input_data)
+            
+            try:
+                analysis_results = pipeline.execute(code)
+            except SyntaxError as e:
+                self.log.error(f"SyntaxError during AST parsing: {e}", exc_info=True)
+                self.set_status(400)
+                self.finish(json.dumps({
+                    "message": "Cannot process AST due to a syntax error. Returning last successful result.",
+                    "success": False,
+                    "ast_graph": self.last_analysis_results,
+                }))
+                return
 
-   
-            graph_json = ast.to_json()
-            self.last_analysis_results = graph_json
-            result = {
+            self.last_analysis_results = analysis_results
+            self.finish(json.dumps({
                 "message": "Processed AST successfully!",
                 "success": True,
-                "ast_graph": graph_json,
-            }
-            self.finish(json.dumps(result))
+                "ast_graph": analysis_results,
+            }))
+
+        except Exception as e:
+            self.log.error(f"Unexpected error in ASTHandler: {e}", exc_info=True)
+            self.set_status(500)
+            self.finish(json.dumps({
+                "message": "An internal server error occurred.",
+                "success": False,
+            }))
 
     def data_received(self, chunk):
-        """Override to silence Tornado abstract method warning."""
         pass

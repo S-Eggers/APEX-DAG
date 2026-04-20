@@ -2,7 +2,7 @@ import json
 import tornado
 from jupyter_server.base.handlers import APIHandler
 
-from ApexDAG.sca.py_lineage_graph import PythonLineageGraph as LineageGraph
+from ApexDAG.pipeline.lineage_pipeline_factory import LineagePipelineFactory
 
 
 class LineageHandler(APIHandler):
@@ -15,39 +15,30 @@ class LineageHandler(APIHandler):
     def post(self):
         try:
             input_data = self.get_json_body()
-            code = input_data["code"]
-            replace_dataflow = input_data["replaceDataflowInUDFs"]
-            hightlight_relevant = input_data["highlightRelevantSubgraphs"]
-            llm_classification = input_data["llmClassification"]
-
-            lgraph = LineageGraph(
-                model=self.model, 
-                use_llm_backend=llm_classification, 
-                highlight_relevant=hightlight_relevant, 
-                replace_dataflow=replace_dataflow
-            )
+            code = input_data.get("code", "")
+            pipeline = LineagePipelineFactory.create(input_data, self.model)
+            
             try:
-                lgraph.parse_code(code)
+                analysis_results = pipeline.execute(code)
             except SyntaxError as e:
-                self.log.error(f"SyntaxError: {e}", exc_info=True)
-                result = {
+                self.log.error(f"SyntaxError during AST parsing: {e}", exc_info=True)
+                self.set_status(400)
+                self.finish(json.dumps({
                     "message": "Cannot process lineage due to a syntax error. Returning last successful result.",
                     "success": False,
                     "lineage_predictions": self.last_analysis_results,
-                }
-                self.set_status(400)
-                self.finish(json.dumps(result))
+                }))
                 return
 
-            self.last_analysis_results = lgraph.to_json()
-            result = {
-                "message": "Processed dataflow successfully!",
+            self.last_analysis_results = analysis_results
+            self.finish(json.dumps({
+                "message": "Processed lineage successfully!",
                 "success": True,
-                "lineage_predictions": self.last_analysis_results,
-            }
-            self.finish(json.dumps(result))
+                "lineage_predictions": analysis_results,
+            }))
+
         except Exception as e:
-            self.log.error(f"An unexpected error occurred in LineageHandler: {e}", exc_info=True)
+            self.log.error(f"Unexpected error in LineageHandler: {e}", exc_info=True)
             self.set_status(500)
             self.finish(json.dumps({
                 "message": "An internal server error occurred.",
@@ -55,5 +46,4 @@ class LineageHandler(APIHandler):
             }))
 
     def data_received(self, chunk):
-        """Override to silence Tornado abstract method warning."""
         pass
