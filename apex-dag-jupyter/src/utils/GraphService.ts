@@ -17,6 +17,9 @@ export const updateGraphWidget = (
     console.warn('No notebook cells available for extraction.');
     return;
   }
+  const fullPath = notebookPanel.context.localPath || 'untitled.ipynb';
+  const notebookName =
+    fullPath.split('/').pop()?.replace('.ipynb', '') || 'untitled';
 
   const content = getNotebookCode(cells, settings.greedyNotebookExtraction);
   console.debug(
@@ -29,7 +32,7 @@ export const updateGraphWidget = (
     highlightRelevantSubgraphs: settings.highlightRelevantSubgraphs
   };
 
-  if (mode === 'lineage' || mode === 'vamsa') {
+  if (mode === 'lineage' || mode === 'vamsa' || mode === 'labeling') {
     payload.llmClassification = settings.llmClassification;
   }
 
@@ -57,12 +60,17 @@ export const updateGraphWidget = (
         case 'ast':
           graphDataString = response.ast_graph;
           break;
+        case 'labeling':
+          graphDataString = response.predictions;
+          break;
         default:
           console.error('Unknown graph mode:', mode);
           return;
       }
 
       if (graphDataString) {
+        graphWidget.setNotebookContext(notebookName, content);
+
         graphWidget.updateGraphData(
           typeof graphDataString === 'string'
             ? graphDataString

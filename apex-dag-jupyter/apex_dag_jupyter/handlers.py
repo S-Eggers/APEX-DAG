@@ -1,9 +1,14 @@
 from jupyter_server.utils import url_path_join
 
-from .LineageHandler import LineageHandler
-from .DataflowHandler import DataflowHandler
-from .ASTHandler import ASTHandler
-from .EnvironmentHandler import EnvironmentHandler
+from .handler.LineageHandler import LineageHandler
+from .handler.DataflowHandler import DataflowHandler
+from .handler.ASTHandler import ASTHandler
+from .handler.EnvironmentHandler import EnvironmentHandler
+from .handler.LabelingSaveHandler import LabelingSaveHandler#
+from .handler.LabelingPredictHandler import LabelingPredictHandler
+from .handler.LabelingGenerateHandler import LabelingGenerateHandler
+from .handler.ConstantsHandler import ConstantsHandler
+
 
 def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
     host_pattern = ".*$"
@@ -29,6 +34,25 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
             url_path_join(base_url, "apex-dag", "environment"),
             EnvironmentHandler,
             dict(jupyter_server_app_config=jupyter_server_app_config), 
+        ),
+        (
+            url_path_join(base_url, "apex-dag", "labeling", "save"),
+            LabelingSaveHandler
+        ),
+        (
+            url_path_join(base_url, "apex-dag", "labeling", "predict"),
+            LabelingPredictHandler,
+            dict(model=model_instance),
+        ),
+        (
+            url_path_join(base_url, "apex-dag", "labeling", "generate"),
+            LabelingGenerateHandler,
+            {}
+        ),
+        (
+            url_path_join(base_url, "apex-dag", "constants"),
+            ConstantsHandler,
+            {}
         )
     ]
 

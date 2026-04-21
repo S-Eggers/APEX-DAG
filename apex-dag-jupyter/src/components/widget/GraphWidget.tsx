@@ -7,11 +7,18 @@ export class GraphWidget extends ReactWidget {
   private mode: GraphMode;
   private graphData: any = { elements: [] };
   private resetTrigger: number = 0;
+  private notebookName: string = 'untitled';
+  private notebookCode: string = '';
 
   constructor(mode: GraphMode = 'dataflow') {
     super();
     this.mode = mode;
     this.addClass('jp-react-widget');
+  }
+
+  setNotebookContext(name: string, code: string) {
+    this.notebookName = name;
+    this.notebookCode = code;
   }
 
   render(): JSX.Element {
@@ -20,6 +27,8 @@ export class GraphWidget extends ReactWidget {
         graphData={this.graphData}
         mode={this.mode}
         resetTrigger={this.resetTrigger}
+        notebookName={this.notebookName}
+        notebookCode={this.notebookCode}
       />
     );
   }

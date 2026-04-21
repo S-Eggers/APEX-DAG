@@ -4,6 +4,7 @@ from ApexDAG.notebook import Notebook
 
 from ApexDAG.sca import ASTGraph
 from ApexDAG.util.draw import Draw
+from ApexDAG.sca.constants import AST_NODE_TYPES, AST_EDGE_TYPES
 
 
 class PythonASTGraph(ASTGraph, ast.NodeVisitor):
@@ -21,12 +22,20 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
                         item, (ast.Load, ast.Store)
                     ):
                         child_id = self.visit(item)
-                        self._G.add_edge(node_id, child_id, edge_type=0, label=field)
+                        self._G.add_edge(
+                            node_id, child_id, 
+                            edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"], 
+                            label=field
+                        )
             elif isinstance(value, ast.AST) and not isinstance(
                 value, (ast.Load, ast.Store)
             ):
                 child_id = self.visit(value)
-                self._G.add_edge(node_id, child_id, edge_type=0, label=field)
+                self._G.add_edge(
+                    node_id, child_id, 
+                    edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"], 
+                    label=field
+                )
 
         return node_id
 
@@ -43,11 +52,13 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         ):
             code = self.get_code_from_node(node)
 
+        numeric_type = AST_NODE_TYPES.get(node_label, AST_NODE_TYPES["AST_UNKNOWN"])
+
         self._G.add_node(
             self.node_counter, 
             label=node_label, 
             code=code, 
-            node_type=0
+            node_type=numeric_type
         )
         
         node_id = self.node_counter

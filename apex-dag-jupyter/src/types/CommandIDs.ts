@@ -5,6 +5,7 @@ namespace CommandIDs {
   export const environment = 'apex-dag-jupyter:environment';
   export const vamsa = 'apex-dag-jupyter:vamsa';
   export const ast = 'apex-dag-jupyter:ast';
+  export const labeling = 'apex-dag-jupyter:labeling';
 }
 
 export default CommandIDs;

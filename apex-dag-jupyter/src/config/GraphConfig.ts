@@ -252,6 +252,7 @@ export const MODE_CONFIG: Record<
 
   lineage: sharedLineageConfig,
   vamsa: sharedLineageConfig,
+  labeling: sharedLineageConfig,
 
   ast: {
     legends: [

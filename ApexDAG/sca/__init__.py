@@ -12,7 +12,9 @@ from ApexDAG.sca.constants import (
     REVERSE_EDGE_TYPES,
     DOMAIN_EDGE_TYPES,
     DOMAIN_NODE_TYPES,
-    REVERSE_DOMAIN_EDGE_TYPES
+    REVERSE_DOMAIN_EDGE_TYPES,
+    AST_NODE_TYPES,
+    AST_EDGE_TYPES
 )
 from ApexDAG.sca.graph_utils import (
     convert_multidigraph_to_digraph,
@@ -41,5 +43,7 @@ __all__ = [
     "flatten_list",
     "DOMAIN_EDGE_TYPES",
     "DOMAIN_NODE_TYPES",
-    "REVERSE_DOMAIN_EDGE_TYPES"
+    "REVERSE_DOMAIN_EDGE_TYPES",
+    "AST_NODE_TYPES",
+    "AST_EDGE_TYPES"
 ]

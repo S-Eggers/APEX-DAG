@@ -47,7 +47,13 @@ class AppSettings {
   }
 }
 
-type WidgetType = 'dataflow' | 'lineage' | 'environment' | 'ast' | 'vamsa';
+type WidgetType =
+  | 'dataflow'
+  | 'lineage'
+  | 'environment'
+  | 'ast'
+  | 'vamsa'
+  | 'labeling';
 
 interface WidgetConfig {
   type: WidgetType;
@@ -105,14 +111,25 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
     debouncedUpdate: true,
     factory: () => new EnvironmentWidget(), // Placeholder
     update: (content, nbPanel, settings) => {
-      // updateVamsaWidget(content, nbPanel);
+      // updateGraphWidget(content as GraphWidget, nbPanel, 'vamsa', settings);
+    }
+  },
+  {
+    type: 'labeling',
+    commandId: CommandIDs.labeling,
+    label: 'Annotate',
+    rank: 5,
+    debouncedUpdate: false,
+    factory: () => new GraphWidget('labeling'),
+    update: (content, nbPanel, settings) => {
+      updateGraphWidget(content as GraphWidget, nbPanel, 'labeling', settings);
     }
   },
   {
     type: 'environment',
     commandId: CommandIDs.environment,
     label: 'Environment',
-    rank: 5,
+    rank: 6,
     debouncedUpdate: false,
     factory: () => new EnvironmentWidget(),
     update: (content, nbPanel, settings) => {
