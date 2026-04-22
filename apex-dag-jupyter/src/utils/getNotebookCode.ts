@@ -1,33 +1,54 @@
 import { ICodeCellModel } from '@jupyterlab/cells';
 import { CellList } from '@jupyterlab/notebook';
+import { ExtractedCell } from '../types/NotebookTypes';
 
-export const getNotebookCode = (cells: CellList, greedy: boolean = true): string => {
+export const getNotebookCode = (
+  cells: CellList,
+  greedy: boolean = true
+): ExtractedCell[] => {
+  const extractedCells: ExtractedCell[] = [];
+
   if (greedy) {
-    let content: string = "";
     for (let i = 0; i < cells.length; i++) {
       const cell = cells.get(i);
-      if (cell.type === "code") {
-        const codeCell = cell as ICodeCellModel;
-        content += codeCell.toJSON().source + '\n';
+
+      if (cell.type === 'code') {
+        const sourceCode = cell.sharedModel.getSource();
+
+        if (sourceCode.trim().length > 0) {
+          extractedCells.push({
+            cell_id: cell.id,
+            source: sourceCode
+          });
+        }
       }
     }
-    return content;
   } else {
-    const executedCodeCells = [];
+    const executedCodeCells: ICodeCellModel[] = [];
+
     for (let i = 0; i < cells.length; i++) {
       const cell = cells.get(i);
-      if (cell.type === "code") {
+      if (cell.type === 'code') {
         const codeModel = cell as ICodeCellModel;
         if (codeModel.executionCount && codeModel.executionCount > 0) {
           executedCodeCells.push(codeModel);
         }
       }
     }
-    executedCodeCells.sort((a, b) => {
-      return a.executionCount! - b.executionCount!;
-    });
-    const content = executedCodeCells.map(model => model.toJSON().source  + "\n").join("");
 
-    return content;
+    executedCodeCells.sort((a, b) => a.executionCount! - b.executionCount!);
+
+    for (const codeModel of executedCodeCells) {
+      const sourceCode = codeModel.sharedModel.getSource();
+
+      if (sourceCode.trim().length > 0) {
+        extractedCells.push({
+          cell_id: codeModel.id,
+          source: sourceCode
+        });
+      }
+    }
   }
+
+  return extractedCells;
 };

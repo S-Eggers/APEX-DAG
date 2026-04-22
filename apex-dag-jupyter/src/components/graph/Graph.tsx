@@ -14,7 +14,8 @@ export default function Graph({
   resetTrigger,
   taxonomy,
   notebookName,
-  notebookCode
+  notebookCode,
+  onLocateCell
 }: GraphProps) {
   const graphRef = useRef<HTMLDivElement>(null);
 
@@ -29,8 +30,20 @@ export default function Graph({
     graphData,
     mode,
     resetTrigger,
-    setSelectedNode,
-    setSelectedEdge,
+    nodeData => {
+      setSelectedNode(nodeData);
+      console.log('CLICKED NODE DATA:', nodeData);
+      if (nodeData && nodeData.cell_id && onLocateCell) {
+        onLocateCell(nodeData.cell_id);
+      }
+    },
+    edgeData => {
+      setSelectedEdge(edgeData);
+      console.log('CLICKED EDGE DATA:', edgeData);
+      if (edgeData && edgeData.cell_id && onLocateCell) {
+        onLocateCell(edgeData.cell_id);
+      }
+    },
     () => {
       if (!cyRef.current) return;
       const liveElements = cyRef.current
@@ -82,12 +95,13 @@ export default function Graph({
   const handleSaveAnnotations = async () => {
     if (!cyRef.current) return;
     const currentGraphJson = (cyRef.current.json() as any).elements;
+    const rawPythonCode = notebookCode.map((c: any) => c.source).join('\n');
 
     try {
       const result = await callBackend('labeling/save', {
         filename: notebookName,
         graph: currentGraphJson,
-        code: notebookCode
+        code: rawPythonCode
       });
 
       if (result.success) {

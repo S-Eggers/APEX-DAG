@@ -82,11 +82,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         "vararg": False,
                         "return_nodes": [],
                     }
-                    self._current_state.add_node(
+                    self._add_node(
                         self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"], code=assignment_code
                     )
                 else:
-                    self._current_state.add_node(
+                    self._add_node(
                         self._current_state.current_variable, 
                         NODE_TYPES["VARIABLE"], 
                         code=assignment_code
@@ -109,7 +109,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 if previous_version and not self._current_state.has_edge(
                     previous_version, self._current_state.current_variable
                 ):
-                    self._current_state.add_edge(
+                    self._add_edge(
                         previous_version,
                         self._current_state.current_variable,
                         "reassign",
@@ -134,11 +134,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         target_base_name = self._get_base_name(target)
         new_target_version = self._get_versioned_name(target_base_name, node.lineno)
-        self._current_state.add_node(new_target_version, NODE_TYPES["VARIABLE"])
+        self._add_node(new_target_version, NODE_TYPES["VARIABLE"])
 
         old_target_version = self._get_last_variable_version(target_base_name)
         if old_target_version:
-            self._current_state.add_edge(
+            self._add_edge(
                 old_target_version,
                 new_target_version,
                 operator,
@@ -191,7 +191,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             function_name = self._get_names(function_def_node)[0]
 
             return_node_name = f"return_{function_name}_{node.lineno}"
-            self._current_state.add_node(return_node_name, NODE_TYPES["INTERMEDIATE"])
+            self._add_node(return_node_name, NODE_TYPES["INTERMEDIATE"])
 
             if "return_nodes" in self._state_stack.functions[function_name]:
                 self._state_stack.functions[function_name]["return_nodes"].append(
@@ -226,7 +226,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 self._current_state.set_current_variable(
                     self._get_versioned_name(base_name, node.lineno)
                 )
-                self._current_state.add_node(
+                self._add_node(
                     self._current_state.current_variable, NODE_TYPES["VARIABLE"]
                 )
             self._current_state.set_current_target(base_name)
@@ -272,14 +272,14 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
             for arg in self._state_stack.functions[parent_name]["args"]["args"]:
                 argument_node = f"{arg}_{node.lineno}"
-                self._current_state.add_node(argument_node, NODE_TYPES["VARIABLE"])
+                self._add_node(argument_node, NODE_TYPES["VARIABLE"])
                 self._current_state.variable_versions[arg] = [argument_node]
 
             self.visit(node.body)
             self._state_stack.restore_state(parent_context)
             self._current_state = self._state_stack.get_current_state()
 
-            # self._current_state.add_node(context_name, NODE_TYPES["INTERMEDIATE"])
+            # self._add_node(context_name, NODE_TYPES["INTERMEDIATE"])
 
         else:
             code = ast.get_source_segment(self.code, node)
@@ -292,7 +292,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             arguments = self._process_arguments(node.args)
             for arg in arguments["args"]:
                 argument_node = f"{arg}_{node.lineno}"
-                self._current_state.add_node(argument_node, NODE_TYPES["VARIABLE"])
+                self._add_node(argument_node, NODE_TYPES["VARIABLE"])
                 self._current_state.variable_versions[arg] = [argument_node]
         return node
 
@@ -311,7 +311,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._state_stack.functions[function_name]["args"] = self._process_arguments(
             node.args
         )
-        self._current_state.add_node(context_name, NODE_TYPES["FUNCTION"])
+        self._add_node(context_name, NODE_TYPES["FUNCTION"])
         # print(self._current_state.get_graph().nodes)
 
         parent_context = self._current_state.context
@@ -320,7 +320,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         for arg in self._state_stack.functions[function_name]["args"]["args"]:
             argument_node = f"{arg}_{node.lineno}"
-            self._current_state.add_node(argument_node, NODE_TYPES["VARIABLE"])
+            self._add_node(argument_node, NODE_TYPES["VARIABLE"])
             self._current_state.variable_versions[arg] = [argument_node]
 
         for stmt in node.body:
@@ -455,7 +455,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if self._current_state.current_variable and operator:
             if left_var:
                 left_version = self._get_last_variable_version(left_var)
-                self._current_state.add_edge(
+                self._add_edge(
                     left_version,
                     self._current_state.current_variable,
                     operator,
@@ -467,7 +467,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 )
             if right_var:
                 right_version = self._get_last_variable_version(right_var)
-                self._current_state.add_edge(
+                self._add_edge(
                     right_version,
                     self._current_state.current_variable,
                     operator,
@@ -496,7 +496,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             if self._current_state.current_variable and operator:
                 if left_var:
                     left_version = self._get_last_variable_version(left_var)
-                    self._current_state.add_edge(
+                    self._add_edge(
                         left_version,
                         self._current_state.current_variable,
                         operator,
@@ -508,7 +508,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     )
                 if right_var:
                     right_version = self._get_last_variable_version(right_var)
-                    self._current_state.add_edge(
+                    self._add_edge(
                         right_version,
                         self._current_state.current_variable,
                         operator,
@@ -554,7 +554,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             code_segment = self._tokenize_method(code_segment)
 
             if self._current_state.current_variable:
-                self._current_state.add_edge(
+                self._add_edge(
                     var_version,
                     self._current_state.current_variable,
                     code_segment,
@@ -577,7 +577,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if self._current_state.last_variable:
             var_name = self._current_state.last_variable
 
-        self._current_state.add_edge(
+        self._add_edge(
             var_name,
             self._current_state.current_variable,
             self._tokenize_method(node.attr),
@@ -610,8 +610,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             literal_val = self._tokenize_literal(literal_val)
             literal_node_name = f"literal_{node.lineno}_{node.col_offset}"
             
-            self._current_state.add_node(literal_node_name, NODE_TYPES["LITERAL"])
-            self._current_state.add_edge(
+            self._add_node(literal_node_name, NODE_TYPES["LITERAL"])
+            self._add_edge(
                 literal_node_name,
                 self._current_state.current_variable,
                 literal_val,
@@ -624,7 +624,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_IfExp(self, node: ast.IfExp) -> ast.IfExp:
-        self._current_state.add_edge(
+        self._add_edge(
             self._get_last_variable_version(self._current_state.current_target),
             self._current_state.current_variable,
             "if",
@@ -756,9 +756,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 f"iterate into {attribute_path}" if len(components) > 1 else "iterate"
             )
 
-            self._current_state.add_node(target_version, NODE_TYPES["VARIABLE"])
+            self._add_node(target_version, NODE_TYPES["VARIABLE"])
             self._current_state.variable_versions[base_name] = [target_version]
-            self._current_state.add_edge(
+            self._add_edge(
                 temp_iterable_node,
                 target_version,
                 edge_label,
@@ -798,7 +798,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         final_list_variable = self._current_state.current_variable
         if not final_list_variable:
             final_list_variable = f"list_comp_result_{node.lineno}"
-            self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
+            self._add_node(final_list_variable, NODE_TYPES["VARIABLE"])
 
         parent_context = self._current_state.context
         if self._state_stack.nested:
@@ -810,11 +810,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
         start_loop_node = f"{final_list_variable}_start_loop"
         # print(start_loop_node) <- beam_search_task_17_start_loop
-        self._current_state.add_node(start_loop_node, NODE_TYPES["LOOP"])
+        self._add_node(start_loop_node, NODE_TYPES["LOOP"])
         initial_list_node = f"list_comp_start_{node.lineno}"
-        self._current_state.add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
+        self._add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
         self._current_state.set_current_variable(start_loop_node)
-        self._current_state.add_edge(
+        self._add_edge(
             start_loop_node,
             initial_list_node,
             "start_loop",
@@ -826,7 +826,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         )
 
         current_list_version = initial_list_node
-        self._current_state.add_node(final_list_variable, NODE_TYPES["VARIABLE"])
+        self._add_node(final_list_variable, NODE_TYPES["VARIABLE"])
 
         for generator in node.generators:
             temp_iterable_node = self._handle_iterable(generator.iter)
@@ -838,10 +838,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 target_version = self._get_versioned_name(
                     base_name, generator.target.lineno
                 )
-                self._current_state.add_node(target_version, NODE_TYPES["VARIABLE"])
+                self._add_node(target_version, NODE_TYPES["VARIABLE"])
                 self._current_state.variable_versions[base_name] = [target_version]
                 # Link iterable to loop var
-                self._current_state.add_edge(
+                self._add_edge(
                     temp_iterable_node,
                     target_version,
                     "iterate",
@@ -851,7 +851,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     generator.target.end_lineno,
                     generator.target.end_col_offset,
                 )
-                self._current_state.add_edge(
+                self._add_edge(
                     target_version,
                     start_loop_node,
                     "iterate",
@@ -877,7 +877,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             # current_list_version = intermediate_list_node
 
 
-        self._current_state.add_edge(
+        self._add_edge(
             current_list_version,
             final_list_variable,
             "end_loop", 
@@ -1035,7 +1035,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             previous_version if previous_version else self._current_state.last_variable
         )
         tokens = self._tokenize_method(tokens)
-        self._current_state.add_edge(
+        self._add_edge(
             previous_version,
             self._current_state.current_variable,
             tokens,
@@ -1064,7 +1064,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     if arg_name:
                         arg_version = self._get_last_variable_version(arg_name)
                         code_segment = self._tokenize_method(arg_name)
-                        self._current_state.add_edge(
+                        self._add_edge(
                             arg_version,
                             self._current_state.current_variable,
                             code_segment,
@@ -1082,10 +1082,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     ) -> None:
         # Add the import node and connect it
         import_node = self._state_stack.imported_names[caller_object_name]
-        self._current_state.add_node(import_node, NODE_TYPES["IMPORT"])
+        self._add_node(import_node, NODE_TYPES["IMPORT"])
         tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
         tokens = self._tokenize_method(tokens)
-        self._current_state.add_edge(
+        self._add_edge(
             import_node,
             self._current_state.current_variable,
             tokens,
@@ -1111,7 +1111,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if arg_name:
             arg_version = self._get_last_variable_version(arg_name)
             code_segment = self._tokenize_method(arg_name)
-            self._current_state.add_edge(
+            self._add_edge(
                 arg_version,
                 self._current_state.current_variable,
                 code_segment,
@@ -1182,10 +1182,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         if not is_instance:
                             # Create instance variable for class method calls
                             class_node = self._state_stack.classes[caller_object_name][0]
-                            self._current_state.add_node(class_node, NODE_TYPES["CLASS"])
+                            self._add_node(class_node, NODE_TYPES["CLASS"])
                             tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
                             tokens = self._tokenize_method(tokens)
-                            self._current_state.add_edge(
+                            self._add_edge(
                                 class_node,
                                 caller_return_variable,
                                 tokens,
@@ -1199,7 +1199,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         for param_name, caller_node in param_to_caller_version.items():
                             if param_name in self._current_state.variable_versions:
                                 func_param_node = self._current_state.variable_versions[param_name][0]
-                                self._current_state.add_edge(
+                                self._add_edge(
                                     caller_node,
                                     func_param_node,
                                     "arg_pass",
@@ -1214,7 +1214,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         if instance_version and 'self' in self._current_state.variable_versions:
                             self_param_node = self._current_state.variable_versions['self'][0]
                             last_self_param_node = self._get_last_variable_version("self")
-                            self._current_state.add_edge(
+                            self._add_edge(
                                 instance_version,
                                 self_param_node,
                                 "self_binding",
@@ -1225,7 +1225,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                                 node.end_col_offset,
                             )
                             
-                            self._current_state.add_edge(
+                            self._add_edge(
                                 last_self_param_node,
                                 instance_version,
                                 "self_binding",
@@ -1240,7 +1240,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         if caller_return_variable:
                             return_nodes = self._state_stack.functions[full_method_name].get("return_nodes", [])
                             for return_node in return_nodes:
-                                self._current_state.add_edge(
+                                self._add_edge(
                                     return_node,
                                     caller_return_variable,
                                     "return",
@@ -1269,10 +1269,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         
         # Fall back to original black-box behavior
         class_node = self._state_stack.classes[caller_object_name][0]
-        self._current_state.add_node(class_node, NODE_TYPES["CLASS"])
+        self._add_node(class_node, NODE_TYPES["CLASS"])
         tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
         tokens = self._tokenize_method(tokens)
-        self._current_state.add_edge(
+        self._add_edge(
             class_node,
             self._current_state.current_variable,
             tokens,
@@ -1294,9 +1294,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             return
 
         builtin_node = "__builtins__"
-        self._current_state.add_node(builtin_node, NODE_TYPES["IMPORT"])
+        self._add_node(builtin_node, NODE_TYPES["IMPORT"])
 
-        self._current_state.add_edge(
+        self._add_edge(
             builtin_node,
             self._current_state.current_variable,
             function_name,
@@ -1314,7 +1314,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 if base_name and isinstance(base_name, str):
                     arg_version = self._get_last_variable_version(base_name)
                     if arg_version:
-                        self._current_state.add_edge(
+                        self._add_edge(
                             arg_version,
                             self._current_state.current_variable,
                             "arg",
@@ -1369,7 +1369,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     func_param_node = self._current_state.variable_versions[
                         param_name
                     ][0]
-                    self._current_state.add_edge(
+                    self._add_edge(
                         caller_node,
                         func_param_node,
                         "arg_pass",
@@ -1385,7 +1385,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     "return_nodes", []
                 )
                 for return_node in return_nodes:
-                    self._current_state.add_edge(
+                    self._add_edge(
                         return_node,
                         caller_return_variable,
                         "return",
@@ -1411,7 +1411,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             function_def_node = self._state_stack.functions[function_name]["node"]
 
             if self._current_state.current_variable:
-                self._current_state.add_edge(
+                self._add_edge(
                     function_def_node,
                     self._current_state.current_variable,
                     self._tokenize_method(function_name),
@@ -1436,7 +1436,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         if arg_name:
                             arg_version = self._get_last_variable_version(arg_name)
                             if arg_version:
-                                self._current_state.add_edge(
+                                self._add_edge(
                                     arg_version,
                                     self._current_state.current_variable,
                                     self._tokenize_method(str(arg_name)),
@@ -1452,9 +1452,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     ) -> None:
         # Add the import node and connect it
         import_node = self._state_stack.imported_names[caller_object_name]
-        self._current_state.add_node(import_node, NODE_TYPES["IMPORT"])
+        self._add_node(import_node, NODE_TYPES["IMPORT"])
         tokens = self._tokenize_method(ast.get_source_segment(self.code, node))
-        self._current_state.add_edge(
+        self._add_edge(
             import_node,
             self._current_state.current_variable,
             tokens,
@@ -1705,7 +1705,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         and returns the name of the temporary iterable node.
         """
         temp_iterable_node = f"iterable_{iterable_node.lineno}_{iterable_node.col_offset}"
-        self._current_state.add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
+        self._add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
 
         original_variable = self._current_state.current_variable
         self._current_state.set_current_variable(temp_iterable_node)
@@ -1713,3 +1713,23 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self._current_state.set_current_variable(original_variable)
 
         return temp_iterable_node
+
+    def _add_node(self, node_name: str, node_type: int, code: str = "") -> None:
+        cell_context = getattr(self, "current_cell_id", "unknown_cell")
+        self._current_state.add_node(node_name, node_type, code=code, cell_id=cell_context)
+
+    def _add_edge(
+        self, 
+        source: str, 
+        target: str, 
+        code: str, 
+        edge_type: int, 
+        lineno: int = -1, 
+        col_offset: int = -1, 
+        end_lineno: int = -1, 
+        end_col_offset: int = -1
+    ) -> None:
+        cell_context = getattr(self, "current_cell_id", "unknown_cell")
+        self._current_state.add_edge(
+            source, target, code, edge_type, lineno, col_offset, end_lineno, end_col_offset, cell_id=cell_context
+        )

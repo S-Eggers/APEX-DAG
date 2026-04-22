@@ -25,9 +25,11 @@ export const updateGraphWidget = (
   console.debug(
     `[${mode.toUpperCase()}] Extracted notebook content:\n${content}`
   );
+  const legacyConcatenatedCode = content.map(c => c.source).join('\n');
 
   const payload: any = {
-    code: content,
+    code: legacyConcatenatedCode,
+    cells: content,
     replaceDataflowInUDFs: settings.replaceDataflowInUDFs,
     highlightRelevantSubgraphs: settings.highlightRelevantSubgraphs
   };
@@ -69,7 +71,7 @@ export const updateGraphWidget = (
       }
 
       if (graphDataString) {
-        graphWidget.setNotebookContext(notebookName, content);
+        graphWidget.setNotebookContext(notebookName, content, notebookPanel);
 
         graphWidget.updateGraphData(
           typeof graphDataString === 'string'

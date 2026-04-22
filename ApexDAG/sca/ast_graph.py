@@ -30,7 +30,20 @@ class ASTGraph(ABC):
         self._leaf_nodes = []
         self.node_counter = 0
 
-    def parse_code(self, code: str):
+    def create_notebook_root(self) -> int | None:
+        """
+        Optional hook for subclasses to establish a master root node for the entire notebook.
+        Returns the integer ID of the root node, or None if the graph does not require one.
+        """
+        return None
+
+    def connect_notebook_root(self, root_id: int, cell_module_id: int) -> None:
+        """
+        Optional hook to attach a disconnected cell subgraph to the master notebook root.
+        """
+        pass
+
+    def parse_code(self, code):
         """
         Parses the given source code string into an abstract syntax tree (AST) and visits the nodes.
 
@@ -51,6 +64,40 @@ class ASTGraph(ABC):
         abstract_syntax_tree = ast.parse(code)
         self.visit(abstract_syntax_tree)
         self._build = True
+
+    def parse_cells(self, cells: list) -> None:
+        """
+        Parses a list of Jupyter cell dictionaries into abstract syntax trees (ASTs).
+        """
+        self.cells = cells
+        self.code = ""
+        
+        self.current_cell_id = "global_notebook"
+        self.current_cell_source = "<notebook_root>"
+        master_root_id = self.create_notebook_root()
+        
+        for cell in cells:
+            self.current_cell_id = cell.get("cell_id", "legacy_fallback")
+            source = cell.get("source", "")
+            
+            self.current_cell_source = source  
+            self.code += source + "\n"
+            
+            if not source.strip():
+                continue
+                
+            try:
+                abstract_syntax_tree = ast.parse(source)
+                cell_module_id = self.visit(abstract_syntax_tree)
+                
+                if master_root_id is not None and cell_module_id is not None:
+                    self.connect_notebook_root(master_root_id, cell_module_id)
+                
+            except SyntaxError as e:
+                raise SyntaxError(f"SyntaxError in cell {self.current_cell_id}: {e}")
+
+        self._build = True
+        self.current_cell_id = None
 
     def parse_notebook(self, notebook: Notebook):
         """
@@ -120,9 +167,13 @@ class ASTGraph(ABC):
             - The method assumes that the AST node has the following attributes: lineno, col_offset, and
             end_col_offset.
         """
-        return self.code.splitlines()[node.lineno - 1][
-            node.col_offset : node.end_col_offset
-        ]
+        source_to_use = getattr(self, "current_cell_source", None) or self.code
+        
+        lines = source_to_use.splitlines()
+        if not lines or node.lineno > len(lines):
+            return ""
+            
+        return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
     @abstractmethod
     def draw(self):

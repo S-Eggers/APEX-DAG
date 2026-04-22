@@ -38,14 +38,22 @@ export function useGraphTaxonomy(mode: GraphMode) {
       };
     }
 
-    const getNodeColor = (numericType: number) => {
+    const getNodeColor = (numericType: number | undefined | null) => {
+      if (numericType === undefined || numericType === null) {
+        return DEFAULT_NODE_COLOR;
+      }
+
       const stringKey = taxonomy.nodes[numericType.toString()];
       return stringKey
         ? SEMANTIC_COLORS.nodes[stringKey] || DEFAULT_NODE_COLOR
         : DEFAULT_NODE_COLOR;
     };
 
-    const getEdgeColor = (numericType: number) => {
+    const getEdgeColor = (numericType: number | undefined | null) => {
+      if (numericType === undefined || numericType === null) {
+        return DEFAULT_EDGE_COLOR;
+      }
+
       const stringKey = taxonomy.edges[numericType.toString()];
       return stringKey
         ? SEMANTIC_COLORS.edges[stringKey] || DEFAULT_EDGE_COLOR

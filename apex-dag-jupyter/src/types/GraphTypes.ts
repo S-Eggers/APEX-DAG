@@ -1,3 +1,5 @@
+import { ExtractedCell } from './NotebookTypes';
+
 export type GraphMode = 'dataflow' | 'lineage' | 'ast' | 'vamsa' | 'labeling';
 export type TableMode = 'environment';
 
@@ -15,7 +17,17 @@ export interface GraphProps {
   resetTrigger: number;
   taxonomy: any;
   notebookName: string;
-  notebookCode: string;
+  notebookCode: ExtractedCell[];
+  onLocateCell?: (cellId: string) => void;
+}
+
+export interface GraphComponentProps {
+  graphData: { elements: any[] };
+  mode: GraphMode;
+  resetTrigger: number;
+  notebookName: string;
+  notebookCode: ExtractedCell[];
+  onLocateCell?: (cellId: string) => void;
 }
 
 export interface LabelOption {

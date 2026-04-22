@@ -4,6 +4,7 @@ from networkx import Graph, MultiDiGraph
 
 from ApexDAG.util.logging import setup_logging
 from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES, VERBOSE, DOMAIN_EDGE_TYPES
+from ApexDAG.sca.models import GraphNode, GraphEdge
 
 
 class State:
@@ -170,12 +171,21 @@ class State:
         for node in self._G[node_identifier]:
             yield node
 
-    def add_node(self, node_name: str, node_type: int, code: str = "") -> None:
+    def add_node(self, node_name: str, node_type: int, code: str = "", cell_id: str = "unknown_cell") -> None:
         if not self._G.has_node(node_name):
-            self._G.add_node(node_name, label=node_name, node_type=node_type, code=code)
+            node_model = GraphNode(
+                id=node_name,
+                label=node_name,
+                node_type=node_type,
+                cell_id=cell_id,
+                code=code
+            )
+            self._G.add_node(node_name, **node_model.to_networkx_attrs())
         else:
             if code and not self._G.nodes[node_name].get("code"):
                 self._G.nodes[node_name]["code"] = code
+            if cell_id != "unknown_cell" and self._G.nodes[node_name].get("cell_id") in [None, "unknown_cell"]:
+                self._G.nodes[node_name]["cell_id"] = cell_id
 
     def node_degree(self, node_identifier: str):
         return {
@@ -222,6 +232,7 @@ class State:
         col_offset: int = -1,
         end_lineno: int = -1,
         end_col_offset: int = -1,
+        cell_id: str = "unknown_cell"
     ):
         if source and target and source != target and len(code) > 0:
             key = f"{source}_{target}_{code}"
@@ -230,21 +241,27 @@ class State:
                 edge_count = self.get_edge_data(source, target, key, "count")
                 self.set_edge_data(source, target, key, count=edge_count + 1)
             else:
-                position = {
+                edge_model = GraphEdge(
+                    source=source,
+                    target=target,
+                    edge_type=edge_type,
+                    cell_id=cell_id,
+                    label=code
+                )
+                
+                position_and_meta = {
                     "lineno": lineno,
                     "col_offset": col_offset,
                     "end_lineno": end_lineno,
                     "end_col_offset": end_col_offset,
+                    "count": 1,
+                    "code": code
                 }
-                self._G.add_edge(
-                    source,
-                    target,
-                    code=code,
-                    key=key,
-                    edge_type=edge_type,
-                    count=1,
-                    **position,
-                )
+                
+                attrs = edge_model.to_networkx_attrs()
+                attrs.update(position_and_meta)
+                
+                self._G.add_edge(source, target, key=key, **attrs)
         else:
             self._logger.debug(
                 "Ignoring edge %s -> %s with code %s", source, target, code

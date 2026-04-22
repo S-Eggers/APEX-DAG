@@ -1,24 +1,10 @@
-import json
-import tornado
-from jupyter_server.base.handlers import APIHandler
-
+from .ApexDAGBaseHandler import ApexDAGBaseHandler
 from ApexDAG.pipeline.labeling_pipeline_factory import LabelingPipelineFactory
 
+class LabelingPredictHandler(ApexDAGBaseHandler):
+    @property
+    def response_key(self) -> str:
+        return "predictions"
 
-class LabelingPredictHandler(APIHandler):
-    def initialize(self, model):
-        self.model = model
-
-    @tornado.web.authenticated
-    def post(self):
-        try:
-            input_data = self.get_json_body()
-            pipeline = LabelingPipelineFactory.create(input_data, self.model)
-            analysis_results = pipeline.execute(input_data.get("code", ""))
-            self.finish(json.dumps({"success": True, "predictions": analysis_results}))
-        except SyntaxError as e:
-            self.set_status(400)
-            self.finish(json.dumps({"success": False, "message": str(e)}))
-        except Exception as e:
-            self.set_status(500)
-            self.finish(json.dumps({"success": False, "message": "Internal Error"}))
+    def create_pipeline(self, input_data: dict):
+        return LabelingPipelineFactory.create(input_data, self.model)

@@ -7,29 +7,28 @@ class LabelingSerializer:
         elements = []
         
         for n, data in G.nodes(data=True):
-            node_label = data.get("label") or data.get("code") or str(n)
-            elements.append({
-                "data": {
-                    "id": str(n),
-                    "label": node_label,
-                    "node_type": data.get("node_type", 0),
-                    "code": data.get("code", ""),
-                    "predicted_label": data.get("predicted_label", ""),
-                    "domain_label": data.get("domain_label", "")
-                }
-            })
+            payload = {
+                "id": str(n),
+                "label": data.get("label") or data.get("code") or str(n),
+                "node_type": 0
+            }
+            
+            payload.update(data)
+            
+            elements.append({"data": payload})
             
         for u, v, key, data in G.edges(keys=True, data=True):
-            edge_str = data.get("label") or data.get("code") or "edge"
-            elements.append({
-                "data": {
-                    "source": str(u),
-                    "target": str(v),
-                    "edge_type": data.get("edge_type", 2),
-                    "label": edge_str,
-                    "predicted_label": data.get("predicted_label", 2),
-                    "domain_label": data.get("domain_label", "")
-                }
-            })
+            payload = {
+                "id": f"edge_{u}_{v}_{key}", 
+                "source": str(u),
+                "target": str(v),
+                "edge_type": 2,
+                "label": data.get("label") or data.get("code") or "edge"
+            }
+            
+            safe_data = {k: val for k, val in data.items() if k not in ("id", "key")}
+            payload.update(safe_data)
+            
+            elements.append({"data": payload})
             
         return {"elements": elements}

@@ -12,29 +12,24 @@ def convert_multidigraph_to_digraph(
     new_G = nx.DiGraph()
 
     errors = []
-    # Iterate through the nodes to copy their attributes
     for node, attrs in G.nodes(data=True):
         if "label" not in attrs:
             errors.append(f"Node {node} is missing attribute(s): {str(attrs)}")
         else:
-            new_G.add_node(node, label=attrs["label"], node_type=attrs["node_type"])
+            new_G.add_node(node, **attrs)
 
     if len(errors) > 0:
         raise AttributeError(", ".join(errors))
 
-    # Track processed edges to avoid duplication
     processed_edges = set()
 
-    # Iterate through the edges in the original graph
     for u, v, data in G.edges(data=True):
         edge_pair = (u, v)
 
         if G.number_of_edges(u, v) > 1 and edge_pair not in processed_edges:
             logger.debug("Processing multiple edges between %s and %s", str(u), str(v))
-            # Process all edges between u and v
             edges = list(G.get_edge_data(u, v).items())
 
-            # Determine the node type for intermediate nodes
             u_node_type = new_G.nodes[u].get("node_type")
             v_node_type = new_G.nodes[v].get("node_type")
             intermediate_node_type = (
@@ -44,39 +39,32 @@ def convert_multidigraph_to_digraph(
                 else node_types["INTERMEDIATE"]
             )
 
-            # Chain the edges through intermediate nodes
             current_node = u
             for i, (_, edge_data) in enumerate(edges):
                 if i < len(edges) - 1:
-                    # Create intermediate node
                     intermediate_node = f"{v}_intermediate_{i + 1}"
+                    inherited_cell_id = edge_data.get("cell_id", "unknown_cell")
+                    
                     new_G.add_node(
                         intermediate_node,
                         label=intermediate_node,
                         node_type=intermediate_node_type,
+                        cell_id=inherited_cell_id
                     )
                     target_node = intermediate_node
                 else:
-                    # The last edge connects to the original destination
                     target_node = v
 
-                # Add the edge with its data
-                edge_attrs = {
-                    "code": edge_data["code"],
-                    "edge_type": edge_data["edge_type"],
-                }
-                if "predicted_label" in edge_data:
-                    edge_attrs["predicted_label"] = edge_data["predicted_label"]
+                edge_attrs = {k: val for k, val in edge_data.items() if k != "key"}
 
                 new_G.add_edge(current_node, target_node, **edge_attrs)
                 current_node = target_node
 
-            # Mark this pair as processed
             processed_edges.add(edge_pair)
 
         elif edge_pair not in processed_edges:
-            # If there's only one edge, copy it directly
-            new_G.add_edge(u, v, **data)
+            edge_attrs = {k: val for k, val in data.items() if k != "key"}
+            new_G.add_edge(u, v, **edge_attrs)
             processed_edges.add(edge_pair)
 
     return new_G
