@@ -25,6 +25,8 @@ from ApexDAG.sca.graph_utils import (
     load_graph,
 )
 from ApexDAG.sca.py_util import get_operator_description, flatten_list
+from ApexDAG.sca.inliner import CallInliner
+
 
 __all__ = [
     "ASTGraph",
@@ -45,5 +47,6 @@ __all__ = [
     "DOMAIN_NODE_TYPES",
     "REVERSE_DOMAIN_EDGE_TYPES",
     "AST_NODE_TYPES",
-    "AST_EDGE_TYPES"
+    "AST_EDGE_TYPES",
+    "CallInliner"
 ]

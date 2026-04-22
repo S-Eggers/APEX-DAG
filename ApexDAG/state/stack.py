@@ -1,3 +1,4 @@
+from contextlib import contextmanager
 from typing import Optional
 import networkx as nx
 
@@ -45,6 +46,19 @@ class Stack:
         # print(f"Created new state: {context} with parent {parent_context}")
         self._current_state = context
 
+    @contextmanager
+    def scope(self, context: str, parent_context: Optional[str] = None):
+        """
+        Guarantees safe state transitions. Automatically builds the child state, 
+        yields it to the AST visitor, and securely restores the parent context on exit, 
+        even if an exception occurs during traversal.
+        """
+        self.create_child_state(context, parent_context)
+        try:
+            yield self.get_current_state()
+        finally:
+            self.restore_state(parent_context)
+
     def add_class_instance(self, instance: str, class_name: str):
         self.instances[instance] = class_name
         
@@ -61,14 +75,13 @@ class Stack:
 
         self.restore_state(parent_context)
 
-    def merge_states(self, base_context: str, args: list[tuple]) -> None:
+    def merge_states(self, base_context: str, args: list[tuple], cell_id: str = "unknown_cell") -> None:
         if base_context not in self._state:
             raise ValueError(f"No state {base_context} to merge")
 
         base_state = self._state[base_context]
-        base_state.merge(*args)
+        base_state.merge(args, cell_id=cell_id)
         
-
         self._current_state = base_context
         
     def merge_class_method_state(
@@ -157,16 +170,20 @@ class Stack:
             
             new_variable_versions[base_var_name] = mapped_versions
         
-        # Now merge variable versions following the original merge logic
         for var_name, versions in new_variable_versions.items():
             if var_name in base_state.variable_versions:
-                # Variable exists in base, connect last version to first new version
                 last_var = base_state.variable_versions[var_name][-1]
                 new_var = versions[0]
-                base_state.add_edge(last_var, new_var, method_name, edge_type)
                 
+                base_state.add_edge(
+                    source=last_var, 
+                    target=new_var, 
+                    label=method_name, 
+                    edge_type=edge_type,
+                    raw_code=method_name,
+                    cell_id=cell_id
+                )
             else:
-                # New variable, just add it
                 base_state.variable_versions[var_name] = versions
         
         # Compose the renamed graph into base state

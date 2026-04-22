@@ -18,6 +18,7 @@ from ApexDAG.sca import (
     get_subgraph,
     save_graph,
     load_graph,
+    CallInliner
 )
 
 
@@ -269,30 +270,25 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 return node
 
             self._state_stack.functions[parent_name]["context"] = context_name
-            self._state_stack.functions[parent_name]["args"] = self._process_arguments(
-                node.args
-            )
+            self._state_stack.functions[parent_name]["args"] = self._process_arguments(node.args)
             self._state_stack.functions[parent_name]["is_recursive"] = False
             parent_context = self._current_state.context
-            self._state_stack.create_child_state(context_name, parent_context)
+            
+            with self._state_stack.scope(context_name, parent_context) as scoped_state:
+                self._current_state = scoped_state
+
+                for arg in self._state_stack.functions[parent_name]["args"]["args"]:
+                    argument_node = f"{arg}_{node.lineno}"
+                    self._add_node(argument_node, NODE_TYPES["VARIABLE"])
+                    self._current_state.variable_versions[arg] = [argument_node]
+
+                self.visit(node.body)
+                
             self._current_state = self._state_stack.get_current_state()
-
-            for arg in self._state_stack.functions[parent_name]["args"]["args"]:
-                argument_node = f"{arg}_{node.lineno}"
-                self._add_node(argument_node, NODE_TYPES["VARIABLE"])
-                self._current_state.variable_versions[arg] = [argument_node]
-
-            self.visit(node.body)
-            self._state_stack.restore_state(parent_context)
-            self._current_state = self._state_stack.get_current_state()
-
-            # self._add_node(context_name, NODE_TYPES["INTERMEDIATE"])
 
         else:
             code = ast.get_source_segment(self.code, node)
-            message = (
-                f"Ignoring lambda function {code} as it is not assigned to a variable"
-            )
+            message = f"Ignoring lambda function {code} as it is not assigned to a variable"
             self._logger.debug(message)
             self._logger.debug(ast.dump(node))
             super().generic_visit(node)
@@ -315,28 +311,24 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             "return_nodes": [],
             "parent_class": node.parent.name if isinstance(node.parent, ast.ClassDef) else None,
         }
-        self._state_stack.functions[function_name]["args"] = self._process_arguments(
-            node.args
-        )
+        self._state_stack.functions[function_name]["args"] = self._process_arguments(node.args)
         self._add_node(context_name, NODE_TYPES["FUNCTION"])
-        # print(self._current_state.get_graph().nodes)
 
         parent_context = self._current_state.context
-        self._state_stack.create_child_state(context_name, parent_context)
+        
+        with self._state_stack.scope(context_name, parent_context) as scoped_state:
+            self._current_state = scoped_state
+            
+            for arg in self._state_stack.functions[function_name]["args"]["args"]:
+                argument_node = f"{arg}_{node.lineno}"
+                self._add_node(argument_node, NODE_TYPES["VARIABLE"])
+                self._current_state.variable_versions[arg] = [argument_node]
+
+            for stmt in node.body:
+                stmt.parent = node
+                self.visit(stmt)
+
         self._current_state = self._state_stack.get_current_state()
-
-        for arg in self._state_stack.functions[function_name]["args"]["args"]:
-            argument_node = f"{arg}_{node.lineno}"
-            self._add_node(argument_node, NODE_TYPES["VARIABLE"])
-            self._current_state.variable_versions[arg] = [argument_node]
-
-        for stmt in node.body:
-            stmt.parent = node
-            self.visit(stmt)
-
-        self._state_stack.restore_state(parent_context)
-        self._current_state = self._state_stack.get_current_state()
-
         return node
 
     def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AsyncFunctionDef:
@@ -610,23 +602,30 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def visit_Constant(self, node: ast.Constant) -> ast.Constant:
         if self._current_state.current_variable:
             literal_val = str(node.value)
+            
+            truncated_literal = literal_val
+            if len(truncated_literal) > 50:
+                truncated_literal = truncated_literal[:47] + "..."
 
-            if len(literal_val) > 50:
-                literal_val = literal_val[:47] + "..."
-
-            literal_val = self._tokenize_literal(literal_val)
-            literal_node_name = f"literal_{node.lineno}_{node.col_offset}"
+            tokenized_label = self._tokenize_literal(truncated_literal)
+            
+            cell_context = getattr(self, "current_cell_id", "unknown")
+            short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+            
+            literal_node_name = f"literal_{short_cell}_{node.lineno}_{node.col_offset}"
             
             self._add_node(literal_node_name, NODE_TYPES["LITERAL"], code=literal_val)
+            
             self._add_edge(
-                literal_node_name,
-                self._current_state.current_variable,
-                literal_val,
-                EDGE_TYPES["INPUT"],
-                node.lineno,
-                node.col_offset,
-                node.end_lineno,
-                node.end_col_offset,
+                source=literal_node_name,
+                target=self._current_state.current_variable,
+                label=tokenized_label,
+                edge_type=EDGE_TYPES["INPUT"],
+                raw_code=str(node.value),
+                lineno=node.lineno,
+                col_offset=node.col_offset,
+                end_lineno=node.end_lineno,
+                end_col_offset=node.end_col_offset,
             )
         return node
 
@@ -650,31 +649,22 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def visit_If(self, node: ast.If) -> ast.If:
         if_branch = True
-
         is_elif = (
             hasattr(node, "parent")
             and isinstance(node.parent, ast.If)
             and node.parent.orelse
             and node.parent.orelse[0] == node
         )
-
-        if is_elif:
-            parent_context = node.parent_context
-        else:
-            parent_context = self._current_state.context
-
+        parent_context = node.parent_context if is_elif else self._current_state.context
         node.parent_context = parent_context
 
         if is_elif:
-            # we are actually in an else if statement
-            if_context = f"else_if_{node.lineno}"
+            cell_context = getattr(self, "current_cell_id", "unknown_cell")
+            if_context = f"else_if_{cell_context}_{node.lineno}"
             branch_state = self._visit_if_body(node.body, if_context, parent_context, node)
-            self._state_stack.branches.append(
-                (branch_state, "else if", EDGE_TYPES["BRANCH"])
-            )
+            self._state_stack.branches.append((branch_state, "else if", EDGE_TYPES["BRANCH"]))
             if_branch = False
             previous_target = None
-        # we are not visiting an elif statement (if or else body)
         else:
             node_name = self._get_names(node)[0]
             var_version = self._get_versioned_name(node_name, node.lineno)
@@ -683,35 +673,24 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
             if_context = f"{var_version}_if"
             branch_state = self._visit_if_body(node.body, if_context, parent_context, node)
-            self._state_stack.branches.append(
-                (branch_state, "if", EDGE_TYPES["BRANCH"])
-            )
+            self._state_stack.branches.append((branch_state, "if", EDGE_TYPES["BRANCH"]))
 
-        self._state_stack.restore_state(parent_context)
         self._current_state = self._state_stack.get_current_state()
 
-        # visit elif statements
         if node.orelse and len(node.orelse) == 1 and isinstance(node.orelse[0], ast.If):
             node.orelse[0].parent = node
-            node.orelse[0].parent_context = node.parent_context  # Pass down context
+            node.orelse[0].parent_context = node.parent_context
             self.visit(node.orelse[0])
-        # visit else statement
         elif len(node.orelse) > 0:
-            else_context = f"else_{node.lineno}"
-            branch_state = self._visit_if_body(
-                node.orelse, else_context, node.parent_context, node
-            )
-            self._state_stack.branches.append(
-                (branch_state, "else", EDGE_TYPES["BRANCH"])
-            )
-            self._state_stack.restore_state(node.parent_context)
+            cell_context = getattr(self, "current_cell_id", "unknown_cell")
+            else_context = f"else_{cell_context}_{node.lineno}"
+            branch_state = self._visit_if_body(node.orelse, else_context, node.parent_context, node)
+            self._state_stack.branches.append((branch_state, "else", EDGE_TYPES["BRANCH"]))
             self._current_state = self._state_stack.get_current_state()
 
-        # merge state
         if if_branch:
-            self._state_stack.merge_states(
-                node.parent_context, self._state_stack.branches
-            )
+            cell_context = getattr(self, "current_cell_id", "unknown_cell")
+            self._state_stack.merge_states(node.parent_context, self._state_stack.branches, cell_id=cell_context)
             self._current_state = self._state_stack.get_current_state()
             self._state_stack.branches = []
             self._current_state.current_target = previous_target
@@ -721,80 +700,92 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def visit_While(self, node: ast.While) -> ast.While:
         node_name = self._get_names(node)[0]
         var_version = self._get_versioned_name(node_name, node.lineno)
-
         parent_context = self._current_state.context
         while_context = f"{var_version}_while"
-        self._state_stack.create_child_state(while_context, parent_context)
+        
+        with self._state_stack.scope(while_context, parent_context) as scoped_state:
+            self._current_state = scoped_state
+            for stmt in node.body:
+                stmt.parent = node
+                self.visit(stmt)
+            contexts = [(self._current_state, "start_loop", EDGE_TYPES["LOOP"])]
+            
         self._current_state = self._state_stack.get_current_state()
-        for stmt in node.body:
-            stmt.parent = node
-            self.visit(stmt)
-        contexts = [(self._current_state, "start_loop", EDGE_TYPES["LOOP"])]
 
         if node.orelse and len(node.orelse) > 0:
             else_context = f"{var_version}_else"
-            self._state_stack.create_child_state(else_context, parent_context)
+            with self._state_stack.scope(else_context, parent_context) as scoped_state:
+                self._current_state = scoped_state
+                for stmt in node.orelse:
+                    stmt.parent = node
+                    self.visit(stmt)
+                contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
+                
             self._current_state = self._state_stack.get_current_state()
-            for stmt in node.orelse:
-                stmt.parent = node
-                self.visit(stmt)
-            contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
 
-        self._state_stack.merge_states(parent_context, contexts)
+        cell_context = getattr(self, "current_cell_id", "unknown_cell")
+        self._state_stack.merge_states(parent_context, contexts, cell_id=cell_context)
         self._current_state = self._state_stack.get_current_state()
         return node
 
     def visit_For(self, node: ast.For) -> ast.For:
         temp_iterable_node = self._handle_iterable(node.iter)
-
         raw_targets = self._get_names(node.target)
         all_targets = self._get_target_components(raw_targets) if raw_targets else []
 
         parent_context = self._current_state.context
-        for_context = f"for_loop_{node.lineno}"
-        self._state_stack.create_child_state(for_context, parent_context)
-        self._current_state = self._state_stack.get_current_state()
+        cell_context = getattr(self, "current_cell_id", "unknown_cell")
+        for_context = f"for_loop_{cell_context}_{node.lineno}"
+        
+        with self._state_stack.scope(for_context, parent_context) as scoped_state:
+            self._current_state = scoped_state
 
-        for components in all_targets:
-            base_name = components[0]
-            target_version = self._get_versioned_name(base_name, node.lineno)
-            attribute_path = "." + ".".join(components[1:])
-            edge_label = (
-                f"iterate into {attribute_path}" if len(components) > 1 else "iterate"
-            )
+            for components in all_targets:
+                base_name = components[0]
+                target_version = self._get_versioned_name(base_name, node.lineno)
+                attribute_path = "." + ".".join(components[1:])
+                edge_label = f"iterate into {attribute_path}" if len(components) > 1 else "iterate"
 
-            self._add_node(target_version, NODE_TYPES["VARIABLE"])
-            self._current_state.variable_versions[base_name] = [target_version]
-            self._add_edge(
-                temp_iterable_node,
-                target_version,
-                edge_label,
-                EDGE_TYPES["LOOP"],
-                node.lineno,
-                node.col_offset,
-                node.end_lineno,
-                node.end_col_offset,
-            )
+                self._add_node(target_version, NODE_TYPES["VARIABLE"])
+                self._current_state.variable_versions[base_name] = [target_version]
+                self._add_edge(
+                    temp_iterable_node,
+                    target_version,
+                    edge_label,
+                    EDGE_TYPES["LOOP"],
+                    lineno=node.lineno,
+                    col_offset=node.col_offset,
+                    end_lineno=node.end_lineno,
+                    end_col_offset=node.end_col_offset,
+                )
 
-        for stmt in node.body:
-            stmt.parent = node
-            self.visit(stmt)
-
-        contexts = [(self._current_state, "start_loop", EDGE_TYPES["LOOP"])]
-        if node.orelse and len(node.orelse) > 0:
-            else_context = f"for_else_{node.lineno}"
-            self._state_stack.create_child_state(else_context, parent_context)
-            self._current_state = self._state_stack.get_current_state()
-            for stmt in node.orelse:
+            for stmt in node.body:
                 stmt.parent = node
                 self.visit(stmt)
-            contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
+
+            contexts = [(self._current_state, "start_loop", EDGE_TYPES["LOOP"])]
+            
+        self._current_state = self._state_stack.get_current_state()
+
+        if node.orelse and len(node.orelse) > 0:
+            cell_context = getattr(self, "current_cell_id", "unknown_cell")
+            else_context = f"for_else_{cell_context}_{node.lineno}"
+            with self._state_stack.scope(else_context, parent_context) as scoped_state:
+                self._current_state = scoped_state
+                for stmt in node.orelse:
+                    stmt.parent = node
+                    self.visit(stmt)
+                contexts.append((self._current_state, "else", EDGE_TYPES["BRANCH"]))
+            
+            self._current_state = self._state_stack.get_current_state()
 
         for components in all_targets:
             base_name = components[0]
             if base_name in self._current_state.variable_versions:
                 del self._current_state.variable_versions[base_name]
-        self._state_stack.merge_states(parent_context, contexts)
+
+        cell_context = getattr(self, "current_cell_id", "unknown_cell")
+        self._state_stack.merge_states(parent_context, contexts, cell_id=cell_context)
         self._current_state = self._state_stack.get_current_state()
         return node
 
@@ -802,113 +793,129 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         if hasattr(node, "_visited"):
             return node
         node._visited = True
+        
+        # Global uniqueness prefix
+        cell_context = getattr(self, "current_cell_id", "unknown")
+        short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+
         final_list_variable = self._current_state.current_variable
         if not final_list_variable:
-            final_list_variable = f"list_comp_result_{node.lineno}"
+            # Inject short_cell
+            final_list_variable = f"list_comp_result_{short_cell}_{node.lineno}"
             self._add_node(final_list_variable, NODE_TYPES["VARIABLE"])
 
         parent_context = self._current_state.context
         if self._state_stack.nested:
-            list_comp_context = f"{parent_context}_nested_list_comp_{node.lineno}"
+            # Inject short_cell
+            list_comp_context = f"{parent_context}_nested_list_comp_{short_cell}_{node.lineno}"
         else:
-            list_comp_context = f"list_comp_{node.lineno}"
-        self._state_stack.create_child_state(list_comp_context, parent_context)
-        self._current_state = self._state_stack.get_current_state()
-
-        start_loop_node = f"{final_list_variable}_start_loop"
-        # print(start_loop_node) <- beam_search_task_17_start_loop
-        self._add_node(start_loop_node, NODE_TYPES["LOOP"])
-        initial_list_node = f"list_comp_start_{node.lineno}"
-        self._add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
-        self._current_state.set_current_variable(start_loop_node)
-        self._add_edge(
-            start_loop_node,
-            initial_list_node,
-            "start_loop",
-            EDGE_TYPES["LOOP"],
-            node.lineno,
-            node.col_offset,
-            node.end_lineno,
-            node.end_col_offset,
-        )
-
-        current_list_version = initial_list_node
-        self._add_node(final_list_variable, NODE_TYPES["VARIABLE"])
-
-        for generator in node.generators:
-            temp_iterable_node = self._handle_iterable(generator.iter)
-            raw_targets = self._get_names(generator.target)
-            all_targets = self._get_target_components(raw_targets) if raw_targets else []
+            # Inject short_cell
+            list_comp_context = f"list_comp_{short_cell}_{node.lineno}"
             
-            for components in all_targets:
-                base_name = components[0]
-                target_version = self._get_versioned_name(
-                    base_name, generator.target.lineno
-                )
-                self._add_node(target_version, NODE_TYPES["VARIABLE"])
-                self._current_state.variable_versions[base_name] = [target_version]
-                # Link iterable to loop var
-                self._add_edge(
-                    temp_iterable_node,
-                    target_version,
-                    "iterate",
-                    EDGE_TYPES["LOOP"],
-                    generator.target.lineno,
-                    generator.target.col_offset,
-                    generator.target.end_lineno,
-                    generator.target.end_col_offset,
-                )
-                self._add_edge(
-                    target_version,
-                    start_loop_node,
-                    "iterate",
-                    EDGE_TYPES["LOOP"],
-                    generator.target.lineno,
-                    generator.target.col_offset,
-                    generator.target.end_lineno,
-                    generator.target.end_col_offset,
-                )
+        with self._state_stack.scope(list_comp_context, parent_context) as scoped_state:
+            self._current_state = scoped_state
 
-            for if_cond in generator.ifs:
-                self._current_state.set_current_variable(current_list_version)
-                self.visit(if_cond)
+            start_loop_node = f"{final_list_variable}_start_loop"
+            self._add_node(start_loop_node, NODE_TYPES["LOOP"])
             
-            # self._current_state.set_current_variable(intermediate_list_node)
+            # Inject short_cell
+            initial_list_node = f"list_comp_start_{short_cell}_{node.lineno}"
+            self._add_node(initial_list_node, NODE_TYPES["INTERMEDIATE"])
             
-            if isinstance(node.elt, ast.ListComp):
-                self._state_stack.nested = True
-                self.visit(node.elt)
-                self._state_stack.nested = False
-            
-            self._current_state.set_current_variable(None)
-            # current_list_version = intermediate_list_node
-
-
-        self._add_edge(
-            current_list_version,
-            final_list_variable,
-            "end_loop", 
-            EDGE_TYPES["LOOP"],
-            node.lineno,
-            node.col_offset,
-            node.end_lineno,
-            node.end_col_offset,
-        )
-        self._current_state.set_current_variable(None)
-
-        for generator in node.generators:
-            raw_targets = self._get_names(generator.target)
-            all_targets = (
-                self._get_target_components(raw_targets) if raw_targets else []
+            self._current_state.set_current_variable(start_loop_node)
+            self._add_edge(
+                source=start_loop_node,
+                target=initial_list_node,
+                label="start_loop",
+                edge_type=EDGE_TYPES["LOOP"],
+                raw_code="start_loop",
+                lineno=node.lineno,
+                col_offset=node.col_offset,
+                end_lineno=node.end_lineno,
+                end_col_offset=node.end_col_offset,
             )
-            for components in all_targets:
-                base_name = components[0]
-                if base_name in self._current_state.variable_versions:
-                    del self._current_state.variable_versions[base_name]
 
+            current_list_version = initial_list_node
+            self._add_node(final_list_variable, NODE_TYPES["VARIABLE"])
+
+            for generator in node.generators:
+                temp_iterable_node = self._handle_iterable(generator.iter)
+                raw_targets = self._get_names(generator.target)
+                all_targets = self._get_target_components(raw_targets) if raw_targets else []
+                
+                for components in all_targets:
+                    base_name = components[0]
+                    target_version = self._get_versioned_name(
+                        base_name, generator.target.lineno
+                    )
+                    self._add_node(target_version, NODE_TYPES["VARIABLE"])
+                    self._current_state.variable_versions[base_name] = [target_version]
+                    
+                    self._add_edge(
+                        source=temp_iterable_node,
+                        target=target_version,
+                        label="iterate",
+                        edge_type=EDGE_TYPES["LOOP"],
+                        raw_code="iterate",
+                        lineno=generator.target.lineno,
+                        col_offset=generator.target.col_offset,
+                        end_lineno=generator.target.end_lineno,
+                        end_col_offset=generator.target.end_col_offset,
+                    )
+                    self._add_edge(
+                        source=target_version,
+                        target=start_loop_node,
+                        label="iterate",
+                        edge_type=EDGE_TYPES["LOOP"],
+                        raw_code="iterate",
+                        lineno=generator.target.lineno,
+                        col_offset=generator.target.col_offset,
+                        end_lineno=generator.target.end_lineno,
+                        end_col_offset=generator.target.end_col_offset,
+                    )
+
+                for if_cond in generator.ifs:
+                    self._current_state.set_current_variable(current_list_version)
+                    self.visit(if_cond)
+                
+                if isinstance(node.elt, ast.ListComp):
+                    self._state_stack.nested = True
+                    self.visit(node.elt)
+                    self._state_stack.nested = False
+                
+                self._current_state.set_current_variable(None)
+
+            self._add_edge(
+                source=current_list_version,
+                target=final_list_variable,
+                label="end_loop", 
+                edge_type=EDGE_TYPES["LOOP"],
+                raw_code="end_loop",
+                lineno=node.lineno,
+                col_offset=node.col_offset,
+                end_lineno=node.end_lineno,
+                end_col_offset=node.end_col_offset,
+            )
+            self._current_state.set_current_variable(None)
+
+            for generator in node.generators:
+                raw_targets = self._get_names(generator.target)
+                all_targets = (
+                    self._get_target_components(raw_targets) if raw_targets else []
+                )
+                for components in all_targets:
+                    base_name = components[0]
+                    if base_name in self._current_state.variable_versions:
+                        del self._current_state.variable_versions[base_name]
+
+        self._current_state = self._state_stack.get_current_state()
+        
+        # Merge back using full cell ID
+        cell_context_full = getattr(self, "current_cell_id", "unknown_cell")
         self._state_stack.merge_states(
             parent_context,
-            [(self._current_state, "list_comp", EDGE_TYPES["CALLER"])],
+            [(self._state_stack._state[list_comp_context], "list_comp", EDGE_TYPES["CALLER"])],
+            cell_id=cell_context_full
         )
         self._current_state = self._state_stack.get_current_state()
         del self._state_stack._state[list_comp_context]
@@ -1132,169 +1139,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
     def _process_class_call(
         self, node: ast.Call, caller_object_name: str, tokens: str = None, is_instance: bool = False
     ) -> None:
-        replace_data_flow = self._replace_dataflow
-        if replace_data_flow:
-            # Extract class name and method name
-            parts = tokens.split(".")
-            if is_instance:
-                class_name = self._state_stack.instances[caller_object_name]
-                method_name = parts[-1]
-            else:
-                class_name = parts[0] if parts else caller_object_name
-                method_name = parts[-1] if len(parts) > 1 else "__init__"
-            
-            self._state_stack.add_class_instance(self._current_state.current_target, class_name)
-            
-            # Check if method exists in the class definition
-            if class_name in self._state_stack.classes:
-                full_method_name = f"{class_name}.{method_name}"
-                
-                if full_method_name in self._state_stack.functions:
-                    # Similar to function inlining:
-                    should_inline = (
-                        not self._state_stack.functions[full_method_name]["is_recursive"]
-                        and replace_data_flow
-                    )
-                    
-                    if should_inline:
-                        caller_return_variable = self._current_state.current_variable
-                        # get newset version of that 
-                        current_context = self._current_state.context
-                        method_context = self._state_stack.functions[full_method_name]["context"]
-                        
-                        # Get method arguments (skip 'self')
-                        f_args = self._state_stack.functions[full_method_name]["args"]["args"][1:]
-                        param_to_caller_version = {}
-                        
-                        # Map caller arguments to method parameters
-                        for i, arg_node in enumerate(node.args):
-                            if i < len(f_args):
-                                param_name = f_args[i]
-                                caller_base_name = self._get_base_name(arg_node)
-                                if caller_base_name:
-                                    caller_version = self._get_last_variable_version(caller_base_name)
-                                    if caller_version:
-                                        param_to_caller_version[param_name] = caller_version
-                        
-                        # Switch to method context
-                        self._state_stack.restore_state(method_context)
-                        self._current_state = self._state_stack.get_current_state()
-                        
-                        # Connect caller args to method params
-                        if is_instance:
-                            instance_version = self._get_last_variable_version(caller_object_name)
-                        else:
-                            instance_version = caller_return_variable
-                        
-                        if not is_instance:
-                            # Create instance variable for class method calls
-                            class_node = self._state_stack.classes[caller_object_name][0]
-                            self._add_node(class_node, NODE_TYPES["CLASS"])
-                            tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
-                            tokens = self._tokenize_method(tokens)
-                            self._add_edge(
-                                class_node,
-                                caller_return_variable,
-                                tokens,
-                                EDGE_TYPES["CALLER"],
-                                node.lineno,
-                                node.col_offset,
-                                node.end_lineno,
-                                node.end_col_offset,
-                            )
-                                            
-                        for param_name, caller_node in param_to_caller_version.items():
-                            if param_name in self._current_state.variable_versions:
-                                func_param_node = self._current_state.variable_versions[param_name][0]
-                                self._add_edge(
-                                    caller_node,
-                                    func_param_node,
-                                    "arg_pass",
-                                    EDGE_TYPES["INPUT"],
-                                    node.lineno,
-                                    node.col_offset,
-                                    node.end_lineno,
-                                    node.end_col_offset,
-                                )
-                        
-                        # Handle 'self' parameter - connect to the instance
-                        if instance_version and 'self' in self._current_state.variable_versions:
-                            self_param_node = self._current_state.variable_versions['self'][0]
-                            last_self_param_node = self._get_last_variable_version("self")
-                            self._add_edge(
-                                instance_version,
-                                self_param_node,
-                                "self_binding",
-                                EDGE_TYPES["OMITTED"],
-                                node.lineno,
-                                node.col_offset,
-                                node.end_lineno,
-                                node.end_col_offset,
-                            )
-                            
-                            self._add_edge(
-                                last_self_param_node,
-                                instance_version,
-                                "self_binding",
-                                EDGE_TYPES["OMITTED"],
-                                node.lineno,
-                                node.col_offset,
-                                node.end_lineno,
-                                node.end_col_offset,
-                            )
-                        
-                        # Connect return values
-                        if caller_return_variable:
-                            return_nodes = self._state_stack.functions[full_method_name].get("return_nodes", [])
-                            for return_node in return_nodes:
-                                self._add_edge(
-                                    return_node,
-                                    caller_return_variable,
-                                    "return",
-                                    EDGE_TYPES["OMITTED"],
-                                    node.lineno,
-                                    node.col_offset,
-                                    node.end_lineno,
-                                    node.end_col_offset,
-                                )
-                        
-                        # Merge method context back into caller context
-                        self._state_stack.merge_class_method_state(
-                            current_context,
-                            self._current_state,
-                            self._tokenize_method(tokens),
-                            EDGE_TYPES["CLASS_CALL"],
-                            instance_name=instance_version,
-                            base_name=self._get_base_name(instance_version)
-                        )
-                        self._current_state = self._state_stack.get_current_state()
-                        
-                        # 
-                        
-                        # TOIDO: figure out how to handle scope
-                        return
-        
-        # Fall back to original black-box behavior
-        class_node = self._state_stack.classes[caller_object_name][0]
-        self._add_node(class_node, NODE_TYPES["CLASS"])
-        tokens = tokens if tokens else ast.get_source_segment(self.code, node.func)
-        tokens = self._tokenize_method(tokens)
-        self._add_edge(
-            class_node,
-            self._current_state.current_variable,
-            tokens,
-            EDGE_TYPES["CALLER"],
-            node.lineno,
-            node.col_offset,
-            node.end_lineno,
-            node.end_col_offset,
-        )
-        
-        for arg in node.args:
-            if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                self._process_name_attr_sub_args(node, arg)
-        
-        self._current_state.set_last_variable(class_node)
+        inliner = CallInliner(self)
+        inliner.process_class(node, caller_object_name, tokens, is_instance)
 
     def _process_builtin_call(self, node: ast.Call, function_name: str) -> None:
         if not self._current_state.current_variable:
@@ -1333,126 +1179,8 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         )
 
     def _process_function_call(self, node: ast.Call, tokens: str = None) -> None:
-        replace_data_flow = self._replace_dataflow
-        function_name = tokens
-
-        should_inline = (
-            not self._state_stack.functions[function_name]["is_recursive"]
-            and replace_data_flow
-        )
-
-        if should_inline:
-            caller_return_variable = self._current_state.current_variable
-            current_context = self._current_state.context
-            function_context = self._state_stack.functions[function_name]["context"]
-            function_name_tokens = self._tokenize_method(function_name)
-            f_args = self._state_stack.functions[function_name]["args"]["args"]
-            param_to_caller_version = {}
-
-            for i, arg_node in enumerate(node.args):
-                if i < len(f_args):
-                    param_name = f_args[i]
-                    caller_base_name = self._get_base_name(arg_node)
-                    if caller_base_name:
-                        caller_version = self._get_last_variable_version(
-                            caller_base_name
-                        )
-                        if caller_version:
-                            param_to_caller_version[param_name] = caller_version
-
-            for kw in node.keywords:
-                param_name = kw.arg
-                caller_base_name = self._get_base_name(kw.value)
-                if caller_base_name:
-                    caller_version = self._get_last_variable_version(caller_base_name)
-                    if caller_version:
-                        param_to_caller_version[param_name] = caller_version
-
-            self._state_stack.restore_state(function_context)
-            self._current_state = self._state_stack.get_current_state()
-
-            for param_name, caller_node in param_to_caller_version.items():
-                if param_name in self._current_state.variable_versions:
-                    func_param_node = self._current_state.variable_versions[
-                        param_name
-                    ][0]
-                    self._add_edge(
-                        caller_node,
-                        func_param_node,
-                        "arg_pass",
-                        EDGE_TYPES["FUNCTION_CALL"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
-
-            if caller_return_variable:
-                return_nodes = self._state_stack.functions[function_name].get(
-                    "return_nodes", []
-                )
-                for return_node in return_nodes:
-                    self._add_edge(
-                        return_node,
-                        caller_return_variable,
-                        "return",
-                        EDGE_TYPES["FUNCTION_CALL"],
-                        node.lineno,
-                        node.col_offset,
-                        node.end_lineno,
-                        node.end_col_offset,
-                    )
-            
-            self._state_stack.merge_states(
-                current_context,
-                [
-                    (
-                        self._current_state,
-                        function_name_tokens,
-                        EDGE_TYPES["FUNCTION_CALL"],
-                    )
-                ],
-            )
-            self._current_state = self._state_stack.get_current_state()
-        else:
-            function_def_node = self._state_stack.functions[function_name]["node"]
-
-            if self._current_state.current_variable:
-                self._add_edge(
-                    function_def_node,
-                    self._current_state.current_variable,
-                    self._tokenize_method(function_name),
-                    EDGE_TYPES[
-                        "FUNCTION_CALL"
-                    ],
-                    node.lineno,
-                    node.col_offset,
-                    node.end_lineno,
-                    node.end_col_offset,
-                )
-
-                for arg in node.args:
-                    if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                        arg_name = self._get_names(arg)
-                        # Handle nested names like a.b
-                        arg_name = flatten_list(arg_name) if arg_name else None
-                        arg_name = (
-                            arg_name[0] if isinstance(arg_name, list) else arg_name
-                        )
-
-                        if arg_name:
-                            arg_version = self._get_last_variable_version(arg_name)
-                            if arg_version:
-                                self._add_edge(
-                                    arg_version,
-                                    self._current_state.current_variable,
-                                    self._tokenize_method(str(arg_name)),
-                                    EDGE_TYPES["INPUT"],
-                                    node.lineno,
-                                    node.col_offset,
-                                    node.end_lineno,
-                                    node.end_col_offset,
-                                )
+        inliner = CallInliner(self)
+        inliner.process_function(node, tokens)
 
     def _process_library_attr(
         self, node: ast.Attribute, caller_object_name: str
@@ -1508,7 +1236,10 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return self._current_state.current_target
 
     def _get_versioned_name(self, var_name: str, lineno: int) -> str:
-        return f"{var_name}_{lineno}"
+        cell_context = getattr(self, "current_cell_id", "unknown")
+        short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+        
+        return f"{var_name}_{short_cell}_{lineno}"
 
     def _get_base_name(self, node: ast.AST):
         if isinstance(node, ast.Name):
@@ -1711,7 +1442,12 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         Creates a temporary node for the iterable, visits it to connect its data flow,
         and returns the name of the temporary iterable node.
         """
-        temp_iterable_node = f"iterable_{iterable_node.lineno}_{iterable_node.col_offset}"
+        # Global uniqueness prefix
+        cell_context = getattr(self, "current_cell_id", "unknown")
+        short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+        
+        # Inject short_cell
+        temp_iterable_node = f"iterable_{short_cell}_{iterable_node.lineno}_{iterable_node.col_offset}"
         self._add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
 
         original_variable = self._current_state.current_variable

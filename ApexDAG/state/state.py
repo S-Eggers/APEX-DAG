@@ -100,20 +100,28 @@ class State:
     def set_last_variable(self, value: str):
         self.last_variable = value
 
-    def merge(self, *args: tuple):
+    def merge(self, branches: list[tuple], cell_id: str = "unknown_cell") -> None:
         new_variable_versions = {
             key: value[:] for key, value in self.variable_versions.items()
         }
         branched_variables = {}
         looped_variables = {}
 
-        for state, var_edge, edge_type in args:
+        for state, var_edge, edge_type in branches:
             is_loop = edge_type == EDGE_TYPES["LOOP"]
             for key, value in state["variable_versions"].items():
                 if key in self.variable_versions:
                     last_var = self.variable_versions[key][-1]
                     new_var = value[0]
-                    self.add_edge(last_var, new_var, var_edge, edge_type)
+                    # ENFORCE CONTRACT: Pass explicit keywords
+                    self.add_edge(
+                        source=last_var, 
+                        target=new_var, 
+                        label=var_edge, 
+                        edge_type=edge_type,
+                        raw_code=var_edge, # Fallback source for control flows
+                        cell_id=cell_id
+                    )
                     new_variable_versions[key] += value
                 else:
                     new_variable_versions[key] = value
@@ -133,18 +141,33 @@ class State:
 
         for variable, loop in looped_variables.items():
             var_name = f"loop_{'_'.join(loop)}"
-            self.add_node(var_name, NODE_TYPES["LOOP"])
+            # ENFORCE CONTRACT: Cell ID on nodes
+            self.add_node(var_name, NODE_TYPES["LOOP"], cell_id=cell_id)
             new_variable_versions[variable].append(var_name)
-            self.add_edge(loop[1], var_name, "end_loop", EDGE_TYPES["LOOP"])
-            # self.add_edge(var_name, loop[0], "restart_loop", EDGE_TYPES["LOOP"])
+            # ENFORCE CONTRACT: Cell ID and raw_code on edges
+            self.add_edge(
+                source=loop[1], 
+                target=var_name, 
+                label="end_loop", 
+                edge_type=EDGE_TYPES["LOOP"],
+                raw_code="end_loop",
+                cell_id=cell_id
+            )
 
         for variable, branches in branched_variables.items():
             if len(branches) > 1:
                 var_name = f"branch_{'_'.join(branches)}"
-                self.add_node(var_name, NODE_TYPES["IF"])
+                self.add_node(var_name, NODE_TYPES["IF"], cell_id=cell_id)
                 new_variable_versions[variable].append(var_name)
                 for node in branches:
-                    self.add_edge(node, var_name, "end_if", EDGE_TYPES["BRANCH"])
+                    self.add_edge(
+                        source=node, 
+                        target=var_name, 
+                        label="end_if", 
+                        edge_type=EDGE_TYPES["BRANCH"],
+                        raw_code="end_if",
+                        cell_id=cell_id
+                    )
 
         self.variable_versions = new_variable_versions
 
