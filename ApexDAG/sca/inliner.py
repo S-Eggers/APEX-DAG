@@ -1,13 +1,13 @@
 import ast
 from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES
-from ApexDAG.sca import flatten_list 
-
+from ApexDAG.sca import flatten_list
+from ApexDAG.sca.ast_utils import get_names, tokenize_method
 
 class CallInliner:
     """
     Orchestrates function and class method inlining for the DataFlow graph.
     """
-    def __init__(self, visitor: "PythonDataFlowGraph"):
+    def __init__(self, visitor):
         self.v = visitor
         self.stack = visitor._state_stack
 
@@ -54,14 +54,11 @@ class CallInliner:
         current_context = self.v._current_state.context
         method_context = self.stack.functions[target_func]["context"]
         
-        # 1. Map Arguments
         param_to_caller = self._map_arguments(node, target_func, is_class_method=bool(class_name))
         
-        # 2. Switch Context
         self.stack.restore_state(method_context)
         self.v._current_state = self.stack.get_current_state()
         
-        # 3. Bind everything inside the method scope
         instance_version = None
         if class_name:
             instance_version = self._bind_instance(node, caller_obj, is_instance, caller_return_var, tokens)
@@ -70,13 +67,14 @@ class CallInliner:
         self._bind_parameters(node, param_to_caller)
         self._bind_returns(node, target_func, caller_return_var)
         
-        # 4. Merge back to parent
         cell_context = getattr(self.v, "current_cell_id", "unknown_cell")
+        tokenized_tokens = tokenize_method(tokens, self.stack.imported_names, self.stack.import_from_modules)
+
         if class_name:
             self.stack.merge_class_method_state(
                 current_context,
                 self.v._current_state,
-                self.v._tokenize_method(tokens),
+                tokenized_tokens,
                 EDGE_TYPES["CLASS_CALL"],
                 instance_name=instance_version,
                 base_name=self.v._get_base_name(instance_version),
@@ -85,7 +83,7 @@ class CallInliner:
         else:
             self.stack.merge_states(
                 current_context,
-                [(self.v._current_state, self.v._tokenize_method(tokens), EDGE_TYPES["FUNCTION_CALL"])],
+                [(self.v._current_state, tokenized_tokens, EDGE_TYPES["FUNCTION_CALL"])],
                 cell_id=cell_context
             )
             
@@ -94,7 +92,7 @@ class CallInliner:
     def _map_arguments(self, node: ast.Call, target_func: str, is_class_method: bool) -> dict:
         f_args = self.stack.functions[target_func]["args"]["args"]
         if is_class_method and f_args and f_args[0] == "self":
-            f_args = f_args[1:] # Skip 'self' for mapping caller args
+            f_args = f_args[1:]
             
         param_to_caller = {}
         for i, arg_node in enumerate(node.args):
@@ -102,7 +100,7 @@ class CallInliner:
                 param_name = f_args[i]
                 caller_base = self.v._get_base_name(arg_node)
                 if caller_base:
-                    caller_version = self.v._get_last_variable_version(caller_base)
+                    caller_version = self.stack.get_last_variable_version(caller_base)
                     if caller_version:
                         param_to_caller[param_name] = caller_version
 
@@ -110,7 +108,7 @@ class CallInliner:
             param_name = kw.arg
             caller_base = self.v._get_base_name(kw.value)
             if caller_base:
-                caller_version = self.v._get_last_variable_version(caller_base)
+                caller_version = self.stack.get_last_variable_version(caller_base)
                 if caller_version:
                     param_to_caller[param_name] = caller_version
                     
@@ -118,14 +116,13 @@ class CallInliner:
 
     def _bind_instance(self, node: ast.Call, caller_obj: str, is_instance: bool, caller_return_var: str, tokens: str):
         if is_instance:
-            return self.v._get_last_variable_version(caller_obj)
+            return self.stack.get_last_variable_version(caller_obj)
         
-        # Constructor
         class_node = self.stack.classes[caller_obj][0]
         self.v._add_node(class_node, NODE_TYPES["CLASS"])
         
         raw_code = ast.get_source_segment(self.v.current_cell_source, node.func) or tokens
-        label = self.v._tokenize_method(raw_code)
+        label = tokenize_method(raw_code, self.stack.imported_names, self.stack.import_from_modules)
         
         if caller_return_var:
             self.v._add_edge(
@@ -139,7 +136,7 @@ class CallInliner:
     def _bind_self(self, node: ast.Call, instance_version: str):
         if instance_version and 'self' in self.v._current_state.variable_versions:
             self_param_node = self.v._current_state.variable_versions['self'][0]
-            last_self_node = self.v._get_last_variable_version("self")
+            last_self_node = self.stack.get_last_variable_version("self")
             
             for src, tgt in [(instance_version, self_param_node), (last_self_node, instance_version)]:
                 self.v._add_edge(
@@ -178,7 +175,7 @@ class CallInliner:
         self.v._add_node(class_node, NODE_TYPES["CLASS"])
         
         raw_code = ast.get_source_segment(self.v.current_cell_source, node.func) or tokens
-        label = self.v._tokenize_method(raw_code)
+        label = tokenize_method(raw_code, self.stack.imported_names, self.stack.import_from_modules)
         
         if self.v._current_state.current_variable:
             self.v._add_edge(
@@ -190,32 +187,47 @@ class CallInliner:
         
         for arg in node.args:
             if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                self.v._process_name_attr_sub_args(node, arg)
+                arg_names = get_names(arg)
+                if not arg_names:
+                    continue
+                arg_name = flatten_list(arg_names)[0]
+
+                if arg_name:
+                    arg_version = self.stack.get_last_variable_version(arg_name)
+                    code_segment = tokenize_method(arg_name, self.stack.imported_names, self.stack.import_from_modules)
+                    self.v._add_edge(
+                        source=arg_version, target=self.v._current_state.current_variable,
+                        label=code_segment, edge_type=EDGE_TYPES["INPUT"], raw_code=str(arg_name),
+                        lineno=node.lineno, col_offset=node.col_offset,
+                        end_lineno=node.end_lineno, end_col_offset=node.end_col_offset
+                    )
         
         self.v._current_state.set_last_variable(class_node)
 
     def _execute_function_fallback(self, node: ast.Call, function_name: str):
         func_def_node = self.stack.functions[function_name]["node"]
         if self.v._current_state.current_variable:
+            label = tokenize_method(function_name, self.stack.imported_names, self.stack.import_from_modules)
             self.v._add_edge(
                 source=func_def_node, target=self.v._current_state.current_variable,
-                label=self.v._tokenize_method(function_name), edge_type=EDGE_TYPES["FUNCTION_CALL"],
+                label=label, edge_type=EDGE_TYPES["FUNCTION_CALL"],
                 raw_code=function_name,
                 lineno=node.lineno, col_offset=node.col_offset,
                 end_lineno=node.end_lineno, end_col_offset=node.end_col_offset
             )
             for arg in node.args:
                 if isinstance(arg, (ast.Name, ast.Attribute, ast.Subscript)):
-                    arg_names = self.v._get_names(arg)
+                    arg_names = get_names(arg)
                     flat_args = flatten_list(arg_names) if arg_names else None
                     arg_name = flat_args[0] if isinstance(flat_args, list) else flat_args
                     
                     if arg_name:
-                        arg_version = self.v._get_last_variable_version(arg_name)
+                        arg_version = self.stack.get_last_variable_version(arg_name)
                         if arg_version:
+                            arg_label = tokenize_method(str(arg_name), self.stack.imported_names, self.stack.import_from_modules)
                             self.v._add_edge(
                                 source=arg_version, target=self.v._current_state.current_variable,
-                                label=self.v._tokenize_method(str(arg_name)), edge_type=EDGE_TYPES["INPUT"],
+                                label=arg_label, edge_type=EDGE_TYPES["INPUT"],
                                 raw_code=str(arg_name),
                                 lineno=node.lineno, col_offset=node.col_offset,
                                 end_lineno=node.end_lineno, end_col_offset=node.end_col_offset

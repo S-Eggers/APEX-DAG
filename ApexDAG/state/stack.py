@@ -193,3 +193,52 @@ class Stack:
 
     def get_current_state(self) -> State:
         return self._state[self._current_state]
+
+    def get_last_variable_version(self, variable: str, max_depth: int = 99) -> Optional[str]:
+        current_state = self.get_current_state()
+        if variable in current_state.variable_versions:
+            return current_state.variable_versions.get(variable)[-1]
+
+        if current_state.parent_context and max_depth > 0:
+            active_context = current_state.context
+            self.restore_parent_state()
+            variable_version = self.get_last_variable_version(variable, max_depth=max_depth - 1)
+            self.restore_state(active_context)
+            return variable_version
+        return None
+
+    def import_accessible(self, name: str, max_depth: int = 99) -> bool:
+        if name in self.import_from_modules or name in self.imported_names:
+            return True
+        current_state = self.get_current_state()
+        if current_state.parent_context and max_depth > 0:
+            active_context = current_state.context
+            self.restore_parent_state()
+            reachable = self.import_accessible(name, max_depth=max_depth - 1)
+            self.restore_state(active_context)
+            return reachable
+        return False
+
+    def class_accessible(self, name: str, max_depth: int = 99) -> bool:
+        if name in self.classes:
+            return True
+        current_state = self.get_current_state()
+        if current_state.parent_context and max_depth > 0:
+            active_context = current_state.context
+            self.restore_parent_state()
+            reachable = self.class_accessible(name, max_depth=max_depth - 1)
+            self.restore_state(active_context)
+            return reachable
+        return False
+
+    def function_accessible(self, name: str, max_depth: int = 99) -> bool:
+        if name in self.functions:
+            return True
+        current_state = self.get_current_state()
+        if current_state.parent_context and max_depth > 0:
+            active_context = current_state.context
+            self.restore_parent_state()
+            reachable = self.function_accessible(name, max_depth=max_depth - 1)
+            self.restore_state(active_context)
+            return reachable
+        return False

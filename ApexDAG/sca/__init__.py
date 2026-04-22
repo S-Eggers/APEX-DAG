@@ -24,7 +24,7 @@ from ApexDAG.sca.graph_utils import (
     save_graph,
     load_graph,
 )
-from ApexDAG.sca.py_util import get_operator_description, flatten_list
+from ApexDAG.sca.ast_utils import get_operator_description, flatten_list
 from ApexDAG.sca.inliner import CallInliner
 
 
