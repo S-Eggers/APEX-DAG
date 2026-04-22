@@ -5,7 +5,7 @@ import callBackend from '../../utils/callBackend';
 import { useCytoscape } from '../../hooks/useCytoscape';
 
 import NodeDetailsPanel from './panels/NodeDetailsPanel';
-import EdgeAnnotationPanel from './panels/EdgeAnnotationPanel';
+import EdgeDetailsPanel from './panels/EdgeDetailsPanel';
 import GraphLegend from './panels/GraphLegend';
 
 export default function Graph({
@@ -38,10 +38,17 @@ export default function Graph({
       }
     },
     edgeData => {
+      if (!edgeData || typeof edgeData.data !== 'function') {
+        setSelectedEdge(null);
+        return;
+      }
+      const data = edgeData.data();
+
       setSelectedEdge(edgeData);
-      console.log('CLICKED EDGE DATA:', edgeData);
-      if (edgeData && edgeData.cell_id && onLocateCell) {
-        onLocateCell(edgeData.cell_id);
+      console.log('CLICKED EDGE DATA:', data);
+
+      if (data.cell_id && onLocateCell) {
+        onLocateCell(data.cell_id);
       }
     },
     () => {
@@ -149,9 +156,10 @@ export default function Graph({
         />
       )}
 
-      {selectedEdge && mode === 'labeling' && (
-        <EdgeAnnotationPanel
+      {selectedEdge && (
+        <EdgeDetailsPanel
           edge={selectedEdge}
+          mode={mode}
           options={taxonomy.edgeLabelOptions}
           onChange={handleEdgeLabelChange}
           onClose={() => {

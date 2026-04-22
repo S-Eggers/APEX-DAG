@@ -49,7 +49,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
 
     def visit_Assign(self, node: ast.Assign) -> ast.Assign:
         value = node.value
-        assignment_code = ast.get_source_segment(self.code, node) or ""
+        assignment_code = ast.get_source_segment(self.current_cell_source, node) or ""
 
         for target in node.targets:
             # Get the versioned name of the target variable using the line number
@@ -83,7 +83,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                         "return_nodes": [],
                     }
                     self._add_node(
-                        self._current_state.current_variable, NODE_TYPES["INTERMEDIATE"], code=assignment_code
+                        self._current_state.current_variable, 
+                        NODE_TYPES["INTERMEDIATE"] if isinstance(value, ast.Lambda) else NODE_TYPES["VARIABLE"], 
+                        code=assignment_code
                     )
                 else:
                     self._add_node(
@@ -112,7 +114,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     self._add_edge(
                         previous_version,
                         self._current_state.current_variable,
-                        "reassign",
+                        assignment_code,
                         EDGE_TYPES["OMITTED"],
                         node.lineno,
                         node.col_offset,
@@ -131,10 +133,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         target = node.target
         value = node.value
         operator = node.op.__class__.__name__.lower()
+        aug_code = ast.get_source_segment(self.current_cell_source, node) or ""
 
         target_base_name = self._get_base_name(target)
         new_target_version = self._get_versioned_name(target_base_name, node.lineno)
-        self._add_node(new_target_version, NODE_TYPES["VARIABLE"])
+        self._add_node(new_target_version, NODE_TYPES["VARIABLE"], code=aug_code)
 
         old_target_version = self._get_last_variable_version(target_base_name)
         if old_target_version:
@@ -143,10 +146,11 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                 new_target_version,
                 operator,
                 EDGE_TYPES["CALLER"],
-                node.lineno,
-                node.col_offset,
-                node.end_lineno,
-                node.end_col_offset,
+                raw_code=aug_code,
+                lineno=node.lineno,
+                col_offset=node.col_offset,
+                end_lineno=node.end_lineno,
+                end_col_offset=node.end_col_offset,
             )
         original_current_var = self._current_state.current_variable
         self._current_state.set_current_variable(new_target_version)
@@ -206,6 +210,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         return node
 
     def visit_Expr(self, node: ast.Expr) -> ast.Expr:
+        expr_code = ast.get_source_segment(self.current_cell_source, node) or ""
         base_name = self._get_base_name(node.value)
         # just a name as an expression e.g. x, is not a data flow
         is_call = isinstance(node.value, ast.Call)
@@ -227,7 +232,9 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
                     self._get_versioned_name(base_name, node.lineno)
                 )
                 self._add_node(
-                    self._current_state.current_variable, NODE_TYPES["VARIABLE"]
+                    self._current_state.current_variable, 
+                    NODE_TYPES["VARIABLE"],
+                    code=expr_code
                 )
             self._current_state.set_current_target(base_name)
             node.value.parent = node
@@ -610,7 +617,7 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
             literal_val = self._tokenize_literal(literal_val)
             literal_node_name = f"literal_{node.lineno}_{node.col_offset}"
             
-            self._add_node(literal_node_name, NODE_TYPES["LITERAL"])
+            self._add_node(literal_node_name, NODE_TYPES["LITERAL"], code=literal_val)
             self._add_edge(
                 literal_node_name,
                 self._current_state.current_variable,
@@ -1722,14 +1729,26 @@ class PythonDataFlowGraph(ASTGraph, ast.NodeVisitor):
         self, 
         source: str, 
         target: str, 
-        code: str, 
+        label: str,
         edge_type: int, 
+        raw_code: str = "",
         lineno: int = -1, 
         col_offset: int = -1, 
         end_lineno: int = -1, 
         end_col_offset: int = -1
     ) -> None:
         cell_context = getattr(self, "current_cell_id", "unknown_cell")
+        actual_raw_code = raw_code if raw_code is not None else label
+
         self._current_state.add_edge(
-            source, target, code, edge_type, lineno, col_offset, end_lineno, end_col_offset, cell_id=cell_context
+            source=source, 
+            target=target, 
+            label=label, 
+            edge_type=edge_type, 
+            raw_code=actual_raw_code, 
+            lineno=lineno, 
+            col_offset=col_offset, 
+            end_lineno=end_lineno, 
+            end_col_offset=end_col_offset, 
+            cell_id=cell_context
         )

@@ -203,7 +203,7 @@ class Encoder:
                     return label
 
             edge_emb = (
-                self._embedding.embed(attrs["code"])
+                self._embedding.embed(attrs["label"])
                 if is_positive
                 else torch.zeros(300)
             )

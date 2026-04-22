@@ -226,16 +226,17 @@ class State:
         self,
         source: str,
         target: str,
-        code: str,
+        label: str,
         edge_type: int,
+        raw_code: str = "",
         lineno: int = -1,
         col_offset: int = -1,
         end_lineno: int = -1,
         end_col_offset: int = -1,
         cell_id: str = "unknown_cell"
     ):
-        if source and target and source != target and len(code) > 0:
-            key = f"{source}_{target}_{code}"
+        if source and target and source != target and len(label) > 0:
+            key = f"{source}_{target}_{label}"
 
             if self.has_edge(source, target, key=key):
                 edge_count = self.get_edge_data(source, target, key, "count")
@@ -246,7 +247,7 @@ class State:
                     target=target,
                     edge_type=edge_type,
                     cell_id=cell_id,
-                    label=code
+                    label=label 
                 )
                 
                 position_and_meta = {
@@ -255,7 +256,7 @@ class State:
                     "end_lineno": end_lineno,
                     "end_col_offset": end_col_offset,
                     "count": 1,
-                    "code": code
+                    "raw_code": raw_code
                 }
                 
                 attrs = edge_model.to_networkx_attrs()
@@ -264,7 +265,7 @@ class State:
                 self._G.add_edge(source, target, key=key, **attrs)
         else:
             self._logger.debug(
-                "Ignoring edge %s -> %s with code %s", source, target, code
+                "Ignoring edge %s -> %s with code %s", source, target, raw_code
             )
 
     def _filter_irrelevant_dataflow(self) -> set:
@@ -390,11 +391,13 @@ class State:
                 self._logger.debug("Removing node %s as it has no edges", node_x)
                 nodes_to_remove.append(node_x)
 
-            node_type_x = self.get_node(node_x).get("node_type")
-            # reconnect and remove end_if nodes
+            node_data_x = self.get_node(node_x)
+            node_type_x = node_data_x.get("node_type")
+            
             if node_type_x == NODE_TYPES["IF"]:
-                optimize = True
-                new_edges = []
+                should_optimize = True
+                temp_new_edges = []
+                
                 for next_node in self.successor_node_iterator(node_x):
                     for prev_node in self.predecessor_node_iterator(node_x):
                         for _, attributes in self.get_edge_iterator(node_x, next_node):
@@ -402,45 +405,46 @@ class State:
                                 EDGE_TYPES["LOOP"],
                                 EDGE_TYPES["BRANCH"],
                             ]:
-                                optimize = False
-                            new_edges.append(
-                                (
-                                    prev_node,
-                                    next_node,
-                                    attributes["code"],
-                                    attributes["edge_type"],
-                                )
-                            )
-                # we need the intermediate node for branches that follow directly after that node
-                if optimize:
+                                should_optimize = False
+                            
+                            temp_new_edges.append({
+                                "source": prev_node,
+                                "target": next_node,
+                                "label": attributes.get("label") or attributes.get("code", "reassign"),
+                                "edge_type": attributes["edge_type"],
+                                "raw_code": attributes.get("raw_code") or attributes.get("code", ""),
+                                "cell_id": attributes.get("cell_id", node_data_x.get("cell_id", "unknown_cell"))
+                            })
+                
+                if should_optimize:
                     nodes_to_remove.append(node_x)
-                    edges_to_add += new_edges
-                # continue to the next node as we already did the optimization for this node and its edges
+                    edges_to_add += temp_new_edges
                 continue
 
             for node_y in self.adjacent_node_iterator(node_x):
                 edges_between_nodes = list(self.get_edge_iterator(node_x, node_y))
-
                 if len(edges_between_nodes) > 1:
                     for key, edge_data in edges_between_nodes:
+                        edge_label = edge_data.get("label", "")
                         if (
-                            edge_data["code"] in node_x.lower()
-                            or edge_data["code"].replace(" ", "_") in node_x.lower()
+                            edge_label in node_x.lower()
+                            or edge_label.replace(" ", "_") in node_x.lower()
                         ) and edge_data["edge_type"] == EDGE_TYPES["INPUT"]:
-                            self._logger.debug(
-                                "Removing edge %s -> %s with code %s as it is redundant",
-                                node_x,
-                                node_y,
-                                edge_data["code"],
-                            )
+                            self._logger.debug("Removing redundant input edge: %s", edge_label)
                             edges_to_remove.append((node_x, node_y, key))
-        # remove nodes and edges
+
         for node in nodes_to_remove:
             self.remove_node(node)
 
         for node_x, node_y, key in edges_to_remove:
             self.remove_edge(node_x, node_y, key)
 
-        # add new edges
-        for node_x, node_y, code, edge_type in edges_to_add:
-            self.add_edge(node_x, node_y, code, edge_type)
+        for edge_payload in edges_to_add:
+            self.add_edge(
+                source=edge_payload["source"],
+                target=edge_payload["target"],
+                label=edge_payload["label"],
+                edge_type=edge_payload["edge_type"],
+                raw_code=edge_payload["raw_code"],
+                cell_id=edge_payload["cell_id"]
+            )
