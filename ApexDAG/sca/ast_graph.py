@@ -175,7 +175,6 @@ class ASTGraph(ABC):
             
         return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
-    @abstractmethod
     def draw(self):
         """
         Renders and saves a visual representation of the graph.

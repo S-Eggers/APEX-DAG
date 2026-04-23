@@ -20,6 +20,6 @@ class DataflowPipeline:
         if self.highlight_relevant:
             dfg.filter_relevant(lineage_mode=False)
             
-        dfg.optimize()
+        dfg.get_state().optimize()
         
         return self.serializer.to_dict(dfg)

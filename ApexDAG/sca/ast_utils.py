@@ -124,3 +124,24 @@ def get_lr_values(left: ast.AST, right: ast.AST, code_buffer: str = None) -> tup
         flat_names = flatten_list(names)
         return flat_names[0] if flat_names else None
     return get_name(left), get_name(right)
+
+def get_base_name(node: ast.AST) -> Optional[str]:
+    """Recursively resolves the base identifier of an AST node."""
+    if isinstance(node, ast.Name):
+        return node.id
+    elif isinstance(node, ast.Constant):
+        return str(node.value)
+    elif isinstance(node, (ast.Attribute, ast.Subscript)):
+        return get_base_name(node.value)
+    elif isinstance(node, ast.Call):
+        return get_base_name(node.func)
+    return None
+
+def process_arguments(node: ast.arguments) -> dict[str, list]:
+    """Extracts positional arguments and defaults from function definitions."""
+    arguments = {"args": [], "defaults": []}
+    for arg in node.args:
+        arguments["args"].append(arg.arg)
+    for default in node.defaults:
+        arguments["defaults"].append(default)
+    return arguments

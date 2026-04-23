@@ -1,7 +1,7 @@
 import ast
 from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES
 from ApexDAG.sca import flatten_list
-from ApexDAG.sca.ast_utils import get_names, tokenize_method
+from ApexDAG.sca.ast_utils import get_names, tokenize_method, get_base_name
 
 class CallInliner:
     """
@@ -77,7 +77,7 @@ class CallInliner:
                 tokenized_tokens,
                 EDGE_TYPES["CLASS_CALL"],
                 instance_name=instance_version,
-                base_name=self.v._get_base_name(instance_version),
+                base_name=get_base_name(instance_version),
                 cell_id=cell_context
             )
         else:
@@ -98,7 +98,7 @@ class CallInliner:
         for i, arg_node in enumerate(node.args):
             if i < len(f_args):
                 param_name = f_args[i]
-                caller_base = self.v._get_base_name(arg_node)
+                caller_base = get_base_name(arg_node)
                 if caller_base:
                     caller_version = self.stack.get_last_variable_version(caller_base)
                     if caller_version:
@@ -106,7 +106,7 @@ class CallInliner:
 
         for kw in node.keywords:
             param_name = kw.arg
-            caller_base = self.v._get_base_name(kw.value)
+            caller_base = get_base_name(kw.value)
             if caller_base:
                 caller_version = self.stack.get_last_variable_version(caller_base)
                 if caller_version:

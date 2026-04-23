@@ -10,7 +10,7 @@ class LabelingPipeline:
 
     def execute(self, code: str) -> Dict[str, Any]:
         dfg = self.parser.parse(code)
-        dfg.optimize()
+        dfg.get_state().optimize()
         
         self.labeler.apply_labels(dfg)
         

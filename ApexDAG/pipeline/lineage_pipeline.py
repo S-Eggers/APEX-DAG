@@ -21,7 +21,7 @@ class LineagePipeline:
     def execute(self, code: str) -> Dict[str, Any]:
         """Runs the complete extraction pipeline."""
         dfg = self.parser.parse(code)
-        dfg.optimize()
+        dfg.get_state().optimize()
         
         self.labeler.apply_labels(dfg)
         
@@ -29,6 +29,6 @@ class LineagePipeline:
             dfg.filter_relevant(lineage_mode=True)
         
         self.refiner.refine(dfg)
-        dfg.optimize()
+        dfg.get_state().optimize()
 
         return self.serializer.to_dict(dfg)
