@@ -7,8 +7,9 @@ export interface LegendItemType {
   type: 'node' | 'edge';
   color: string;
   label: string;
-  borderStyle: 'solid' | 'dashed';
+  borderStyle: string;
   numericType: number;
+  category?: string;
 }
 
 export interface GraphProps {

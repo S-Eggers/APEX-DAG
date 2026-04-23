@@ -1,6 +1,10 @@
 import React, { useRef, useState } from 'react';
 import { GraphProps, LegendItemType } from '../../types/GraphTypes';
-import { filterLegendItems } from '../../config/GraphConfig';
+import {
+  groupLegendItems,
+  filterLegendItems,
+  MODE_CONFIG
+} from '../../config/GraphConfig';
 import callBackend from '../../utils/callBackend';
 import { useCytoscape } from '../../hooks/useCytoscape';
 
@@ -21,9 +25,21 @@ export default function Graph({
 
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<any | null>(null);
-  const [activeLegendItems, setActiveLegendItems] = useState<LegendItemType[]>(
-    []
-  );
+
+  const [groupedLegendItems, setGroupedLegendItems] = useState<
+    Record<string, LegendItemType[]>
+  >({});
+
+  const updateLegend = () => {
+    if (!cyRef.current) return;
+    const liveElements = cyRef.current
+      .elements()
+      .map(ele => ({ data: ele.data() }));
+    const authoritativeLegends = MODE_CONFIG[mode].legends;
+
+    const filtered = filterLegendItems(liveElements, authoritativeLegends);
+    setGroupedLegendItems(groupLegendItems(filtered));
+  };
 
   const cyRef = useCytoscape(
     graphRef,
@@ -32,7 +48,6 @@ export default function Graph({
     resetTrigger,
     nodeData => {
       setSelectedNode(nodeData);
-      console.log('CLICKED NODE DATA:', nodeData);
       if (nodeData && nodeData.cell_id && onLocateCell) {
         onLocateCell(nodeData.cell_id);
       }
@@ -43,20 +58,13 @@ export default function Graph({
         return;
       }
       const data = edgeData.data();
-
       setSelectedEdge(edgeData);
-      console.log('CLICKED EDGE DATA:', data);
-
       if (data.cell_id && onLocateCell) {
         onLocateCell(data.cell_id);
       }
     },
     () => {
-      if (!cyRef.current) return;
-      const liveElements = cyRef.current
-        .elements()
-        .map(ele => ({ data: ele.data() }));
-      setActiveLegendItems(filterLegendItems(liveElements, taxonomy.legends));
+      updateLegend();
     },
     taxonomy.getNodeColor,
     taxonomy.getEdgeColor
@@ -72,11 +80,7 @@ export default function Graph({
     if (labelStr) selectedEdge.data('domain_label', labelStr);
 
     setSelectedEdge(cyRef.current.getElementById(selectedEdge.id()));
-
-    const liveElements = cyRef.current
-      .elements()
-      .map(ele => ({ data: ele.data() }));
-    setActiveLegendItems(filterLegendItems(liveElements, taxonomy.legends));
+    updateLegend();
   };
 
   const handleNodeLabelChange = (newLabelValue: number) => {
@@ -92,11 +96,7 @@ export default function Graph({
     if (labelStr) cyNode.data('domain_label', labelStr);
 
     setSelectedNode({ ...cyNode.data() });
-
-    const liveElements = cyRef.current
-      .elements()
-      .map(ele => ({ data: ele.data() }));
-    setActiveLegendItems(filterLegendItems(liveElements, taxonomy.legends));
+    updateLegend();
   };
 
   const handleSaveAnnotations = async () => {
@@ -169,7 +169,7 @@ export default function Graph({
         />
       )}
 
-      <GraphLegend items={activeLegendItems} />
+      <GraphLegend groupedItems={groupedLegendItems} />
     </div>
   );
 }
