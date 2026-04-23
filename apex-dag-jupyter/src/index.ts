@@ -197,12 +197,25 @@ const plugin: JupyterFrontEndPlugin<void> = {
           const currentNb = tracker.currentWidget;
 
           if (!wrapper.isAttached) {
-            const attachOptions: any = args['isToolbar']
-              ? { mode: 'split-right', ref: currentNb?.id }
-              : {};
+            let attachOptions: any = {};
+
+            let anchorRefId: string | undefined = undefined;
+            for (const w of activeWrappers.values()) {
+              if (w.isAttached && w !== wrapper) {
+                anchorRefId = w.id;
+                break;
+              }
+            }
+
+            if (anchorRefId) {
+              attachOptions = { mode: 'tab-after', ref: anchorRefId };
+            } else if (currentNb && args['isToolbar']) {
+              attachOptions = { mode: 'split-right', ref: currentNb.id };
+            }
 
             app.shell.add(wrapper, 'main', attachOptions);
           }
+
           app.shell.activateById(wrapper.id);
 
           if (currentNb) triggerUpdate(config.type, currentNb);
