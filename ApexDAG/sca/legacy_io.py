@@ -2,7 +2,7 @@ import warnings
 import networkx as nx
 from ApexDAG.util.draw import Draw
 from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES
-from ApexDAG.sca import convert_multidigraph_to_digraph, get_subgraph, save_graph, load_graph
+from ApexDAG.sca.graph_utils import convert_multidigraph_to_digraph, get_subgraph, save_graph, load_graph
 
 class LegacyIOMixin:
     """

@@ -1,16 +1,22 @@
 import ast
-from logging import Logger
 import networkx as nx
+from logging import Logger
 from typing import Optional
 
+from ApexDAG.util.draw import Draw
 from ApexDAG.state import Stack, State
 from ApexDAG.util.logging import setup_logging
-from ApexDAG.sca import (
-    NODE_TYPES,
-    EDGE_TYPES,
-    VERBOSE,
-    ASTGraph,
-    CallInliner
+
+from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES, VERBOSE
+from ApexDAG.sca.ast_graph import ASTGraph
+from ApexDAG.sca.inliner import CallInliner
+from ApexDAG.sca.legacy_io import LegacyIOMixin
+
+from ApexDAG.sca.graph_utils import (
+    convert_multidigraph_to_digraph,
+    get_subgraph,
+    save_graph,
+    load_graph,
 )
 
 from ApexDAG.sca.ast_utils import (
@@ -24,8 +30,6 @@ from ApexDAG.sca.ast_utils import (
     get_base_name,
     process_arguments
 )
-
-from ApexDAG.sca.legacy_io import LegacyIOMixin
 
 class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
     def __init__(self, notebook_path: str = "", replace_dataflow: bool = False) -> None:
@@ -195,7 +199,10 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         if function_def_node:
             function_name = get_names(function_def_node)[0]
 
-            return_node_name = f"return_{function_name}_{node.lineno}"
+            cell_context = getattr(self, "current_cell_id", "unknown")
+            short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+            
+            return_node_name = f"return_{function_name}_{short_cell}_{node.lineno}"
             self._add_node(return_node_name, NODE_TYPES["INTERMEDIATE"])
 
             if "return_nodes" in self._state_stack.functions[function_name]:
@@ -268,9 +275,11 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             
             with self._state_stack.scope(context_name, parent_context) as scoped_state:
                 self._current_state = scoped_state
+                cell_context = getattr(self, "current_cell_id", "unknown")
+                short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
 
                 for arg in self._state_stack.functions[parent_name]["args"]["args"]:
-                    argument_node = f"{arg}_{node.lineno}"
+                    argument_node = f"{arg}_{short_cell}_{node.lineno}"
                     self._add_node(argument_node, NODE_TYPES["VARIABLE"])
                     self._current_state.variable_versions[arg] = [argument_node]
 

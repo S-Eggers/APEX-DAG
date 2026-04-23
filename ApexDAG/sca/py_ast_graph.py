@@ -2,7 +2,7 @@ import ast
 from typing import List
 from ApexDAG.notebook import Notebook
 
-from ApexDAG.sca import ASTGraph
+from ApexDAG.sca.ast_graph import ASTGraph
 from ApexDAG.util.draw import Draw
 from ApexDAG.sca.constants import AST_NODE_TYPES, AST_EDGE_TYPES
 from ApexDAG.sca.models import GraphNode, GraphEdge

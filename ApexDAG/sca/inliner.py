@@ -1,7 +1,6 @@
 import ast
 from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES
-from ApexDAG.sca import flatten_list
-from ApexDAG.sca.ast_utils import get_names, tokenize_method, get_base_name
+from ApexDAG.sca.ast_utils import get_names, tokenize_method, get_base_name, flatten_list
 
 class CallInliner:
     """
