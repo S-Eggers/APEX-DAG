@@ -248,6 +248,21 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
 
             self._current_state.variable_versions[base_name].append(new_version)
 
+        else:
+            cell_context = getattr(self, "current_cell_id", "unknown")
+            short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+            sink_node_name = f"sink_{short_cell}_{node.lineno}_{node.col_offset}"
+            
+            self._add_node(
+                sink_node_name, 
+                NODE_TYPES["INTERMEDIATE"], 
+                code=expr_code
+            )
+            
+            self._current_state.set_current_variable(sink_node_name)
+            node.value.parent = node
+            self.visit(node.value)
+
         self._current_state.set_current_variable(None)
         self._current_state.set_current_target(None)
         self._current_state.set_last_variable(None)
