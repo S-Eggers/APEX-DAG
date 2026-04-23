@@ -1,3 +1,4 @@
+import re
 import networkx as nx
 from typing import Optional
 from networkx import Graph, MultiDiGraph
@@ -194,11 +195,32 @@ class State:
         for node in self._G[node_identifier]:
             yield node
 
-    def add_node(self, node_name: str, node_type: int, code: str = "", cell_id: str = "unknown_cell") -> None:
+    def add_node(
+        self, 
+        node_name: str, 
+        node_type: int, 
+        code: str = "", 
+        cell_id: str = "unknown_cell", 
+        label: str = None
+    ) -> None:
         if not self._G.has_node(node_name):
+            if not label:
+                if node_name.startswith("literal_"):
+                    label = "literal"
+                elif node_name.startswith("iterable_"):
+                    label = "iterable"
+                elif node_name.startswith("chain_"):
+                    label = "chain"
+                elif node_name.startswith("loop_"):
+                    label = "loop"
+                elif node_name.startswith("branch_"):
+                    label = "branch"
+                else:
+                    label = re.sub(r'_[a-zA-Z0-9\-]{3,8}_\d+(?:_\d+)?$', '', node_name)
+                    
             node_model = GraphNode(
                 id=node_name,
-                label=node_name,
+                label=label,
                 node_type=node_type,
                 cell_id=cell_id,
                 code=code
