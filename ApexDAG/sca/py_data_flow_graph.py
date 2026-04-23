@@ -333,8 +333,28 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         if isinstance(node.func, ast.Attribute):
             caller_object_name = self._get_caller_object(node.func.value)
             function_name = node.func.attr
-            if hasattr(node.func, "value"):
+            
+            if isinstance(node.func.value, ast.Call):
                 node.func.value.parent = node.func
+                
+                cell_context = getattr(self, "current_cell_id", "unknown")
+                short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+                intermediate_node = f"chain_{short_cell}_{node.lineno}_{node.func.value.col_offset}"
+                
+                self._add_node(intermediate_node, NODE_TYPES["INTERMEDIATE"])
+                
+                original_var = self._current_state.current_variable
+                self._current_state.set_current_variable(intermediate_node)
+                
+                self.visit(node.func.value)
+                
+                self._current_state.set_current_variable(original_var)
+                self._current_state.set_last_variable(intermediate_node)
+                caller_object_name = intermediate_node
+                
+            elif hasattr(node.func, "value"):
+                node.func.value.parent = node.func
+
         elif isinstance(node.func, ast.Name):
             caller_object_name = self._get_caller_object(node.func)
             function_name = node.func.id
