@@ -27,14 +27,36 @@ export function useCytoscape(
 
   const edgeTypeColor = useCallback(
     (element: any) => {
-      const caseType =
-        mode === 'dataflow'
-          ? element.data('edge_type')
-          : element.data('predicted_label');
+      const predicted = element.data('predicted_label');
+      if (predicted !== undefined && predicted !== null) {
+        return getEdgeColor(Number(predicted));
+      }
 
-      return getEdgeColor(caseType);
+      const edgeType = element.data('edge_type');
+      if (edgeType !== undefined && edgeType !== null) {
+        const numType = Number(edgeType);
+        if (!isNaN(numType)) {
+          return getEdgeColor(numType);
+        }
+      }
+
+      const label = String(element.data('label') || '').toLowerCase();
+      const rawEdgeType = String(edgeType || '').toLowerCase();
+      const semanticString = label + rawEdgeType;
+
+      if (mode === 'vamsa') {
+        if (semanticString.includes('caller')) return getEdgeColor(0);
+        if (semanticString.includes('input')) return getEdgeColor(1);
+        if (
+          semanticString.includes('output') ||
+          semanticString.includes('transform')
+        )
+          return getEdgeColor(2);
+      }
+
+      return '#d3d3d3';
     },
-    [mode, getEdgeColor]
+    [getEdgeColor, mode]
   );
 
   const nodeTypeColor = useCallback(
@@ -44,9 +66,15 @@ export function useCytoscape(
     [getNodeColor]
   );
 
-  const lineTypeStyle = useCallback((element: any) => {
-    return element.data('edge_type') === 2 ? 'dashed' : 'solid';
-  }, []);
+  const lineTypeStyle = useCallback(
+    (element: any) => {
+      if (mode === 'dataflow' && element.data('edge_type') === 2) {
+        return 'dashed';
+      }
+      return 'solid';
+    },
+    [mode]
+  );
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -100,15 +128,26 @@ export function useCytoscape(
         style: {
           shape: 'round-rectangle',
           'background-color': (ele: any) => nodeTypeColor(ele),
-          label: 'data(label)',
+          label: (ele: any) => {
+            const baseLabel = ele.data('label') || '';
+            if (mode === 'vamsa') {
+              const annotations = ele.data('annotations');
+              if (Array.isArray(annotations) && annotations.length > 0) {
+                return `${baseLabel}\n[${annotations.join(', ')}]`;
+              }
+            }
+            return baseLabel;
+          },
           width: '60px',
           height: '35px',
           'text-valign': 'center',
           'text-halign': 'center',
           'font-size': '12px',
           color: '#333',
-          'text-wrap': 'ellipsis',
-          'text-max-width': '80px',
+
+          'text-wrap': 'wrap',
+          'text-max-width': '120px',
+
           'border-width': 1,
           'border-color': '#ccc'
         }

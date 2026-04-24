@@ -109,9 +109,9 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
     label: 'Vamsa',
     rank: 4,
     debouncedUpdate: false,
-    factory: () => new EnvironmentWidget(), // Placeholder
+    factory: () => new GraphWidget('vamsa'),
     update: (content, nbPanel, settings) => {
-      // updateGraphWidget(content as GraphWidget, nbPanel, 'vamsa', settings);
+      updateGraphWidget(content as GraphWidget, nbPanel, 'vamsa', settings);
     }
   },
   {

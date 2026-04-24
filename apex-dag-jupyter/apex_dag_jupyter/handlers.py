@@ -8,6 +8,7 @@ from .handler.LabelingSaveHandler import LabelingSaveHandler#
 from .handler.LabelingPredictHandler import LabelingPredictHandler
 from .handler.LabelingGenerateHandler import LabelingGenerateHandler
 from .handler.ConstantsHandler import ConstantsHandler
+from .handler.VamsaHandler import VamsaHandler
 
 
 def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
@@ -52,6 +53,11 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
         (
             url_path_join(base_url, "apex-dag", "constants"),
             ConstantsHandler,
+            {}
+        ),
+        (
+            url_path_join(base_url, "apex-dag", "vamsa"),
+            VamsaHandler,
             {}
         )
     ]

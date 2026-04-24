@@ -66,8 +66,8 @@ export default function Graph({
     () => {
       updateLegend();
     },
-    taxonomy.getNodeColor,
-    taxonomy.getEdgeColor
+    MODE_CONFIG[mode].getNodeColor,
+    MODE_CONFIG[mode].getEdgeColor
   );
 
   const handleEdgeLabelChange = (newLabelValue: number) => {

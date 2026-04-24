@@ -34,5 +34,9 @@ class ConstantsHandler(APIHandler):
                     "nodes": lin_nodes,
                     "edges": lin_edges
                 },
+                "vamsa": {
+                    "nodes": lin_nodes,
+                    "edges": lin_edges
+                }
             }
         }))

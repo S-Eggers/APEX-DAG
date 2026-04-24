@@ -1,26 +1,13 @@
 import { GraphMode, LegendItemType } from '../types/GraphTypes';
+import { SEMANTIC_COLORS } from './GraphTheme';
 
-export const colors = {
-  light_steel_blue: '#B0C4DE',
-  very_soft_blue: '#b3b0de',
-  pink: '#FFC0CB',
-  light_green: '#c4deb0',
-  very_soft_yellow: '#DEDAB0',
-  very_soft_purple: '#DEB0DE',
-  very_soft_lime_green: '#B0DEB9',
-  light_salmon: '#FFA07A',
-  pale_green: '#98FB98',
-  gray: '#d3d3d3',
-  powder_blue: '#B0E0E6',
-  peach_puff: '#FFDAB9',
-  dark_slate: '#2F4F4F'
-};
+const { nodes: nColors, edges: eColors } = SEMANTIC_COLORS;
 
 const sharedLineageConfig = {
   legends: [
     {
       type: 'node',
-      color: colors.light_steel_blue,
+      color: nColors.VARIABLE,
       label: 'Variable',
       borderStyle: 'solid',
       numericType: 0,
@@ -28,7 +15,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'node',
-      color: colors.pink,
+      color: nColors.IMPORT,
       label: 'Library',
       borderStyle: 'solid',
       numericType: 1,
@@ -36,7 +23,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'node',
-      color: colors.light_green,
+      color: nColors.DATASET,
       label: 'Dataset',
       borderStyle: 'solid',
       numericType: 2,
@@ -44,7 +31,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'node',
-      color: colors.very_soft_blue,
+      color: nColors.UDF,
       label: 'UDF',
       borderStyle: 'solid',
       numericType: 3,
@@ -52,7 +39,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'node',
-      color: colors.powder_blue,
+      color: nColors.LITERAL,
       label: 'Literal',
       borderStyle: 'solid',
       numericType: 8,
@@ -60,7 +47,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'edge',
-      color: colors.light_salmon,
+      color: eColors.MODEL_TRAIN,
       label: 'Model Train/Eval',
       borderStyle: 'solid',
       numericType: 0,
@@ -68,7 +55,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'edge',
-      color: colors.peach_puff,
+      color: eColors.ENVIRONMENT_EXPORT,
       label: 'Environment+Data Export',
       borderStyle: 'solid',
       numericType: 4,
@@ -76,7 +63,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'edge',
-      color: colors.powder_blue,
+      color: eColors.BRANCH,
       label: 'EDA',
       borderStyle: 'solid',
       numericType: 3,
@@ -84,7 +71,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'edge',
-      color: colors.pale_green,
+      color: eColors.DATA_IMPORT_EXTRACTION,
       label: 'Data Import',
       borderStyle: 'solid',
       numericType: 1,
@@ -92,7 +79,7 @@ const sharedLineageConfig = {
     },
     {
       type: 'edge',
-      color: colors.gray,
+      color: eColors.DATA_TRANSFORM,
       label: 'Data Transform',
       borderStyle: 'solid',
       numericType: 2,
@@ -101,27 +88,27 @@ const sharedLineageConfig = {
   ] as LegendItemType[],
   getNodeColor: (type: number) => {
     const map: Record<number, string> = {
-      0: colors.light_steel_blue,
-      1: colors.pink,
-      2: colors.light_green,
-      3: colors.very_soft_blue,
-      4: colors.very_soft_yellow,
-      5: colors.very_soft_purple,
-      7: colors.very_soft_lime_green,
-      8: colors.powder_blue
+      0: nColors.VARIABLE,
+      1: nColors.IMPORT,
+      2: nColors.DATASET,
+      3: nColors.UDF,
+      4: nColors.INTERMEDIATE,
+      5: nColors.IF,
+      7: nColors.LOOP,
+      8: nColors.LITERAL
     };
-    return map[type] || colors.light_steel_blue;
+    return map[type] || nColors.VARIABLE;
   },
   getEdgeColor: (type: number) => {
     const map: Record<number, string> = {
-      0: colors.light_salmon,
-      1: colors.pale_green,
-      2: colors.gray,
-      3: colors.powder_blue,
-      4: colors.peach_puff,
-      5: colors.light_green
+      0: eColors.MODEL_TRAIN,
+      1: eColors.DATA_IMPORT_EXTRACTION,
+      2: eColors.DATA_TRANSFORM,
+      3: eColors.BRANCH,
+      4: eColors.ENVIRONMENT_EXPORT,
+      5: eColors.FUNCTION_CALL
     };
-    return map[type] || '#000';
+    return map[type] || eColors.DATA_TRANSFORM;
   }
 };
 
@@ -129,7 +116,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Modules & Imports
   {
     type: 'node',
-    color: colors.very_soft_purple,
+    color: nColors.Import,
     label: 'Module',
     borderStyle: 'solid',
     numericType: 100,
@@ -137,7 +124,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_purple,
+    color: nColors.Import,
     label: 'Interactive',
     borderStyle: 'solid',
     numericType: 101,
@@ -145,7 +132,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_purple,
+    color: nColors.Import,
     label: 'Expression',
     borderStyle: 'solid',
     numericType: 102,
@@ -153,7 +140,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_purple,
+    color: nColors.Import,
     label: 'FunctionType',
     borderStyle: 'solid',
     numericType: 103,
@@ -161,7 +148,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.Import,
     label: 'Import',
     borderStyle: 'solid',
     numericType: 219,
@@ -169,7 +156,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.ImportFrom,
     label: 'ImportFrom',
     borderStyle: 'solid',
     numericType: 220,
@@ -178,7 +165,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Definitions
   {
     type: 'node',
-    color: colors.light_green,
+    color: nColors.FunctionDef,
     label: 'FunctionDef',
     borderStyle: 'solid',
     numericType: 200,
@@ -186,7 +173,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_green,
+    color: nColors.AsyncFunctionDef,
     label: 'AsyncFunctionDef',
     borderStyle: 'solid',
     numericType: 201,
@@ -194,7 +181,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_green,
+    color: nColors.ClassDef,
     label: 'ClassDef',
     borderStyle: 'solid',
     numericType: 202,
@@ -202,7 +189,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_green,
+    color: nColors.FunctionDef,
     label: 'Lambda',
     borderStyle: 'solid',
     numericType: 304,
@@ -211,7 +198,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Control Flow
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.If,
     label: 'Return',
     borderStyle: 'solid',
     numericType: 203,
@@ -219,7 +206,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.For,
     label: 'For',
     borderStyle: 'solid',
     numericType: 208,
@@ -227,7 +214,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.For,
     label: 'AsyncFor',
     borderStyle: 'solid',
     numericType: 209,
@@ -235,7 +222,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.While,
     label: 'While',
     borderStyle: 'solid',
     numericType: 210,
@@ -243,7 +230,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.If,
     label: 'If',
     borderStyle: 'solid',
     numericType: 211,
@@ -251,7 +238,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.Try,
     label: 'With',
     borderStyle: 'solid',
     numericType: 212,
@@ -259,7 +246,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.Try,
     label: 'AsyncWith',
     borderStyle: 'solid',
     numericType: 213,
@@ -267,7 +254,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.Match,
     label: 'Match',
     borderStyle: 'solid',
     numericType: 214,
@@ -275,7 +262,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.Try,
     label: 'Try',
     borderStyle: 'solid',
     numericType: 216,
@@ -283,7 +270,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.Try,
     label: 'TryStar',
     borderStyle: 'solid',
     numericType: 217,
@@ -291,7 +278,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.If,
     label: 'Break',
     borderStyle: 'solid',
     numericType: 225,
@@ -299,7 +286,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.If,
     label: 'Continue',
     borderStyle: 'solid',
     numericType: 226,
@@ -308,7 +295,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Statements
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Delete',
     borderStyle: 'solid',
     numericType: 204,
@@ -316,7 +303,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Assign',
     borderStyle: 'solid',
     numericType: 205,
@@ -324,7 +311,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'AugAssign',
     borderStyle: 'solid',
     numericType: 206,
@@ -332,7 +319,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'AnnAssign',
     borderStyle: 'solid',
     numericType: 207,
@@ -340,7 +327,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Raise',
     borderStyle: 'solid',
     numericType: 215,
@@ -348,7 +335,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Assert',
     borderStyle: 'solid',
     numericType: 218,
@@ -356,7 +343,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Global',
     borderStyle: 'solid',
     numericType: 221,
@@ -364,7 +351,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Nonlocal',
     borderStyle: 'solid',
     numericType: 222,
@@ -372,7 +359,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Expr',
     borderStyle: 'solid',
     numericType: 223,
@@ -380,7 +367,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'Pass',
     borderStyle: 'solid',
     numericType: 224,
@@ -389,7 +376,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Operations
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.BinOp,
     label: 'BoolOp',
     borderStyle: 'solid',
     numericType: 300,
@@ -397,7 +384,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.BinOp,
     label: 'NamedExpr',
     borderStyle: 'solid',
     numericType: 301,
@@ -405,7 +392,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.BinOp,
     label: 'BinOp',
     borderStyle: 'solid',
     numericType: 302,
@@ -413,7 +400,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.BinOp,
     label: 'UnaryOp',
     borderStyle: 'solid',
     numericType: 303,
@@ -421,7 +408,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.BinOp,
     label: 'IfExp',
     borderStyle: 'solid',
     numericType: 305,
@@ -429,7 +416,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_lime_green,
+    color: nColors.Call,
     label: 'Call',
     borderStyle: 'solid',
     numericType: 316,
@@ -437,7 +424,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pink,
+    color: nColors.Compare,
     label: 'Compare',
     borderStyle: 'solid',
     numericType: 315,
@@ -445,7 +432,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.If,
     label: 'Await',
     borderStyle: 'solid',
     numericType: 312,
@@ -453,7 +440,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.If,
     label: 'Yield',
     borderStyle: 'solid',
     numericType: 313,
@@ -461,7 +448,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.very_soft_yellow,
+    color: nColors.If,
     label: 'YieldFrom',
     borderStyle: 'solid',
     numericType: 314,
@@ -470,7 +457,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Data Structures
   {
     type: 'node',
-    color: colors.peach_puff,
+    color: nColors.Constant,
     label: 'Dict',
     borderStyle: 'solid',
     numericType: 306,
@@ -478,7 +465,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.peach_puff,
+    color: nColors.Constant,
     label: 'Set',
     borderStyle: 'solid',
     numericType: 307,
@@ -486,7 +473,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.peach_puff,
+    color: nColors.Constant,
     label: 'List',
     borderStyle: 'solid',
     numericType: 324,
@@ -494,7 +481,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.peach_puff,
+    color: nColors.Constant,
     label: 'Tuple',
     borderStyle: 'solid',
     numericType: 325,
@@ -502,7 +489,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pale_green,
+    color: nColors.Call,
     label: 'ListComp',
     borderStyle: 'solid',
     numericType: 308,
@@ -510,7 +497,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pale_green,
+    color: nColors.Call,
     label: 'SetComp',
     borderStyle: 'solid',
     numericType: 309,
@@ -518,7 +505,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pale_green,
+    color: nColors.Call,
     label: 'DictComp',
     borderStyle: 'solid',
     numericType: 310,
@@ -526,7 +513,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.pale_green,
+    color: nColors.Call,
     label: 'GeneratorExp',
     borderStyle: 'solid',
     numericType: 311,
@@ -535,7 +522,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Variables & Access
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Constant,
     label: 'Constant',
     borderStyle: 'solid',
     numericType: 319,
@@ -543,7 +530,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Constant,
     label: 'FormattedValue',
     borderStyle: 'solid',
     numericType: 317,
@@ -551,7 +538,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Constant,
     label: 'JoinedStr',
     borderStyle: 'solid',
     numericType: 318,
@@ -559,7 +546,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_steel_blue,
+    color: nColors.Name,
     label: 'Attribute',
     borderStyle: 'solid',
     numericType: 320,
@@ -567,7 +554,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_steel_blue,
+    color: nColors.Name,
     label: 'Subscript',
     borderStyle: 'solid',
     numericType: 321,
@@ -575,7 +562,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_steel_blue,
+    color: nColors.Name,
     label: 'Starred',
     borderStyle: 'solid',
     numericType: 322,
@@ -583,7 +570,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_steel_blue,
+    color: nColors.Name,
     label: 'Name',
     borderStyle: 'solid',
     numericType: 323,
@@ -591,16 +578,16 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.light_steel_blue,
+    color: nColors.Name,
     label: 'Slice',
     borderStyle: 'solid',
     numericType: 326,
     category: 'Variables & Access'
   },
-  // Operators
+  // Operators & Contexts
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Load',
     borderStyle: 'solid',
     numericType: 400,
@@ -608,7 +595,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Store',
     borderStyle: 'solid',
     numericType: 401,
@@ -616,7 +603,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Del',
     borderStyle: 'solid',
     numericType: 402,
@@ -624,7 +611,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'And',
     borderStyle: 'solid',
     numericType: 410,
@@ -632,7 +619,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Or',
     borderStyle: 'solid',
     numericType: 411,
@@ -640,7 +627,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Add',
     borderStyle: 'solid',
     numericType: 412,
@@ -648,7 +635,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Sub',
     borderStyle: 'solid',
     numericType: 413,
@@ -656,7 +643,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Mult',
     borderStyle: 'solid',
     numericType: 414,
@@ -664,7 +651,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'MatMult',
     borderStyle: 'solid',
     numericType: 415,
@@ -672,7 +659,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Div',
     borderStyle: 'solid',
     numericType: 416,
@@ -680,7 +667,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Mod',
     borderStyle: 'solid',
     numericType: 417,
@@ -688,7 +675,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Pow',
     borderStyle: 'solid',
     numericType: 418,
@@ -696,7 +683,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'LShift',
     borderStyle: 'solid',
     numericType: 419,
@@ -704,7 +691,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'RShift',
     borderStyle: 'solid',
     numericType: 420,
@@ -712,7 +699,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'BitOr',
     borderStyle: 'solid',
     numericType: 421,
@@ -720,7 +707,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'BitXor',
     borderStyle: 'solid',
     numericType: 422,
@@ -728,7 +715,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'BitAnd',
     borderStyle: 'solid',
     numericType: 423,
@@ -736,7 +723,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'FloorDiv',
     borderStyle: 'solid',
     numericType: 424,
@@ -744,7 +731,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Invert',
     borderStyle: 'solid',
     numericType: 430,
@@ -752,7 +739,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'Not',
     borderStyle: 'solid',
     numericType: 431,
@@ -760,7 +747,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'UAdd',
     borderStyle: 'solid',
     numericType: 432,
@@ -768,7 +755,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.BinOp,
     label: 'USub',
     borderStyle: 'solid',
     numericType: 433,
@@ -776,7 +763,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'Eq',
     borderStyle: 'solid',
     numericType: 440,
@@ -784,7 +771,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'NotEq',
     borderStyle: 'solid',
     numericType: 441,
@@ -792,7 +779,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'Lt',
     borderStyle: 'solid',
     numericType: 442,
@@ -800,7 +787,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'LtE',
     borderStyle: 'solid',
     numericType: 443,
@@ -808,7 +795,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'Gt',
     borderStyle: 'solid',
     numericType: 444,
@@ -816,7 +803,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'GtE',
     borderStyle: 'solid',
     numericType: 445,
@@ -824,7 +811,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'Is',
     borderStyle: 'solid',
     numericType: 446,
@@ -832,7 +819,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'IsNot',
     borderStyle: 'solid',
     numericType: 447,
@@ -840,7 +827,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'In',
     borderStyle: 'solid',
     numericType: 448,
@@ -848,7 +835,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.powder_blue,
+    color: nColors.Compare,
     label: 'NotIn',
     borderStyle: 'solid',
     numericType: 449,
@@ -857,7 +844,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Pattern Matching
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchValue',
     borderStyle: 'solid',
     numericType: 500,
@@ -865,7 +852,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchSingleton',
     borderStyle: 'solid',
     numericType: 501,
@@ -873,7 +860,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchSequence',
     borderStyle: 'solid',
     numericType: 502,
@@ -881,7 +868,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchMapping',
     borderStyle: 'solid',
     numericType: 503,
@@ -889,7 +876,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchClass',
     borderStyle: 'solid',
     numericType: 504,
@@ -897,7 +884,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchStar',
     borderStyle: 'solid',
     numericType: 505,
@@ -905,7 +892,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchAs',
     borderStyle: 'solid',
     numericType: 506,
@@ -913,7 +900,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.dark_slate,
+    color: nColors.Match,
     label: 'MatchOr',
     borderStyle: 'solid',
     numericType: 507,
@@ -922,7 +909,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Structural & Misc
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'arg',
     borderStyle: 'solid',
     numericType: 600,
@@ -930,7 +917,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'arguments',
     borderStyle: 'solid',
     numericType: 601,
@@ -938,7 +925,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'keyword',
     borderStyle: 'solid',
     numericType: 602,
@@ -946,7 +933,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Assign,
     label: 'alias',
     borderStyle: 'solid',
     numericType: 603,
@@ -954,7 +941,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Try,
     label: 'withitem',
     borderStyle: 'solid',
     numericType: 604,
@@ -962,7 +949,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Match,
     label: 'match_case',
     borderStyle: 'solid',
     numericType: 605,
@@ -970,7 +957,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Call,
     label: 'comprehension',
     borderStyle: 'solid',
     numericType: 606,
@@ -978,7 +965,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Try,
     label: 'excepthandler',
     borderStyle: 'solid',
     numericType: 607,
@@ -986,7 +973,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   },
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.Try,
     label: 'ExceptHandler',
     borderStyle: 'solid',
     numericType: 608,
@@ -995,7 +982,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Fallback
   {
     type: 'node',
-    color: colors.gray,
+    color: nColors.AST_UNKNOWN,
     label: 'AST_UNKNOWN',
     borderStyle: 'dashed',
     numericType: 999,
@@ -1004,7 +991,7 @@ const EXHAUSTIVE_AST_LEGENDS: LegendItemType[] = [
   // Edges
   {
     type: 'edge',
-    color: colors.gray,
+    color: eColors.AST_PARENT_CHILD,
     label: 'Parent/Child',
     borderStyle: 'solid',
     numericType: 0,
@@ -1031,7 +1018,7 @@ export const MODE_CONFIG: Record<
     legends: [
       {
         type: 'node',
-        color: colors.light_steel_blue,
+        color: nColors.VARIABLE,
         label: 'Variable',
         borderStyle: 'solid',
         numericType: 0,
@@ -1039,7 +1026,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'node',
-        color: colors.very_soft_blue,
+        color: nColors.INTERMEDIATE,
         label: 'Intermediate',
         borderStyle: 'solid',
         numericType: 4,
@@ -1047,7 +1034,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'node',
-        color: colors.powder_blue,
+        color: nColors.LITERAL,
         label: 'Literal',
         borderStyle: 'solid',
         numericType: 8,
@@ -1055,7 +1042,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'node',
-        color: colors.light_green,
+        color: nColors.FUNCTION,
         label: 'Function',
         borderStyle: 'solid',
         numericType: 3,
@@ -1063,7 +1050,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'node',
-        color: colors.very_soft_purple,
+        color: nColors.CLASS,
         label: 'Class',
         borderStyle: 'solid',
         numericType: 7,
@@ -1071,7 +1058,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'node',
-        color: colors.pink,
+        color: nColors.IMPORT,
         label: 'Import',
         borderStyle: 'solid',
         numericType: 1,
@@ -1079,7 +1066,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'node',
-        color: colors.very_soft_yellow,
+        color: nColors.IF,
         label: 'If',
         borderStyle: 'solid',
         numericType: 5,
@@ -1087,7 +1074,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'node',
-        color: colors.very_soft_lime_green,
+        color: nColors.LOOP,
         label: 'Loop',
         borderStyle: 'solid',
         numericType: 6,
@@ -1095,7 +1082,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'edge',
-        color: colors.light_salmon,
+        color: eColors.CALLER,
         label: 'Caller',
         borderStyle: 'solid',
         numericType: 0,
@@ -1103,7 +1090,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'edge',
-        color: colors.pale_green,
+        color: eColors.INPUT,
         label: 'Input',
         borderStyle: 'solid',
         numericType: 1,
@@ -1111,7 +1098,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'edge',
-        color: colors.gray,
+        color: eColors.REASSIGN,
         label: 'Reassign',
         borderStyle: 'dashed',
         numericType: 2,
@@ -1119,7 +1106,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'edge',
-        color: colors.powder_blue,
+        color: eColors.BRANCH,
         label: 'Branch',
         borderStyle: 'solid',
         numericType: 3,
@@ -1127,7 +1114,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'edge',
-        color: colors.peach_puff,
+        color: eColors.LOOP,
         label: 'Loop',
         borderStyle: 'solid',
         numericType: 4,
@@ -1135,7 +1122,7 @@ export const MODE_CONFIG: Record<
       },
       {
         type: 'edge',
-        color: colors.light_green,
+        color: eColors.FUNCTION_CALL,
         label: 'Function',
         borderStyle: 'solid',
         numericType: 5,
@@ -1144,38 +1131,96 @@ export const MODE_CONFIG: Record<
     ],
     getNodeColor: type => {
       const map: Record<number, string> = {
-        0: colors.light_steel_blue,
-        1: colors.pink,
-        3: colors.light_green,
-        4: colors.very_soft_blue,
-        5: colors.very_soft_yellow,
-        6: colors.very_soft_lime_green,
-        7: colors.very_soft_purple,
-        8: colors.powder_blue
+        0: nColors.VARIABLE,
+        1: nColors.IMPORT,
+        3: nColors.FUNCTION,
+        4: nColors.INTERMEDIATE,
+        5: nColors.IF,
+        6: nColors.LOOP,
+        7: nColors.CLASS,
+        8: nColors.LITERAL
       };
-      return map[type] || '#000';
+      return map[type] || nColors.VARIABLE;
     },
     getEdgeColor: type => {
       const map: Record<number, string> = {
-        0: colors.light_salmon,
-        1: colors.pale_green,
-        2: colors.gray,
-        3: colors.powder_blue,
-        4: colors.peach_puff,
-        5: colors.light_green
+        0: eColors.CALLER,
+        1: eColors.INPUT,
+        2: eColors.REASSIGN,
+        3: eColors.BRANCH,
+        4: eColors.LOOP,
+        5: eColors.FUNCTION_CALL
       };
-      return map[type] || '#000';
+      return map[type] || eColors.CALLER;
     }
   },
 
   lineage: sharedLineageConfig,
-  vamsa: sharedLineageConfig,
+  vamsa: {
+    legends: [
+      {
+        type: 'node',
+        color: nColors.VARIABLE,
+        label: 'Data Node',
+        borderStyle: 'solid',
+        numericType: 0,
+        category: 'Vamsa Entities'
+      },
+      {
+        type: 'node',
+        color: nColors.FUNCTION,
+        label: 'Operation',
+        borderStyle: 'solid',
+        numericType: 3,
+        category: 'Vamsa Entities'
+      },
+      {
+        type: 'edge',
+        color: eColors.INPUT,
+        label: 'Input Flow',
+        borderStyle: 'solid',
+        numericType: 1,
+        category: 'Vamsa Edges'
+      },
+      {
+        type: 'edge',
+        color: eColors.CALLER,
+        label: 'Caller Flow',
+        borderStyle: 'solid',
+        numericType: 0,
+        category: 'Vamsa Edges'
+      },
+      {
+        type: 'edge',
+        color: eColors.DATA_TRANSFORM,
+        label: 'Output Flow',
+        borderStyle: 'solid',
+        numericType: 2,
+        category: 'Vamsa Edges'
+      }
+    ],
+    getNodeColor: type => {
+      const map: Record<number, string> = {
+        0: nColors.VARIABLE,
+        3: nColors.FUNCTION
+      };
+      return map[type] || nColors.VARIABLE;
+    },
+    getEdgeColor: type => {
+      const map: Record<number, string> = {
+        0: eColors.CALLER,
+        1: eColors.INPUT,
+        2: eColors.DATA_TRANSFORM
+      };
+      return map[type] || eColors.DATA_TRANSFORM;
+    }
+  },
   labeling: sharedLineageConfig,
 
   ast: {
     legends: EXHAUSTIVE_AST_LEGENDS,
-    getNodeColor: type => AST_NODE_COLOR_MAP[type] || colors.powder_blue,
-    getEdgeColor: type => colors.gray
+    getNodeColor: type => AST_NODE_COLOR_MAP[type] || nColors.AST_UNKNOWN,
+    getEdgeColor: type => eColors.AST_PARENT_CHILD
   }
 };
 

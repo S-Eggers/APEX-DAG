@@ -23,7 +23,8 @@ export const updateGraphWidget = (
 
   const content = getNotebookCode(cells, settings.greedyNotebookExtraction);
   console.debug(
-    `[${mode.toUpperCase()}] Extracted notebook content:\n${content}`
+    `[${mode.toUpperCase()}] Extracted notebook content:\n`,
+    content
   );
   const legacyConcatenatedCode = content.map(c => c.source).join('\n');
 
@@ -51,13 +52,16 @@ export const updateGraphWidget = (
       }
 
       let graphDataString;
+
       switch (mode) {
         case 'dataflow':
           graphDataString = response.dataflow;
           break;
         case 'lineage':
-        case 'vamsa':
           graphDataString = response.lineage_predictions;
+          break;
+        case 'vamsa':
+          graphDataString = response.vamsa;
           break;
         case 'ast':
           graphDataString = response.ast_graph;
