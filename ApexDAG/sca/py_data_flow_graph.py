@@ -1101,6 +1101,21 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         arg_name = flatten_list(arg_names)[0]
 
         if arg_name:
+            if arg_name in self._state_stack.functions:
+                inliner = CallInliner(self)
+                mock_call = ast.Call(
+                    func=ast.Name(id=arg_name, ctx=ast.Load(), lineno=arg.lineno, col_offset=arg.col_offset),
+                    args=[], 
+                    keywords=[],
+                    lineno=arg.lineno,
+                    col_offset=arg.col_offset,
+                    end_lineno=arg.end_lineno,
+                    end_col_offset=arg.end_col_offset
+                )
+                mock_call.parent = node
+                inliner.process_function(mock_call, arg_name)
+                return
+
             arg_version = self._state_stack.get_last_variable_version(arg_name)
             code_segment = tokenize_method(arg_name, self._state_stack.imported_names, self._state_stack.import_from_modules)
             self._add_edge(

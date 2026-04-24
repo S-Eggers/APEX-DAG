@@ -106,9 +106,9 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
   {
     type: 'vamsa',
     commandId: CommandIDs.vamsa,
-    label: 'Lineage (Vamsa)',
+    label: 'Vamsa',
     rank: 4,
-    debouncedUpdate: true,
+    debouncedUpdate: false,
     factory: () => new EnvironmentWidget(), // Placeholder
     update: (content, nbPanel, settings) => {
       // updateGraphWidget(content as GraphWidget, nbPanel, 'vamsa', settings);
@@ -119,7 +119,7 @@ const WIDGET_REGISTRY: WidgetConfig[] = [
     commandId: CommandIDs.labeling,
     label: 'Annotate',
     rank: 5,
-    debouncedUpdate: false,
+    debouncedUpdate: true,
     factory: () => new GraphWidget('labeling'),
     update: (content, nbPanel, settings) => {
       updateGraphWidget(content as GraphWidget, nbPanel, 'labeling', settings);
