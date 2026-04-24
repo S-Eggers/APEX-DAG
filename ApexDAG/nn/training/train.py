@@ -22,6 +22,10 @@ from ApexDAG.util.training_utils import (
     DOMAIN_LABEL_TO_SUBSAMPLE,
 )
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
 
 
 class Modes(Enum):
@@ -32,9 +36,8 @@ class Modes(Enum):
 class GraphProcessor:
     """Handles loading and preprocessing of graphs."""
 
-    def __init__(self, checkpoint_path: Path, logger: logging.Logger):
+    def __init__(self, checkpoint_path: Path):
         self.checkpoint_path = checkpoint_path
-        self.logger = logger
         self.graphs = []
 
     def check_graph(self, G):
@@ -54,7 +57,7 @@ class GraphProcessor:
                 f"Checkpoint path {self.checkpoint_path} does not exist"
             )
 
-        self.logger.info("Loading preprocessed graphs...")
+        logger.info("Loading preprocessed graphs...")
         errors = 0
         graph_files = list(self.checkpoint_path.iterdir())
 
@@ -63,11 +66,11 @@ class GraphProcessor:
                 graph = load_graph(graph_file)
                 self.graphs.append(graph)
             except Exception:
-                self.logger.error(f"Error in graph {graph_file}")
-                self.logger.error(traceback.format_exc())
+                logger.error(f"Error in graph {graph_file}")
+                logger.error(traceback.format_exc())
                 errors += 1
 
-        self.logger.info(f"Loaded {len(self.graphs)} graphs with {errors} errors")
+        logger.info(f"Loaded {len(self.graphs)} graphs with {errors} errors")
 
 
 class GraphEncoder:
@@ -76,7 +79,6 @@ class GraphEncoder:
     def __init__(
         self,
         encoded_checkpoint_path: Path,
-        logger: logging.Logger,
         min_nodes: int,
         min_edges: int,
         load_encoded_old_if_exist: bool,
@@ -87,7 +89,7 @@ class GraphEncoder:
         self.mode = mode
         self.encoded_checkpoint_path = encoded_checkpoint_path
         self.encoded_graphs = []
-        self.logger = logger
+        logger = logger
 
         # hyperparams
         self.min_nodes = min_nodes
@@ -98,7 +100,7 @@ class GraphEncoder:
 
     def reload_encoded_graphs(self):
         if self.encoded_checkpoint_path.exists() and self.load_old_if_exist:
-            self.logger.info("Loading encoded graphs...")
+            logger.info("Loading encoded graphs...")
             return [
                 torch.load(self.encoded_checkpoint_path / path)
                 for path in tqdm.tqdm(
@@ -119,9 +121,9 @@ class GraphEncoder:
 
     def encode_graphs(self, graphs, feature_to_encode):
         """Encodes graphs and saves them to disk."""
-        self.logger.info("Encoding graphs...")
+        logger.info("Encoding graphs...")
         os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
-        encoder = Encoder(logger=self.logger)
+        encoder = Encoder(logger=logger)
 
         for index, graph in tqdm.tqdm(enumerate(graphs), desc="Encoding graphs"):
             if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
@@ -143,19 +145,19 @@ class GraphEncoder:
                 )
                 self.encoded_graphs.append(encoded_graph)
             except KeyboardInterrupt:
-                self.logger.warning(
+                logger.warning(
                     "Encoding interrupted, continuing with next graph..."
                 )
                 continue
             except InsufficientNegativeEdgesException:
-                self.logger.error(f"Insufficient negative edges in graph {index}")
+                logger.error(f"Insufficient negative edges in graph {index}")
                 continue
             except InsufficientPositiveEdgesException:
-                self.logger.error(f"Insufficient positive edges in graph {index}")
+                logger.error(f"Insufficient positive edges in graph {index}")
                 continue
             except Exception:
-                self.logger.error(f"Error in graph {index}")
-                self.logger.error(traceback.format_exc())
+                logger.error(f"Error in graph {index}")
+                logger.error(traceback.format_exc())
                 continue
 
         return self.encoded_graphs
@@ -167,7 +169,7 @@ class GATTrainer:
     def __init__(self, config, logger: logging.Logger, mode: Modes):
         self.config = config
         self.mode = mode
-        self.logger = logger
+        logger = logger
         self.subsample_train = config.get("subsample", False)
         self.graph_transform_mode = config.get("mode", "ORIGINAL")
         self.subsample_thereshold = self.config.get("subsample_thereshold", 0.999999)
@@ -219,7 +221,7 @@ class GATTrainer:
         dataset = GraphDataset(encoded_graphs)
 
         if self.mode == Modes.PRETRAINING:
-            self.logger.info("Training in pretraining mode")
+            logger.info("Training in pretraining mode")
             train_size = int(self.config["train_split"] * len(dataset))
             val_size = len(dataset) - train_size
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
@@ -234,7 +236,7 @@ class GATTrainer:
                 lr=self.config["learning_rate"],
                 weight_decay=self.config["weight_decay"],
                 graph_transform_mode=graph_transform_mode,
-                logger=self.logger,
+                logger=logger,
             )
             if graph_transform_mode in [
                 GraphTransformsMode.REVERSED_MASKED,
@@ -250,10 +252,10 @@ class GATTrainer:
                     lr=self.config["learning_rate"],
                     weight_decay=self.config["weight_decay"],
                     graph_transform_mode=graph_transform_mode,
-                    logger=self.logger,
+                    logger=logger,
                 )
         elif self.mode == Modes.FINETUNING:
-            self.logger.info("Training in finetuning mode")
+            logger.info("Training in finetuning mode")
 
             train_size = int(self.config["train_split"] * len(dataset))
             test_size = int(self.config["test_split"] * len(dataset))
@@ -277,7 +279,7 @@ class GATTrainer:
                 lr=self.config["learning_rate"],
                 weight_decay=self.config["weight_decay"],
                 graph_transform_mode=graph_transform_mode,
-                logger=self.logger,
+                logger=logger,
             )
         best_loss = self.trainer.train(num_epochs=self.config["num_epochs"])
 

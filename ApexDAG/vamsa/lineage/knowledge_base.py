@@ -1,8 +1,11 @@
 import logging
 import pandas as pd
 from ..core.utils import remove_id
+from ApexDAG.util.logger import configure_apexdag_logger
 
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
+
 
 class KB:
     """

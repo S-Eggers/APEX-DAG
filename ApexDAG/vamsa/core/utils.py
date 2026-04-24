@@ -1,7 +1,9 @@
 import logging
 from typing import Set, List
 from .types import PRType
+from ApexDAG.util.logger import configure_apexdag_logger
 
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 _vamsa_id_counter = 0

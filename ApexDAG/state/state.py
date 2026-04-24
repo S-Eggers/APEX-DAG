@@ -1,16 +1,19 @@
 import re
+import logging
 import networkx as nx
 from typing import Optional
 from networkx import Graph, MultiDiGraph
 
-from ApexDAG.util.logging import setup_logging
 from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES, VERBOSE, DOMAIN_EDGE_TYPES
 from ApexDAG.sca.models import GraphNode, GraphEdge
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
 
 
 class State:
     def __init__(self, name: str, parent_context: Optional[str] = None) -> None:
-        self._logger = setup_logging("state.State", VERBOSE)
         self.edge_for_current_target: dict = {}
         self.variable_versions: dict = {}
         self.imported_names: dict = {}
@@ -309,7 +312,7 @@ class State:
                 
                 self._G.add_edge(source, target, key=key, **attrs)
         else:
-            self._logger.debug(
+            logger.debug(
                 "Ignoring edge %s -> %s with code %s", source, target, raw_code
             )
 
@@ -433,7 +436,7 @@ class State:
         for node_x in self.node_iterator():
             node_degrees = self.node_degree(node_x)
             if node_degrees["in"] == 0 and node_degrees["out"] == 0:
-                self._logger.debug("Removing node %s as it has no edges", node_x)
+                logger.debug("Removing node %s as it has no edges", node_x)
                 nodes_to_remove.append(node_x)
 
             node_data_x = self.get_node(node_x)
@@ -475,7 +478,7 @@ class State:
                             edge_label in node_x.lower()
                             or edge_label.replace(" ", "_") in node_x.lower()
                         ) and edge_data["edge_type"] == EDGE_TYPES["INPUT"]:
-                            self._logger.debug("Removing redundant input edge: %s", edge_label)
+                            logger.debug("Removing redundant input edge: %s", edge_label)
                             edges_to_remove.append((node_x, node_y, key))
 
         for node in nodes_to_remove:

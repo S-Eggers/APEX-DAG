@@ -1,15 +1,18 @@
 from contextlib import contextmanager
 from typing import Optional
 import networkx as nx
+import logging
 
-from ApexDAG.util.logging import setup_logging
 from ApexDAG.sca.constants import VERBOSE
 from ApexDAG.state.state import State
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
 
 
 class Stack:
     def __init__(self) -> None:
-        self._logger = setup_logging("state.Stack", VERBOSE)
 
         self.imported_names = {}
         self.import_from_modules = {}

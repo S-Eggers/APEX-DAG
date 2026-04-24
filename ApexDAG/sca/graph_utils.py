@@ -1,13 +1,16 @@
 import os
+import logging
 import networkx as nx
 from ApexDAG.util.draw import Draw
-from ApexDAG.util.logging import setup_logging
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
 
 
 def convert_multidigraph_to_digraph(
     G: nx.MultiDiGraph, node_types: dict, verbose=False
 ) -> nx.DiGraph:
-    logger = setup_logging("graph_utils", verbose=verbose)
     G = G.copy()
     new_G = nx.DiGraph()
 
@@ -101,8 +104,6 @@ def debug_graph(
     save_prev=False,
     verbose=False,
 ):
-    logger = setup_logging("graph_utils", verbose=verbose)
-
     if os.path.exists(prev_graph_path):
         prev_G = load_graph(prev_graph_path)
     elif save_prev:

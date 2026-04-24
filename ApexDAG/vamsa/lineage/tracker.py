@@ -5,7 +5,9 @@ from ..core.utils import remove_id
 from ..core.types import PRType
 from .traversal_rules import KBC, is_constant
 from .annotator import AnnotationWIR
+from ApexDAG.util.logger import configure_apexdag_logger
 
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 class ProvenanceTracker:

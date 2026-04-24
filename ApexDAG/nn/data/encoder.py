@@ -12,13 +12,16 @@ from ApexDAG.util.training_utils import (
     InsufficientPositiveEdgesException,
     GraphTransformsMode
 )
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
 
 class GraphEncoder:
     """Handles encoding of NetworkX graphs into PyTorch Geometric tensors."""
     def __init__(
         self,
         encoded_checkpoint_path: Path,
-        logger: logging.Logger,
         min_nodes: int,
         min_edges: int,
         load_encoded_old_if_exist: bool,
@@ -29,14 +32,13 @@ class GraphEncoder:
         self.mode = mode
         self.encoded_checkpoint_path = encoded_checkpoint_path
         self.encoded_graphs = []
-        self.logger = logger
         self.min_nodes = min_nodes
         self.min_edges = min_edges
         self.load_old_if_exist = load_encoded_old_if_exist
 
     def reload_encoded_graphs(self):
         if self.encoded_checkpoint_path.exists() and self.load_old_if_exist:
-            self.logger.info("Loading encoded graphs...")
+            logger.info("Loading encoded graphs...")
             return [
                 torch.load(self.encoded_checkpoint_path / path)
                 for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs")
@@ -50,11 +52,12 @@ class GraphEncoder:
         return graph.to_undirected().to_directed()
 
     def encode_graphs(self, graphs, feature_to_encode: str):
-        self.logger.info("Encoding graphs...")
+        logger.info("Encoding graphs...")
         os.makedirs(self.encoded_checkpoint_path, exist_ok=True)
-        encoder = Encoder(logger=self.logger)
+        encoder = Encoder()
 
-        for index, graph in tqdm.tqdm(enumerate(graphs), desc="Encoding graphs"):
+        for index, graph in enumerate(graphs):
+            logger.info(f"Encoding graph {index+1}/{len(graphs)}")
             if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
                 continue 
 
@@ -71,13 +74,13 @@ class GraphEncoder:
                 self.encoded_graphs.append(encoded_graph)
                 
             except KeyboardInterrupt:
-                self.logger.warning("Encoding interrupted, continuing with next graph...")
+                logger.warning("Encoding interrupted, continuing with next graph...")
                 continue
             except (InsufficientNegativeEdgesException, InsufficientPositiveEdgesException) as e:
-                self.logger.error(f"{e.__class__.__name__} in graph {index}")
+                logger.error(f"{e.__class__.__name__} in graph {index}")
                 continue
             except Exception:
-                self.logger.error(f"Error in graph {index}\n{traceback.format_exc()}")
+                logger.error(f"Error in graph {index}\n{traceback.format_exc()}")
                 continue
 
         return self.encoded_graphs

@@ -13,6 +13,10 @@ from torch_geometric.loader import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 from sklearn.metrics import confusion_matrix
 from ApexDAG.util.training_utils import GraphTransformsMode
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
 
 
 class BaseTrainer:
@@ -29,7 +33,6 @@ class BaseTrainer:
         lr=0.001,
         weight_decay=0.00001,
         graph_transform_mode=GraphTransformsMode.ORIGINAL,
-        logger=None,
     ):
         self.model = model.to(device)
         self.device = device
@@ -60,16 +63,6 @@ class BaseTrainer:
         ]  # defined in subclasses
         self.graph_transform_mode = graph_transform_mode
 
-        self.logger = logger  # get dfault logger if it is none
-        if logger is None:
-            self.logger = logging.getLogger(__name__)
-            handler = logging.StreamHandler()
-            formatter = logging.Formatter(
-                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-            )
-            handler.setFormatter(formatter)
-            self.logger.addHandler(handler)
-            self.logger.setLevel(logging.INFO)
 
     def save_checkpoint(self, epoch, val_loss, suffix_name="", filename=None):
         if filename is None:
@@ -98,7 +91,7 @@ class BaseTrainer:
                 outputs = self.model(data)
 
                 if pred_type not in outputs:
-                    self.logger.warning(
+                    logger.warning(
                         f"Prediction type '{pred_type}' not found in model outputs. Skipping."
                     )
                     return  # Skip logging for this pred_type

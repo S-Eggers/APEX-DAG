@@ -2,7 +2,9 @@ import logging
 import networkx as nx
 from typing import List, Tuple
 from ..core.types import PRType
+from ApexDAG.util.logger import configure_apexdag_logger
 
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 def add_to_stack(stack: list, item):

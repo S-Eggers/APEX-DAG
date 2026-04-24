@@ -3,8 +3,12 @@ import logging
 from ApexDAG.labeler.edge_labeler import EdgeLabeler
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
 from ApexDAG.labeler.heuristics import DegreeBasedHeuristic
+from ApexDAG.util.logger import configure_apexdag_logger
 
+
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
+
 
 class GATLabeler(EdgeLabeler):
     def __init__(self, model_dict: dict):

@@ -11,6 +11,11 @@ from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer, Pretrain
 from ApexDAG.nn.training.finetuning_trainer import FinetuningTrainer
 from ApexDAG.util.training_utils import GraphTransformsMode, DOMAIN_LABEL_TO_SUBSAMPLE
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
+
 
 class Modes(Enum):
     PRETRAINING = "pretraining"
@@ -18,10 +23,9 @@ class Modes(Enum):
 
 class GATTrainer:
     """Handles model training lifecycle, dataset splitting, and local metric tracking."""
-    def __init__(self, config: dict, logger: logging.Logger, mode: Modes):
+    def __init__(self, config: dict, mode: Modes):
         self.config = config
         self.mode = mode
-        self.logger = logger
         self.subsample_train = config.get("subsample", False)
         self.graph_transform_mode = config.get("mode", "ORIGINAL")
         self.subsample_threshold = self.config.get("subsample_thereshold", 0.999999) 
@@ -30,7 +34,7 @@ class GATTrainer:
         run_name = f"{self.mode.value}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.log_dir = os.path.join(self.config.get("log_dir", "runs"), run_name)
         self.writer = SummaryWriter(log_dir=self.log_dir)
-        self.logger.info(f"TensorBoard initialized. Run 'tensorboard --logdir={self.config.get('log_dir', 'runs')}' to view metrics.")
+        logger.info(f"TensorBoard initialized. Run 'tensorboard --logdir={self.config.get('log_dir', 'runs')}' to view metrics.")
 
     def split_and_subsample(self, dataset: GraphDataset, split_ratio: list, subsample: bool = False):
         train_dataset, val_dataset = random_split(dataset, split_ratio)
@@ -60,12 +64,12 @@ class GATTrainer:
             sample_data = encoded_graphs[0].to(device)
             self.writer.add_graph(model, sample_data)
         except Exception as e:
-            self.logger.warning(f"Could not log model graph to TensorBoard: {e}")
+            logger.warning(f"Could not log model graph to TensorBoard: {e}")
 
         dataset = GraphDataset(encoded_graphs)
 
         if self.mode == Modes.PRETRAINING:
-            self.logger.info("Training in pretraining mode")
+            logger.info("Training in pretraining mode")
             train_size = int(self.config["train_split"] * len(dataset))
             val_size = len(dataset) - train_size
             train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
@@ -78,12 +82,12 @@ class GATTrainer:
                 model, train_dataset, val_dataset, device=device,
                 patience=self.config["patience"], batch_size=self.config["batch_size"],
                 lr=self.config["learning_rate"], weight_decay=self.config["weight_decay"],
-                graph_transform_mode=graph_transform_mode, logger=self.logger,
+                graph_transform_mode=graph_transform_mode, logger=logger,
                 writer=self.writer # INJECT TENSORBOARD WRITER
             )
 
         elif self.mode == Modes.FINETUNING:
-            self.logger.info("Training in finetuning mode")
+            logger.info("Training in finetuning mode")
             train_size = int(self.config["train_split"] * len(dataset))
             test_size = int(self.config["test_split"] * len(dataset))
             val_size = len(dataset) - train_size - test_size
@@ -97,7 +101,7 @@ class GATTrainer:
                 model, train_dataset, val_dataset, test_dataset, device=device,
                 patience=self.config["patience"], batch_size=self.config["batch_size"],
                 lr=self.config["learning_rate"], weight_decay=self.config["weight_decay"],
-                graph_transform_mode=graph_transform_mode, logger=self.logger,
+                graph_transform_mode=graph_transform_mode, logger=logger,
                 writer=self.writer # INJECT TENSORBOARD WRITER
             )
             

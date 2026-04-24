@@ -5,6 +5,10 @@ from enum import Enum
 from pathlib import Path
 from dotenv import load_dotenv
 from typing import Optional, Dict
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
 
 try:
     from google import genai
@@ -24,9 +28,8 @@ class EmbeddingType(Enum):
     BERT = 6
 
 class Embedding:
-    def __init__(self, type: EmbeddingType, logger: logging.Logger, max_output_dim: int = 768):
+    def __init__(self, type: EmbeddingType, max_output_dim: int = 768):
         self.type = type
-        self.logger = logger
         self._model = None
         self._embedding_model_name = ""
         self._max_output_dim = max_output_dim
@@ -45,7 +48,7 @@ class Embedding:
             case EmbeddingType.FASTTEXT:
                 self._embedding_model_name = "cc.en.300.bin"
                 if self._embedding_model_name not in _model_cache:
-                    self.logger.info(f"Loading FastText model: {self._embedding_model_name}...")
+                    logger.info(f"Loading FastText model: {self._embedding_model_name}...")
                     import fasttext
                     
                     package_root = Path(__file__).parent.absolute()
@@ -55,9 +58,9 @@ class Embedding:
                         
                     try:
                         _model_cache[self._embedding_model_name] = fasttext.load_model(str(model_path))
-                        self.logger.info("FastText model loaded successfully.")
+                        logger.info("FastText model loaded successfully.")
                     except Exception as e:
-                        self.logger.error(f"Failed to load FastText model at {model_path}: {e}")
+                        logger.error(f"Failed to load FastText model at {model_path}: {e}")
                         raise
                 self._model = _model_cache[self._embedding_model_name]
 
@@ -67,7 +70,7 @@ class Embedding:
                 self._model = client.models
 
             case _:
-                self.logger.warning(f"Embedding initialization for {self.type} is not implemented.")
+                logger.warning(f"Embedding initialization for {self.type} is not implemented.")
 
     def _get_sentence_vector_fast_text(self, sequence: str) -> torch.Tensor:
         vector = self._model.get_sentence_vector(sequence)

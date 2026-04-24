@@ -10,18 +10,23 @@ from ApexDAG.util.training_utils import (
 )
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 from .embedding import Embedding, EmbeddingType
+from ApexDAG.util.logger import configure_apexdag_logger
+
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
+
+
 
 class Encoder:
     def __init__(
         self,
-        logger: logging.Logger = None,
         embedding_model: Embedding = None,
         nude_num_types_pretrain: int = 8,
         edge_num_types_pretrain: int = 6,
         min_edges: int = 2,
     ):
-        self.logger = logger or logging.getLogger(__name__)
-        self._embedding = embedding_model or Embedding(EmbeddingType.FASTTEXT, self.logger)
+        self._embedding = embedding_model or Embedding(EmbeddingType.FASTTEXT, logger)
         self.nude_num_types_pretrain = nude_num_types_pretrain
         self.edge_num_types_pretrain = edge_num_types_pretrain
         self.min_edges = min_edges
@@ -126,7 +131,7 @@ class Encoder:
             raise InsufficientNegativeEdgesException()
 
         if max_possible_edges < len(existing_edges) + num_neg_samples:
-            self.logger.warning(
+            logger.warning(
                 f"Not enough negative edges. Found {len(existing_edges)}, max {max_possible_edges}."
             )
             num_neg_samples = max_possible_edges - len(existing_edges)

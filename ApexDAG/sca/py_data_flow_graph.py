@@ -1,11 +1,10 @@
 import ast
 import networkx as nx
-from logging import Logger
+import logging
 from typing import Optional
 
 from ApexDAG.util.draw import Draw
 from ApexDAG.state import Stack, State
-from ApexDAG.util.logging import setup_logging
 
 from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES, VERBOSE
 from ApexDAG.sca.ast_graph import ASTGraph
@@ -30,14 +29,16 @@ from ApexDAG.sca.ast_utils import (
     get_base_name,
     process_arguments
 )
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
+logger = logging.getLogger(__name__)
+
 
 class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
     def __init__(self, notebook_path: str = "", replace_dataflow: bool = False) -> None:
         super().__init__()
         self._replace_dataflow = replace_dataflow
-        self._logger: Logger = setup_logging(
-            f"py_data_flow_graph {notebook_path}", VERBOSE
-        )
         self._state_stack: Stack = Stack()
         self._current_state: State = self._state_stack.get_current_state()
 

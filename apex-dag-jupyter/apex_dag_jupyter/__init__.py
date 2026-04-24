@@ -13,6 +13,7 @@ except ImportError:
 
 from ApexDAG.nn.models.gat_v1 import MultiTaskGATv1
 from ApexDAG.nn.data.encoder import GraphEncoder
+from ApexDAG.util.logger import configure_apexdag_logger
 from .handlers import setup_handlers
 from .config import APEXDAGConfig
 
@@ -61,7 +62,6 @@ def load_apex_model(logger: logging.Logger):
 
     graph_encoder = GraphEncoder(
         encoded_checkpoint_path,
-        logger,
         min_nodes=3,
         min_edges=2,
         load_encoded_old_if_exist=False,
@@ -81,8 +81,10 @@ def load_apex_model(logger: logging.Logger):
 
 def _load_jupyter_server_extension(server_app):
     """Registers the API handler to receive HTTP requests from the frontend extension."""
+    configure_apexdag_logger(server_app.log)
+    server_app.log.info("Registered apex_dag_jupyter server extension telemetry.")
+
     apex_model_content = load_apex_model(server_app.log)
-    
     if apex_model_content is None:
         server_app.log.warning("APEX-DAG Plugin initialized without ML capabilities due to missing assets.")
     

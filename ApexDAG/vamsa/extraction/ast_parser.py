@@ -5,8 +5,11 @@ from typing import Tuple, Optional
 
 from ..core.types import WIRNode, WIRNodeType, PRType
 from ..core.utils import add_id, flatten, is_empty_or_none_list
+from ApexDAG.util.logger import configure_apexdag_logger
 
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
+
 
 def extract_from_node(node: WIRNode, field: str) -> Optional[WIRNode]:
     """
