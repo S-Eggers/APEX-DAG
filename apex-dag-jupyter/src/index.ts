@@ -2,11 +2,7 @@ import {
   JupyterFrontEnd,
   JupyterFrontEndPlugin
 } from '@jupyterlab/application';
-import {
-  ICommandPalette,
-  MainAreaWidget,
-  CommandToolbarButton
-} from '@jupyterlab/apputils';
+import { ICommandPalette, MainAreaWidget } from '@jupyterlab/apputils';
 import { ILauncher } from '@jupyterlab/launcher';
 import { IMainMenu } from '@jupyterlab/mainmenu';
 import {
@@ -18,125 +14,15 @@ import { ISettingRegistry } from '@jupyterlab/settingregistry';
 import { toArray } from '@lumino/algorithm';
 import { Widget } from '@lumino/widgets';
 
-import { GraphWidget } from './components/widget/GraphWidget';
-import { EnvironmentWidget } from './components/widget/EnvironmentWidget';
 import CommandIDs from './types/CommandIDs';
 import ApexIcon from './utils/ApexIcon';
-import { updateGraphWidget } from './utils/GraphService';
-import updateEnvironmentWidget from './utils/updateEnvironmentWidget';
-
-class AppSettings {
-  debounceDelay = 1000;
-  replaceDataflowInUDFs = false;
-  highlightRelevantSubgraphs = false;
-  greedyNotebookExtraction = true;
-  llmClassification = false;
-
-  update(settings: ISettingRegistry.ISettings) {
-    this.debounceDelay =
-      (settings.get('debounceDelay').composite as number) ?? 1000;
-    this.replaceDataflowInUDFs =
-      (settings.get('replaceDataflowInUDFs').composite as boolean) ?? false;
-    this.highlightRelevantSubgraphs =
-      (settings.get('highlightRelevantSubgraphs').composite as boolean) ??
-      false;
-    this.greedyNotebookExtraction =
-      (settings.get('greedyNotebookExtraction').composite as boolean) ?? true;
-    this.llmClassification =
-      (settings.get('llmClassification').composite as boolean) ?? false;
-  }
-}
-
-type WidgetType =
-  | 'dataflow'
-  | 'lineage'
-  | 'environment'
-  | 'ast'
-  | 'vamsa'
-  | 'labeling';
-
-interface WidgetConfig {
-  type: WidgetType;
-  commandId: string;
-  label: string;
-  rank: number;
-  debouncedUpdate: boolean;
-  factory: () => Widget;
-  update: (
-    content: Widget,
-    nbPanel: NotebookPanel,
-    settings: AppSettings
-  ) => void;
-}
-
-const WIDGET_REGISTRY: WidgetConfig[] = [
-  {
-    type: 'ast',
-    commandId: CommandIDs.ast,
-    label: 'AST',
-    rank: 1,
-    debouncedUpdate: false,
-    factory: () => new GraphWidget('ast'),
-    update: (content, nbPanel, settings) => {
-      updateGraphWidget(content as GraphWidget, nbPanel, 'ast', settings);
-    }
-  },
-  {
-    type: 'dataflow',
-    commandId: CommandIDs.dataflow,
-    label: 'Dataflow',
-    rank: 2,
-    debouncedUpdate: false,
-    factory: () => new GraphWidget('dataflow'),
-    update: (content, nbPanel, settings) => {
-      updateGraphWidget(content as GraphWidget, nbPanel, 'dataflow', settings);
-    }
-  },
-  {
-    type: 'lineage',
-    commandId: CommandIDs.lineage,
-    label: 'Lineage',
-    rank: 3,
-    debouncedUpdate: true,
-    factory: () => new GraphWidget('lineage'),
-    update: (content, nbPanel, settings) => {
-      updateGraphWidget(content as GraphWidget, nbPanel, 'lineage', settings);
-    }
-  },
-  {
-    type: 'vamsa',
-    commandId: CommandIDs.vamsa,
-    label: 'Vamsa',
-    rank: 4,
-    debouncedUpdate: false,
-    factory: () => new GraphWidget('vamsa'),
-    update: (content, nbPanel, settings) => {
-      updateGraphWidget(content as GraphWidget, nbPanel, 'vamsa', settings);
-    }
-  },
-  {
-    type: 'labeling',
-    commandId: CommandIDs.labeling,
-    label: 'Annotate',
-    rank: 5,
-    debouncedUpdate: true,
-    factory: () => new GraphWidget('labeling'),
-    update: (content, nbPanel, settings) => {
-      updateGraphWidget(content as GraphWidget, nbPanel, 'labeling', settings);
-    }
-  },
-  {
-    type: 'environment',
-    commandId: CommandIDs.environment,
-    label: 'Environment',
-    rank: 6,
-    debouncedUpdate: false,
-    factory: () => new EnvironmentWidget(),
-    update: (content, nbPanel, settings) => {
-      updateEnvironmentWidget(content as EnvironmentWidget, nbPanel, settings);
-    }
-  }
-];
+import { AppSettings } from './settings/AppSettings';
+import {
+  WIDGET_REGISTRY,
+  WidgetConfig,
+  WidgetType
+} from './registry/WidgetRegistry';
+import { ApexNativeDropdownWidget } from './components/toolbar/ApexNativeDropdownWidget';
 
 const plugin: JupyterFrontEndPlugin<void> = {
   id: CommandIDs.plugin,
@@ -198,7 +84,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
           if (!wrapper.isAttached) {
             let attachOptions: any = {};
-
             let anchorRefId: string | undefined = undefined;
             for (const w of activeWrappers.values()) {
               if (w.isAttached && w !== wrapper) {
@@ -217,7 +102,6 @@ const plugin: JupyterFrontEndPlugin<void> = {
           }
 
           app.shell.activateById(wrapper.id);
-
           if (currentNb) triggerUpdate(config.type, currentNb);
         }
       });
@@ -253,21 +137,14 @@ const plugin: JupyterFrontEndPlugin<void> = {
     tracker.widgetAdded.connect((sender, notebookPanel) => {
       const names = toArray(notebookPanel.toolbar.names());
       const cellTypeIdx = names.indexOf('cellType');
-      let insertIdx = cellTypeIdx !== -1 ? cellTypeIdx + 1 : 10;
+      const insertIdx = cellTypeIdx !== -1 ? cellTypeIdx + 1 : 10;
 
-      WIDGET_REGISTRY.forEach(config => {
-        const button = new CommandToolbarButton({
-          commands: app.commands,
-          id: config.commandId,
-          label: config.label,
-          args: { isToolbar: true }
-        });
-        notebookPanel.toolbar.insertItem(
-          insertIdx++,
-          `apex-${config.type}-btn`,
-          button
-        );
-      });
+      const dropdownWidget = new ApexNativeDropdownWidget(app.commands);
+      notebookPanel.toolbar.insertItem(
+        insertIdx,
+        'apex-dag-dropdown',
+        dropdownWidget
+      );
 
       let debounceTimer: ReturnType<typeof setTimeout>;
 
