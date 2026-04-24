@@ -11,9 +11,8 @@ except ImportError:
     warnings.warn("Importing 'apex_dag_jupyter' outside a proper installation.")
     __version__ = "dev"
 
-from ApexDAG.nn.gat import MultiTaskGAT
-from ApexDAG.nn.training import GraphEncoder, Modes
-from ApexDAG.util.training_utils import TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN
+from ApexDAG.nn.models.gat_v1 import MultiTaskGATv1
+from ApexDAG.nn.data.encoder import GraphEncoder
 from .handlers import setup_handlers
 from .config import APEXDAGConfig
 
@@ -24,7 +23,8 @@ def _jupyter_server_extension_points():
     return [{"module": "apex_dag_jupyter"}]
 
 def create_model(config, reversed_mode, tasks):
-    return MultiTaskGAT(
+    # Enforces the v1 legacy architecture to support existing checkpoints
+    return MultiTaskGATv1(
         hidden_dim=config["hidden_dim"],
         dim_embed=config["dim_embed"],
         num_heads=config["num_heads"],

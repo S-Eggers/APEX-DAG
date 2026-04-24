@@ -25,8 +25,6 @@ setup(
         "fasttext==0.9.3",
         "pydantic==2.10.6",
         "dotenv==0.9.9",
-        "wandb",
-        "matplotlib",
     ],
     entry_points={
         "console_scripts": [
