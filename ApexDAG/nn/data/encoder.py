@@ -6,7 +6,7 @@ import tqdm
 from pathlib import Path
 import networkx as nx
 
-from ApexDAG.encoder import Encoder
+from ApexDAG.nn.data.tensor_encoder import Encoder
 from ApexDAG.util.training_utils import (
     InsufficientNegativeEdgesException,
     InsufficientPositiveEdgesException,

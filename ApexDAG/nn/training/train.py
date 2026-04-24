@@ -7,7 +7,7 @@ import wandb
 from pathlib import Path
 from torch.utils.data import random_split, Subset
 from enum import Enum
-from ApexDAG.encoder import Encoder
+from ApexDAG.sca.tensor_encoder import Encoder
 from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.nn.dataset import GraphDataset
 from ApexDAG.nn.training.pretraining_trainer import (
