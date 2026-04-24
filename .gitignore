@@ -215,3 +215,5 @@ debug_dfg.py
 
 yarn.lock
 tailwind-generated.css
+
+setup_dev.sh
