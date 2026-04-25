@@ -1,8 +1,8 @@
 from torch_geometric.loader import DataLoader
+
 from ApexDAG.nn.models.v2.gat import MultiTaskGATv2
 from ApexDAG.nn.models.v2.loss import MultiTaskUncertaintyLoss
 from ApexDAG.nn.trainer_v2 import ApexOnlineTrainer
-
 
 graph_files = []
 

@@ -1,24 +1,22 @@
-import os
-import re
+import concurrent.futures
 import json
-import time
 import logging
+import os
+import time
+
 import instructor
 import networkx as nx
-from tqdm import tqdm
-from typing import List
 from dotenv import load_dotenv
-import concurrent.futures
 from pydantic import TypeAdapter, ValidationError
+from tqdm import tqdm
 
-from ApexDAG.sca.graph_utils import load_graph
-from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.label_notebooks.message_template import generate_message
 from ApexDAG.label_notebooks.pydantic_models_multigraph import (
-    MultiLabelledEdge,
     MultiGraphContextWithSubgraphSearch,
+    MultiLabelledEdge,
     MultiSubgraphContext,
 )
+from ApexDAG.label_notebooks.utils import Config
 
 log_format = "{asctime} - {name} - {levelname} - {message}"
 logging.basicConfig(
@@ -120,7 +118,7 @@ class OnlineGraphLabeler:
         lines = sorted({line for edge in subgraph_edges for line in (edge.lineno or [])})
         if -1 in lines:
             return "\n".join(self.code_lines)
-        
+
         expanded_lines = sorted({
             line_offset
             for line in lines
@@ -135,7 +133,7 @@ class OnlineGraphLabeler:
         It is designed to be thread-safe by returning results instead of modifying the graph directly.
         """
         start_time = time.time()
-        
+
         for attempt in range(self.config.retry_attempts):
             try:
                 graph_context = self.get_input_subgraph(
@@ -166,7 +164,7 @@ class OnlineGraphLabeler:
                     time.sleep(self.config.retry_delay)
                 else:
                     raise e
-        
+
         raise RuntimeError(f"Failed to label edge {edge.source}->{edge.target} after all retries.")
 
 
@@ -188,7 +186,7 @@ class OnlineGraphLabeler:
                 total=len(edges_to_process),
                 desc="Labeling edges concurrently",
             )
-            
+
             for future in pbar:
                 edge_index, edge = future_to_edge_info[future]
                 try:
@@ -255,7 +253,7 @@ print(f"Accuracy: {accuracy_score(y_test, predictions)}")"""
         retry_delay=1,
         max_workers=10,
     )
-    
+
     labeler = OnlineGraphLabeler(config, dfg.get_graph(), dfg.code)
     G, G_with_context = labeler.label_graph()
 
@@ -264,6 +262,6 @@ print(f"Accuracy: {accuracy_score(y_test, predictions)}")"""
     for u, v, key, data in G.edges(data=True, keys=True):
         if "domain_label" in data:
             attrs_to_set[f"{u}->{v} ({key})"] = data["domain_label"]
-    
+
     print("\n--- Labeled Edges ---")
     print(json.dumps(attrs_to_set, indent=2))

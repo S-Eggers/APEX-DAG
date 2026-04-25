@@ -1,5 +1,7 @@
-from .ApexDAGBaseHandler import ApexDAGBaseHandler
 from ApexDAG.pipeline.environment_pipeline_factory import EnvironmentPipelineFactory
+
+from .ApexDAGBaseHandler import ApexDAGBaseHandler
+
 
 class EnvironmentHandler(ApexDAGBaseHandler):
     @property

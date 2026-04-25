@@ -1,8 +1,9 @@
-import os
-import yaml
-import torch
 import logging
+import os
 from pathlib import Path
+
+import torch
+import yaml
 
 try:
     from ._version import __version__
@@ -11,11 +12,13 @@ except ImportError:
     warnings.warn("Importing 'apex_dag_jupyter' outside a proper installation.")
     __version__ = "dev"
 
-from ApexDAG.nn.models.v1.gat import MultiTaskGATv1
 from ApexDAG.nn.data.v1.encoder import GraphEncoder
+from ApexDAG.nn.models.v1.gat import MultiTaskGATv1
 from ApexDAG.util.logger import configure_apexdag_logger
-from .handlers import setup_handlers
+
 from .config import APEXDAGConfig
+from .handlers import setup_handlers
+
 
 def _jupyter_labextension_paths():
     return [{"src": "labextension", "dest": "apex-dag-jupyter"}]
@@ -38,7 +41,7 @@ def create_model(config, reversed_mode, tasks):
 
 def load_apex_model(logger: logging.Logger):
     logger.info("APEX-DAG Plugin: Initializing ML Model...")
-    
+
     package_root = Path(__file__).parent.parent.absolute()
     config_path = package_root / "models" / "config" / "default_reversed.yaml"
     checkpoint_path = package_root / "models" / "checkpoints" / "model_epoch_finetuned_GraphTransformsMode.REVERSED_440.pt"
@@ -47,7 +50,7 @@ def load_apex_model(logger: logging.Logger):
         logger.error(f"APEX-DAG Plugin Error: Missing required ML assets. Looked in {package_root}/demo/")
         return None
 
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = yaml.safe_load(f)
 
     encoded_checkpoint_path = Path(config["encoded_checkpoint_path"])
@@ -62,7 +65,7 @@ def load_apex_model(logger: logging.Logger):
 
     model = create_model(config=config, reversed_mode=True, tasks=["node_classification"])
     logger.info("APEX-DAG Plugin: Loading Model Weights...")
-    
+
     checkpoint = torch.load(checkpoint_path, map_location=torch.device("cpu"))
     model.load_state_dict(checkpoint["model_state_dict"])
     model.to("cpu")
@@ -79,7 +82,7 @@ def _load_jupyter_server_extension(server_app):
     apex_model_content = load_apex_model(server_app.log)
     if apex_model_content is None:
         server_app.log.warning("APEX-DAG Plugin initialized without ML capabilities due to missing assets.")
-    
+
     setup_handlers(server_app.web_app, apex_model_content, server_app.config)
     name = "apex_dag_jupyter"
     server_app.log.info(f"Registered {name} server extension")

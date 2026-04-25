@@ -1,5 +1,5 @@
-import torch
 import networkx as nx
+import torch
 from torch.nn import Embedding
 from torch_geometric.nn.models import Node2Vec
 from torch_geometric.utils import from_networkx
@@ -13,7 +13,7 @@ def write_dict_to_file(file_path, dictionary):
 
 def load_dict_from_file(file_path):
     dictionary = dict()
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         for line in f:
             key, value = line.split(":")
             dictionary[key] = value.strip()

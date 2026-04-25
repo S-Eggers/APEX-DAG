@@ -1,8 +1,11 @@
 import json
 from pathlib import Path
+
 import tornado
-from .ApexDAGBaseHandler import ApexDAGBaseHandler
 from ApexDAG.pipeline.labeling_pipeline_factory import LabelingPipelineFactory
+
+from .ApexDAGBaseHandler import ApexDAGBaseHandler
+
 
 class LabelingPredictHandler(ApexDAGBaseHandler):
     @property
@@ -20,7 +23,7 @@ class LabelingPredictHandler(ApexDAGBaseHandler):
         if requested_filename:
             safe_base_dir = Path.home() / ".apexdag" / "annotations"
             secure_filename = Path(requested_filename).name
-            
+
             if secure_filename.endswith('.ipynb'):
                 json_filename = secure_filename.replace('.ipynb', '.json')
             else:
@@ -31,16 +34,16 @@ class LabelingPredictHandler(ApexDAGBaseHandler):
             if target_path.exists() and target_path.is_relative_to(safe_base_dir):
                 self.log.info(f"CACHE HIT: Loading JSON annotation for {secure_filename}")
                 try:
-                    with open(target_path, "r", encoding="utf-8") as f:
+                    with open(target_path, encoding="utf-8") as f:
                         cached_elements = json.load(f)
-                    
+
                     self.finish(json.dumps({
                         "message": "Loaded existing annotations from disk.",
                         "success": True,
-                        self.response_key: {"elements": cached_elements} 
+                        self.response_key: {"elements": cached_elements}
                     }))
-                    return  
-                
+                    return
+
                 except Exception as e:
                     self.log.error(f"Failed to load JSON: {e}. Falling back to ML.", exc_info=True)
 

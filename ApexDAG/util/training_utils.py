@@ -1,8 +1,9 @@
+import os
 import random
+from enum import Enum
+
 import numpy as np
 import torch
-from enum import Enum
-import os
 
 DOMAIN_LABEL_TO_SUBSAMPLE = "DATA_TRANSFORM"
 

@@ -1,9 +1,9 @@
+import logging
 import os
 import time
-import logging
 
 from ApexDAG.notebook import Notebook
-from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES
+from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES
 from ApexDAG.sca.graph_utils import debug_graph
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 

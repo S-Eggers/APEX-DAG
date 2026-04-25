@@ -1,10 +1,12 @@
 import re
+from textwrap import indent
+from typing import Literal
+
 import networkx as nx
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Literal, Union
-from textwrap import indent
-from ApexDAG.sca.constants import REVERSE_NODE_TYPES, REVERSE_EDGE_TYPES
+
 from ApexDAG.label_notebooks.message_template import DomainLabel
+from ApexDAG.sca.constants import REVERSE_EDGE_TYPES, REVERSE_NODE_TYPES
 
 
 class MultiNode(BaseModel):
@@ -23,8 +25,8 @@ class MultiEdge(BaseModel):
     target: str
     key: str
     edge_type: str
-    code: Optional[str] = None
-    lineno: Optional[List[int]] = None
+    code: str | None = None
+    lineno: list[int] | None = None
 
     def __str__(self) -> str:
         return f"Edge(source={self.source}, target={self.target}, key={self.key}, code={self.code}, edge_type={self.edge_type})"
@@ -41,11 +43,11 @@ class MultiLabelledEdge(BaseModel):
     key: str = Field(
         ..., description="Unique key for the edge between source and target."
     )
-    code: Optional[str] = Field(
+    code: str | None = Field(
         None, description="The code that connects the source and target nodes."
     )
     edge_type: str = Field(..., description="Type of the edge")
-    lineno: Optional[List[int]] = Field(
+    lineno: list[int] | None = Field(
         None,
         description="The line number of the code that connects the source and target nodes.",
     )
@@ -62,7 +64,7 @@ class MultiLabelledEdge(BaseModel):
         "MISSING",
         "MORE_CONTEXT_NEEDED",
     ] = Field(..., description="Domain-specific label for the edge.")
-    reasoning: Optional[str] = Field(
+    reasoning: str | None = Field(
         None, description="The reasoning provided by the LLM for the domain label."
     )
 
@@ -78,7 +80,7 @@ class MultiLabelledEdge(BaseModel):
 
     @classmethod
     def from_edge(
-        cls, edge: MultiEdge, domain_label: DomainLabel, reasoning: Optional[str] = None
+        cls, edge: MultiEdge, domain_label: DomainLabel, reasoning: str | None = None
     ) -> "MultiLabelledEdge":
         """Creates a MultiLabelledEdge from a MultiEdge and a domain label."""
         return cls(
@@ -95,10 +97,10 @@ class MultiLabelledEdge(BaseModel):
 
 class MultiGraphContext(BaseModel):
     """Represents the context of a full MultiDiGraph."""
-    nodes: List[MultiNode]
-    edges: List[Union[MultiEdge, MultiLabelledEdge]]
+    nodes: list[MultiNode]
+    edges: list[MultiEdge | MultiLabelledEdge]
 
-    edge_dict: Dict[str, Dict[str, Dict[int, int]]] = Field(default_factory=dict)
+    edge_dict: dict[str, dict[str, dict[int, int]]] = Field(default_factory=dict)
 
     def get_neighbors(self, node_id: str):
         """Finds neighbors (children and parents) of a given node."""
@@ -134,7 +136,7 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
         def dfs(current_node_id, current_depth):
             if current_depth > max_depth or current_node_id in visited:
                 return
-            
+
             subgraph_node_ids.add(current_node_id)
             visited.add(current_node_id)
 
@@ -177,12 +179,12 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
                     node_data.get("node_type"), "UNKNOWN"
                 ),
             )
-        
+
         def build_edge(
             source: str, target: str, key: int, edge_data: dict
         ) -> MultiEdge:
-            lineno_start: Optional[int] = edge_data.get("lineno")
-            lineno_end: Optional[int] = edge_data.get("end_lineno", lineno_start)
+            lineno_start: int | None = edge_data.get("lineno")
+            lineno_end: int | None = edge_data.get("end_lineno", lineno_start)
             lineno_range = (
                 list(range(lineno_start, lineno_end + 1))
                 if lineno_start is not None
@@ -205,7 +207,7 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
             build_edge(src, tgt, key, data)
             for src, tgt, key, data in G.edges(data=True, keys=True)
         ]
-        
+
         instance = cls(nodes=nodes, edges=edges)
         instance.populate_edge_dict()
         return instance
@@ -215,7 +217,7 @@ class MultiSubgraphContext(MultiGraphContext):
     """Represents the context of a specific subgraph for analysis."""
     edge_of_interest: tuple[str, str, str]
 
-    def get_input_dict(self) -> Dict:
+    def get_input_dict(self) -> dict:
         """Prepares the input for a model inference."""
         return self.model_dump()
 

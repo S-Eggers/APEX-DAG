@@ -1,5 +1,7 @@
-from .ApexDAGBaseHandler import ApexDAGBaseHandler
 from ApexDAG.pipeline.lineage_pipeline_factory import LineagePipelineFactory
+
+from .ApexDAGBaseHandler import ApexDAGBaseHandler
+
 
 class LineageHandler(ApexDAGBaseHandler):
     @property

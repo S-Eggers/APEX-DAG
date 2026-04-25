@@ -1,5 +1,7 @@
-from .ApexDAGBaseHandler import ApexDAGBaseHandler
 from ApexDAG.pipeline.dataflow_pipeline_factory import DataflowPipelineFactory
+
+from .ApexDAGBaseHandler import ApexDAGBaseHandler
+
 
 class DataflowHandler(ApexDAGBaseHandler):
     @property

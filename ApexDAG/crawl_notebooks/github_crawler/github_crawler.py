@@ -1,10 +1,11 @@
-import requests
-import time
-import nbformat
-import os
 import base64
 import logging
+import os
+import time
 from datetime import datetime
+
+import nbformat
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()

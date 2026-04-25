@@ -4,11 +4,10 @@ Propose, apply, and measure impact of KB changes
 """
 import json
 import os
-from typing import List, Optional
-from dataclasses import dataclass, asdict
 from copy import deepcopy
+from dataclasses import asdict, dataclass
+
 import pandas as pd
-from time import sleep
 
 from ApexDAG.vamsa.annotate_wir import KB
 from ApexDAG.vamsa.evaluate_kb import KBEvaluator
@@ -20,7 +19,7 @@ from ApexDAG.vamsa.kb_advancement.ProposalMaker import ProposalMaker
 class ChangeImpactReport:
     """Report showing impact of a KB change"""
     proposal: KBChangeProposal
-    
+
     # Before metrics
     baseline_avg_annotation_coverage: float
     baseline_avg_kb_hit_rate: float
@@ -28,7 +27,7 @@ class ChangeImpactReport:
     baseline_avg_c_minus: float
     # baseline_dead_entries: int
     baseline_unannotated_ops: int
-    
+
     # After metrics
     enhanced_avg_annotation_coverage: float
     enhanced_avg_kb_hit_rate: float
@@ -36,17 +35,17 @@ class ChangeImpactReport:
     enhanced_avg_c_minus: float
     # enhanced_dead_entries: int
     enhanced_unannotated_ops: int
-    
+
     # Deltas
     annotation_coverage_delta: float
     kb_hit_rate_delta: float
     c_plus_delta: float
     c_minus_delta: float
-    
+
     # Impact assessment
     impact_level: str  # "HIGH", "MEDIUM", "LOW", "NEGATIVE"
     recommendation: str
-    
+
     # Detailed reports
     enhanced_report_path: str
     comparison_report_path: str
@@ -54,21 +53,21 @@ class ChangeImpactReport:
 
 class KBChangeManager:
     """Manager for proposing and testing KB changes"""
-    
-    def __init__(self, baseline_kb: Optional[KB] = None, corpus_path: str = ""):
+
+    def __init__(self, baseline_kb: KB | None = None, corpus_path: str = ""):
         self.baseline_kb = baseline_kb if baseline_kb else KB()
         self.corpus_path = corpus_path
-        self.proposals: List[KBChangeProposal] = []
-        self.impact_reports: List[ChangeImpactReport] = []
-        
+        self.proposals: list[KBChangeProposal] = []
+        self.impact_reports: list[ChangeImpactReport] = []
+
     def propose_annotation_entry(
         self,
         library: str,
         api_name: str,
-        inputs: List[str],
-        outputs: List[str],
-        module: Optional[str] = None,
-        caller: Optional[str] = None,
+        inputs: list[str],
+        outputs: list[str],
+        module: str | None = None,
+        caller: str | None = None,
         rationale: str = "",
         expected_impact: str = ""
     ) -> KBChangeProposal:
@@ -87,15 +86,15 @@ class KBChangeManager:
         )
         self.proposals.append(proposal)
         return proposal
-    
+
     def propose_traversal_rule(
         self,
         api_name: str,
         column_exclusion: bool,
         traversal_rule_name: str,
-        library: Optional[str] = None,
-        module: Optional[str] = None,
-        caller: Optional[str] = None,
+        library: str | None = None,
+        module: str | None = None,
+        caller: str | None = None,
         rationale: str = "",
         expected_impact: str = ""
     ) -> KBChangeProposal:
@@ -114,26 +113,26 @@ class KBChangeManager:
         )
         self.proposals.append(proposal)
         return proposal
-    
+
     def load_proposals_from_json(self, json_path: str):
         """Load proposals from a JSON file"""
-        with open(json_path, 'r') as f:
+        with open(json_path) as f:
             data = json.load(f)
-        
+
         for item in data:
             proposal = KBChangeProposal(**item)
             self.proposals.append(proposal)
-    
+
     def save_proposals_to_json(self, json_path: str):
         """Save proposals to a JSON file"""
         with open(json_path, 'w') as f:
             json.dump([asdict(p) for p in self.proposals], f, indent=2)
-    
+
     def apply_proposal(self, proposalmaker: ProposalMaker, kb: KB, baseline_data: dict=None) -> KB:
         """Apply a proposal to create an enhanced KB"""
         enhanced_kb = deepcopy(kb)
         proposal = proposalmaker(KB=enhanced_kb, baseline_report=baseline_data)
-        
+
         if "annotation" in proposal.change_type:
             new_row = pd.DataFrame([{
                 "Library": proposal.library,
@@ -144,10 +143,10 @@ class KBChangeManager:
                 "Outputs": proposal.outputs
             }])
             enhanced_kb.knowledge_base = pd.concat(
-                [enhanced_kb.knowledge_base, new_row], 
+                [enhanced_kb.knowledge_base, new_row],
                 ignore_index=True
             )
-        
+
         elif proposal.change_type == "add_traversal":
             new_row = pd.DataFrame([{
                 "Library": proposal.library,
@@ -160,15 +159,15 @@ class KBChangeManager:
                 [enhanced_kb.knowledge_base_traversal, new_row],
                 ignore_index=True
             )
-            
+
             # Note: You'll need to manually add the actual traversal rule function
             # to the KBC dictionary in track_provenance.py
             print(f"WARNING: Traversal rule '{proposal.traversal_rule_name}' needs to be manually added to KBC in track_provenance.py")
-        
+
         return enhanced_kb, proposal
-    
+
     def evaluate_proposal(
-        self, 
+        self,
         proposal_object: KBChangeProposal,
         baseline_data: dict = None,
         output_dir: str = "output/proposals"
@@ -176,46 +175,46 @@ class KBChangeManager:
         """Evaluate the impact of a single proposal"""
         # Create output directory
         os.makedirs(output_dir, exist_ok=True)
-        
+
         # Sanitize filename
         safe_name = "temp_report"
-        
+
         # Baseline evaluation
         print("Step 1/3: Evaluating baseline KB...")
         evaluator_baseline = KBEvaluator(self.baseline_kb)
         baseline_reports = evaluator_baseline.evaluate_corpus(self.corpus_path)
         baseline_report_path = os.path.join(output_dir, f"{safe_name}_baseline.json")
         baseline_data = evaluator_baseline.generate_report(baseline_reports, baseline_report_path)
-                
+
         # Apply proposal
         print("\nStep 2/3: Applying proposal and creating enhanced KB...")
         enhanced_kb, proposal = self.apply_proposal(proposal_object, self.baseline_kb, baseline_data)
-                
+
         # Enhanced evaluation
         print("\nStep 3/3: Evaluating enhanced KB...")
         evaluator_enhanced = KBEvaluator(enhanced_kb)
         enhanced_reports = evaluator_enhanced.evaluate_corpus(self.corpus_path)
         enhanced_report_path = os.path.join(output_dir, f"{safe_name}_enhanced.json")
         enhanced_data = evaluator_enhanced.generate_report(enhanced_reports, enhanced_report_path)
-        
+
         # Calculate deltas
         annotation_coverage_delta = (
-            enhanced_data["summary"]["avg_annotation_coverage"] - 
+            enhanced_data["summary"]["avg_annotation_coverage"] -
             baseline_data["summary"]["avg_annotation_coverage"]
         )
         kb_hit_rate_delta = (
-            enhanced_data["summary"]["avg_kb_hit_rate"] - 
+            enhanced_data["summary"]["avg_kb_hit_rate"] -
             baseline_data["summary"]["avg_kb_hit_rate"]
         )
         c_plus_delta = (
-            enhanced_data["summary"]["avg_c_plus_size"] - 
+            enhanced_data["summary"]["avg_c_plus_size"] -
             baseline_data["summary"]["avg_c_plus_size"]
         )
         c_minus_delta = (
-            enhanced_data["summary"]["avg_c_minus_size"] - 
+            enhanced_data["summary"]["avg_c_minus_size"] -
             baseline_data["summary"]["avg_c_minus_size"]
         )
-        
+
         # Assess impact level
         impact_level = self._assess_impact_level(
             annotation_coverage_delta,
@@ -223,14 +222,14 @@ class KBChangeManager:
             c_plus_delta,
             c_minus_delta
         )
-        
+
         recommendation = self._generate_recommendation(
             impact_level,
             annotation_coverage_delta,
             kb_hit_rate_delta,
             proposal
         )
-        
+
         # Create impact report
         impact_report = ChangeImpactReport(
             proposal=proposal,
@@ -253,7 +252,7 @@ class KBChangeManager:
             enhanced_report_path=enhanced_report_path,
             comparison_report_path=os.path.join(output_dir, f"{safe_name}_comparison.json")
         )
-        
+
         # Save comparison report
         comparison_data = {
             "proposal": asdict(proposal),
@@ -268,31 +267,31 @@ class KBChangeManager:
             "baseline_summary": baseline_data["summary"],
             "enhanced_summary": enhanced_data["summary"]
         }
-        
+
         with open(impact_report.comparison_report_path, 'w') as f:
             json.dump(comparison_data, f, indent=2)
-        
+
         self.impact_reports.append(impact_report)
-        
+
         # Print summary
         self._print_impact_summary(impact_report)
-        
+
         if kb_hit_rate_delta < 0:
             print("WARNING: The proposed change resulted in a negative impact on KB performance. NOT adding to the running KB.")
             return impact_report, self.baseline_kb
-        
+
         else:
             print("The proposed change improved KB performance. ADDing to the running KB.")
             return impact_report, enhanced_kb
-        
+
         return impact_report
-    
-    def evaluate_all_proposals(self, output_dir: str = "output/proposals") -> List[ChangeImpactReport]:
+
+    def evaluate_all_proposals(self, output_dir: str = "output/proposals") -> list[ChangeImpactReport]:
         """Evaluate all pending proposals"""
         print(f"\n{'='*80}")
         print(f"EVALUATING {len(self.proposals)} PROPOSALS")
         print(f"{'='*80}\n")
-        
+
         impact_reports = []
         for i, proposal in enumerate(self.proposals, 1):
             print(f"\n[{i}/{len(self.proposals)}] Processing proposal...")
@@ -303,36 +302,36 @@ class KBChangeManager:
                 print(f"ERROR evaluating proposal: {e}")
                 import traceback
                 traceback.print_exc()
-        
+
         # Generate summary report
         self._generate_summary_report(impact_reports, output_dir)
-        
+
         return impact_reports
-    
+
     def _assess_impact_level(
-        self, 
+        self,
         annotation_delta: float,
         hit_rate_delta: float,
         c_plus_delta: float,
         c_minus_delta: float
     ) -> str:
         """Assess the impact level of a change"""
-        
+
         # Negative impact
         if annotation_delta < -0.01 or hit_rate_delta < -0.01:
             return "NEGATIVE"
-        
+
         # High impact: significant improvement in coverage or hit rate
         if annotation_delta > 0.1 or hit_rate_delta > 0.1:
             return "HIGH"
-        
+
         # Medium impact: moderate improvement
         if annotation_delta > 0.05 or hit_rate_delta > 0.05 or abs(c_plus_delta) > 5:
             return "MEDIUM"
-        
+
         # Low impact: minimal change
         return "LOW"
-    
+
     def _generate_recommendation(
         self,
         impact_level: str,
@@ -341,45 +340,45 @@ class KBChangeManager:
         proposal: KBChangeProposal
     ) -> str:
         """Generate recommendation based on impact"""
-        
+
         if impact_level == "NEGATIVE":
             return f"❌ REJECT - This change decreases performance (coverage: {annotation_delta:+.2%}, hit rate: {hit_rate_delta:+.2%})"
-        
+
         if impact_level == "HIGH":
             return f"✅ STRONGLY RECOMMEND - Significant improvement (coverage: {annotation_delta:+.2%}, hit rate: {hit_rate_delta:+.2%})"
-        
+
         if impact_level == "MEDIUM":
             return f"✅ RECOMMEND - Moderate improvement (coverage: {annotation_delta:+.2%}, hit rate: {hit_rate_delta:+.2%})"
-        
+
         if impact_level == "LOW":
             return f"⚠️ OPTIONAL - Minimal impact (coverage: {annotation_delta:+.2%}, hit rate: {hit_rate_delta:+.2%}). Consider if this entry will be used more in future datasets."
-        
+
         return "UNKNOWN"
-    
+
     def _print_impact_summary(self, report: ChangeImpactReport):
         """Print a summary of the impact report"""
         print(f"\n{'='*80}")
-        print(f"IMPACT SUMMARY")
+        print("IMPACT SUMMARY")
         print(f"{'='*80}")
         print(f"Proposal: {report.proposal.description}")
         print(f"Impact Level: {report.impact_level}")
-        print(f"\nMetric Changes:")
+        print("\nMetric Changes:")
         print(f"  Annotation Coverage: {report.baseline_avg_annotation_coverage:.2%} → {report.enhanced_avg_annotation_coverage:.2%} ({report.annotation_coverage_delta:+.2%})")
         print(f"  KB Hit Rate:         {report.baseline_avg_kb_hit_rate:.2%} → {report.enhanced_avg_kb_hit_rate:.2%} ({report.kb_hit_rate_delta:+.2%})")
         print(f"  Avg C+ Size:         {report.baseline_avg_c_plus:.1f} → {report.enhanced_avg_c_plus:.1f} ({report.c_plus_delta:+.1f})")
         print(f"  Avg C- Size:         {report.baseline_avg_c_minus:.1f} → {report.enhanced_avg_c_minus:.1f} ({report.c_minus_delta:+.1f})")
-        print(f"\nRecommendation:")
+        print("\nRecommendation:")
         print(f"  {report.recommendation}")
-        print(f"\nReports saved:")
+        print("\nReports saved:")
         print(f"  Enhanced: {report.enhanced_report_path}")
         print(f"  Comparison: {report.comparison_report_path}")
         print(f"{'='*80}\n")
-    
-    def _generate_summary_report(self, reports: List[ChangeImpactReport], output_dir: str):
+
+    def _generate_summary_report(self, reports: list[ChangeImpactReport], output_dir: str):
         """Generate a summary report of all proposals"""
-        
+
         summary_path = os.path.join(output_dir, "all_proposals_summary.json")
-        
+
         summary_data = {
             "total_proposals": len(reports),
             "by_impact_level": {
@@ -400,18 +399,18 @@ class KBChangeManager:
                 for r in reports
             ]
         }
-        
+
         with open(summary_path, 'w') as f:
             json.dump(summary_data, f, indent=2)
-        
+
         print(f"\n{'='*80}")
-        print(f"ALL PROPOSALS SUMMARY")
+        print("ALL PROPOSALS SUMMARY")
         print(f"{'='*80}")
         print(f"Total Proposals: {len(reports)}")
-        print(f"\nBy Impact Level:")
+        print("\nBy Impact Level:")
         for level, count in summary_data["by_impact_level"].items():
             print(f"  {level}: {count}")
-        print(f"\nTop 5 Recommendations:")
+        print("\nTop 5 Recommendations:")
         sorted_reports = sorted(reports, key=lambda r: r.annotation_coverage_delta, reverse=True)
         for i, report in enumerate(sorted_reports[:5], 1):
             print(f"  {i}. {report.proposal.description}")
@@ -422,7 +421,7 @@ class KBChangeManager:
 
 if __name__ == "__main__":
     import argparse
-    
+
     parser = argparse.ArgumentParser(
         description="KB Change Proposal Framework - Iteratively propose and evaluate KB improvements",
         formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -435,7 +434,7 @@ Examples:
   python propose_changes.py --corpus /path/to/sklearn --docs https://scikit-learn.org/stable/api/index.html --output output/sklearn
         """
     )
-    
+
     parser.add_argument(
         "--corpus",
         type=str,
@@ -468,10 +467,10 @@ Examples:
         default=None,
         help="Path to existing KB CSV to continue from (optional)"
     )
-    
+
     args = parser.parse_args()
-    
-    print("="*80)    
+
+    print("="*80)
     print("KB CHANGE PROPOSAL FRAMEWORK")
     print("="*80)
     print(f"Corpus: {args.corpus}")
@@ -479,37 +478,37 @@ Examples:
     print(f"Output: {args.output}")
     print(f"Iterations: {args.iterations}")
     print("="*80)
-    
+
     # Create manager
     if args.kb_path:
         print(f"Loading existing KB from: {args.kb_path}")
         running_KB = KB(kb_cs_path=args.kb_path)
     else:
         running_KB = KB()
-    
+
     # Ensure output directory exists
     os.makedirs(args.output, exist_ok=True)
-    
+
     # Run iterations
     for iteration in range(args.iterations):
         print(f"\n--- ITERATION {iteration+1} ---\n")
         manager = KBChangeManager(baseline_kb=running_KB, corpus_path=args.corpus)
-        
+
         # Propose a change
         proposal_object = ProposalMaker(link_to_documentation=args.documentation_link)
-        
+
         # Evaluate impact
         report, running_KB = manager.evaluate_proposal(proposal_object, output_dir=args.output)
-        
+
     print("\n=== DONE ===")
     print(f"Results in: {args.output}")
-    
+
     # Save final KB entries
     final_annotation_path = os.path.join(args.output, "final_annotation_kb.csv")
     final_traversal_path = os.path.join(args.output, "final_traversal_kb.csv")
-    
+
     running_KB.knowledge_base.to_csv(final_annotation_path, index=False)
     running_KB.knowledge_base_traversal.to_csv(final_traversal_path, index=False)
-    
+
     print(f"Annotation KB saved to: {final_annotation_path}")
     print(f"Traversal KB saved to: {final_traversal_path}")

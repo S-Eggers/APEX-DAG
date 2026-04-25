@@ -1,10 +1,12 @@
 import os
+
 import nbformat
 from tqdm import tqdm
-from ApexDAG.crawl_notebooks.utils import InvalidNotebookException
+
 from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import (
     JetbrainsNotebookProcessor,
 )
+from ApexDAG.crawl_notebooks.utils import InvalidNotebookException
 
 
 class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
@@ -45,7 +47,7 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
         if os.path.exists(local_notebook_path):
             self.logger.info(f"Loading notebook {filename} from cache.")
             try:
-                with open(local_notebook_path, 'r', encoding='utf-8') as f:
+                with open(local_notebook_path, encoding='utf-8') as f:
                     return nbformat.read(f, as_version=4)
             except Exception as e:
                 self.logger.warning(f"Could not read cached notebook {filename}. Refetching. Error: {e}")
@@ -57,7 +59,7 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
             notebook = self.get_notebook(file_url)
             if notebook is None:
                 raise InvalidNotebookException(f"Failed to fetch notebook {filename}")
-            
+
             # Save the downloaded notebook to the cache
             local_notebook_dir = os.path.dirname(local_notebook_path)
             if not os.path.exists(local_notebook_dir):

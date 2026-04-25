@@ -1,7 +1,7 @@
 import sys
 import time
-import matplotlib
 
+import matplotlib
 from ApexDAG.argparser import argparser
 from ApexDAG.util.logging import setup_logging
 

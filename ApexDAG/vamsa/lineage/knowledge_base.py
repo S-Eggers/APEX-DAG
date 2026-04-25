@@ -1,7 +1,10 @@
 import logging
+
 import pandas as pd
-from ..core.utils import remove_id
+
 from ApexDAG.util.logger import configure_apexdag_logger
+
+from ..core.utils import remove_id
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
@@ -21,7 +24,7 @@ class KB:
             except Exception as e:
                 logger.warning(f"Vamsa KB not found or failed to load. Operating with empty KB. Error: {e}")
                 self.knowledge_base = pd.DataFrame(columns=["Library", "Module", "Caller", "API Name", "Inputs", "Outputs"])
-        
+
         # Fallback built-in rules
         fallback_df = pd.DataFrame([
             {"Library": None, "Module": None, "Caller": "data", "API Name": "Subscript", "Inputs": ["selected columns"]},

@@ -1,10 +1,10 @@
-import os
-import torch
 import logging
 from enum import Enum
 from pathlib import Path
+
+import torch
 from dotenv import load_dotenv
-from typing import Optional, Dict
+
 from ApexDAG.util.logger import configure_apexdag_logger
 
 configure_apexdag_logger()
@@ -17,7 +17,7 @@ try:
 except ImportError:
     GOOGLE_AI_AVAILABLE = False
 
-_model_cache: Dict[str, any] = {}
+_model_cache: dict[str, any] = {}
 
 class EmbeddingType(Enum):
     FASTTEXT = 1
@@ -50,12 +50,12 @@ class Embedding:
                 if self._embedding_model_name not in _model_cache:
                     logger.info(f"Loading FastText model: {self._embedding_model_name}...")
                     import fasttext
-                    
+
                     package_root = Path(__file__).parent.absolute()
                     model_path = package_root / self._embedding_model_name
                     if not model_path.exists():
                         model_path = Path(self._embedding_model_name)
-                        
+
                     try:
                         _model_cache[self._embedding_model_name] = fasttext.load_model(str(model_path))
                         logger.info("FastText model loaded successfully.")
@@ -77,7 +77,7 @@ class Embedding:
         return torch.tensor(vector, dtype=torch.float32)
 
     def _get_sentence_vector_gemini(
-        self, sequence: str, config: Optional[types.EmbedContentConfig] = None
+        self, sequence: str, config: types.EmbedContentConfig | None = None
     ) -> torch.Tensor:
         result = self._model.embed_content(
             model=self._embedding_model_name, contents=sequence, config=config

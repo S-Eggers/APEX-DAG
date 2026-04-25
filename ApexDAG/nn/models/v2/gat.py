@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv
 
+
 class MultiTaskGATv2(torch.nn.Module):
     def __init__(
         self,
@@ -55,7 +56,7 @@ class MultiTaskGATv2(torch.nn.Module):
             x_residual = x
             x = F.dropout(x, p=self.dropout, training=self.training)
             x = F.gelu(conv(x, edge_index, edge_attr=edge_attr_proj))
-            x = x + x_residual 
+            x = x + x_residual
 
         node_logits = self.node_classifier(x)
         row, col = edge_index

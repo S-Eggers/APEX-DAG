@@ -1,14 +1,14 @@
 import ast
-from typing import Set, Tuple, List
+
 import networkx as nx
 
 from ..core.types import PRType, WIRNode
-from ..core.utils import remove_id, merge_prs, reset_vamsa_counter
+from ..core.utils import merge_prs, remove_id, reset_vamsa_counter
 from .ast_parser import GenPR
 from .filters import filter_PRs, fix_bibartie_issue_import_from, remove_assignments
 
 
-def construct_bipartite_graph(PRs: List[PRType]) -> Tuple[nx.DiGraph, Tuple[Set, Set, Set, Set]]:
+def construct_bipartite_graph(PRs: list[PRType]) -> tuple[nx.DiGraph, tuple[set, set, set, set]]:
     G = nx.DiGraph()
     input_nodes, operation_nodes, caller_nodes, output_nodes = set(), set(), set(), set()
 
@@ -19,7 +19,7 @@ def construct_bipartite_graph(PRs: List[PRType]) -> Tuple[nx.DiGraph, Tuple[Set,
         if O is not None: output_nodes.add(O)
 
         for input_node in [e for e in (I,) if e is not None]:
-            G.add_edge(input_node, p, edge_type=1, label="input") 
+            G.add_edge(input_node, p, edge_type=1, label="input")
         if c is not None:
             G.add_edge(c, p, edge_type=0, label="caller")
         if O is not None:
@@ -37,13 +37,13 @@ def construct_bipartite_graph(PRs: List[PRType]) -> Tuple[nx.DiGraph, Tuple[Set,
 
     return G, (input_nodes, output_nodes, caller_nodes, operation_nodes)
 
-def GenWIR(root: ast.AST) -> Tuple[nx.DiGraph, List[PRType], Tuple[Set, Set, Set, Set]]:
+def GenWIR(root: ast.AST) -> tuple[nx.DiGraph, list[PRType], tuple[set, set, set, set]]:
     """
     The main execution pipeline for the Extraction module.
     Parses the AST, filters PRs, and outputs the graph.
     """
     reset_vamsa_counter()
-    PRs: List[PRType] = []
+    PRs: list[PRType] = []
 
     # 1. AST Traversal
     for child in ast.iter_child_nodes(root):
@@ -58,5 +58,5 @@ def GenWIR(root: ast.AST) -> Tuple[nx.DiGraph, List[PRType], Tuple[Set, Set, Set
 
     # 3. Graph Assembly
     G, tuples = construct_bipartite_graph(PR_filtered_no_assign)
-    
+
     return G, PR_filtered_no_assign, tuples

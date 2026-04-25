@@ -10,22 +10,21 @@ Example run:
 python ApexDAG/crawl_notebooks/mining/mine_jetbrains_dataset_dataflow_graphs.py --greedy --stop_index 110000 --start_index 0
 """
 
-import os
 import argparse
-import time
+import os
 import random
+import time
 import traceback
-import pandas as pd
 
-from ApexDAG.notebook import Notebook
-from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
+import pandas as pd
 from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_iterator import (
     JetbrainsNotebookIterator,
 )
 from ApexDAG.crawl_notebooks.jetbrains_analysis.local_notebook_iterator import (
     LocalNotebookIterator,
 )
-
+from ApexDAG.notebook import Notebook
+from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -52,7 +51,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
     if args.iterator_type == "local":
         iterator = LocalNotebookIterator(
             local_path=args.local_path,
-            log_file=f"notebook_local_processor.log",
+            log_file="notebook_local_processor.log",
         )
     else:
         iterator = JetbrainsNotebookIterator(
@@ -130,7 +129,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
                 iterator.print(filename, f"Syntax error in notebook {notebook_url} ({e.__class__.__name__})")
             else:
                 iterator.print(filename, tb)  # this only prints to log!
-            
+
             iterator.print(filename, f"Error in notebook {notebook_url}")
             stats[filename]["dfg_extract_time"] = -float("inf")
             stats[filename]["keep"] = False

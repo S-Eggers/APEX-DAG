@@ -1,25 +1,27 @@
 import json
-import tornado
 from pathlib import Path
-from jupyter_server.base.handlers import APIHandler
+
+import tornado
 from ApexDAG.util.dataset_manager import DatasetManager
+from jupyter_server.base.handlers import APIHandler
+
 
 class LabelingNextHandler(APIHandler):
     @tornado.web.authenticated
     def post(self):
         try:
             input_data = self.get_json_body()
-            
+
             requested_raw_path = input_data.get("datasetPath", "raw_dataset")
-            
-            workspace_dir = Path.cwd() 
+
+            workspace_dir = Path.cwd()
             raw_dir = (workspace_dir / requested_raw_path).resolve()
-            
+
             if not raw_dir.is_relative_to(workspace_dir):
                 self.set_status(403)
                 self.finish(json.dumps({"success": False, "message": "Path traversal blocked."}))
                 return
-            
+
             annotations_dir = Path.home() / ".apexdag" / "annotations"
             annotations_dir.mkdir(parents=True, exist_ok=True)
 
@@ -27,7 +29,7 @@ class LabelingNextHandler(APIHandler):
 
             if not next_filename:
                 self.finish(json.dumps({
-                    "success": False, 
+                    "success": False,
                     "message": f"No more unannotated notebooks found in {raw_dir.name}."
                 }))
                 return
@@ -36,7 +38,7 @@ class LabelingNextHandler(APIHandler):
             relative_path = relative_path.replace("//", "/")
 
             self.finish(json.dumps({
-                "success": True, 
+                "success": True,
                 "path": relative_path,
                 "filename": next_filename
             }))

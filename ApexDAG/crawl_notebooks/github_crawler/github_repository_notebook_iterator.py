@@ -1,7 +1,9 @@
-from tqdm import tqdm
 import json
 import logging
+
 from dotenv import load_dotenv
+from tqdm import tqdm
+
 from ApexDAG.crawl_notebooks.github_crawler.github_crawler import GitHubCrawler
 
 load_dotenv()
@@ -48,7 +50,7 @@ class GithubRepositoryNotebookIterator(GitHubCrawler):
         Returns:
             list: A list of notebook files with their details.
         """
-        with open(self.notebook_paths, "r") as f:
+        with open(self.notebook_paths) as f:
             data = json.load(f)
         notebook_list = []
         for _, files in data.items():

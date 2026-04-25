@@ -1,10 +1,12 @@
 import re
+from textwrap import indent
+from typing import Literal
+
 import networkx as nx
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Literal
-from textwrap import indent
-from ApexDAG.sca.constants import REVERSE_NODE_TYPES, REVERSE_EDGE_TYPES
+
 from ApexDAG.label_notebooks.message_template import DomainLabel
+from ApexDAG.sca.constants import REVERSE_EDGE_TYPES, REVERSE_NODE_TYPES
 
 
 class Node(BaseModel):
@@ -19,8 +21,8 @@ class Edge(BaseModel):
     source: str
     target: str
     edge_type: str
-    code: Optional[str] = None
-    lineno: Optional[List[int]] = None
+    code: str | None = None
+    lineno: list[int] | None = None
 
     def __str__(self) -> str:
         return (
@@ -44,11 +46,11 @@ class LabelledEdge(BaseModel):
     target: str = Field(
         ..., description="Unique identifier for the target of the edge."
     )
-    code: Optional[str] = Field(
+    code: str | None = Field(
         None, description="The code that connects the source and target nodes."
     )
     edge_type: str = Field(..., description="Type of the edge")
-    lineno: Optional[List[int]] = Field(
+    lineno: list[int] | None = Field(
         None,
         description="The line number of the code that connects the source and target nodes.",
     )
@@ -65,7 +67,7 @@ class LabelledEdge(BaseModel):
         "MISSING",
         "MORE_CONTEXT_NEEDED",
     ] = Field(..., description="Domain-specific label for the edge.")
-    reasoning: Optional[str] = Field(None, description="The reasoning provided by the LLM for the domain label.")
+    reasoning: str | None = Field(None, description="The reasoning provided by the LLM for the domain label.")
 
     class Config:
         title = "LabelledEdge"
@@ -91,7 +93,7 @@ class LabelledEdge(BaseModel):
         )
 
     @classmethod
-    def from_edge(cls, edge: Edge, domain_label: DomainLabel, reasoning: Optional[str] = None) -> "LabelledEdge":
+    def from_edge(cls, edge: Edge, domain_label: DomainLabel, reasoning: str | None = None) -> "LabelledEdge":
         return cls(
             source=edge.source,
             target=edge.target,
@@ -104,10 +106,10 @@ class LabelledEdge(BaseModel):
 
 
 class GraphContext(BaseModel):
-    nodes: List[Node]
-    edges: List[Edge | LabelledEdge]
+    nodes: list[Node]
+    edges: list[Edge | LabelledEdge]
 
-    edge_dict: Dict[str, List[str]] = Field(default_factory=dict)
+    edge_dict: dict[str, list[str]] = Field(default_factory=dict)
 
     def get_neighbors(self, node_id: str):
         """Find neighbors (children and parents) of a given node."""
@@ -172,8 +174,8 @@ class GraphContextWithSubgraphSearch(GraphContext):
             )
 
         def build_edge(source: str, target: str, edge_data: dict) -> Edge:
-            lineno_start: Optional[int] = edge_data.get("lineno")
-            lineno_end: Optional[int] = edge_data.get("end_lineno", lineno_start)
+            lineno_start: int | None = edge_data.get("lineno")
+            lineno_end: int | None = edge_data.get("end_lineno", lineno_start)
             lineno_range = (
                 list(range(lineno_start, lineno_end + 1))
                 if lineno_start is not None
@@ -197,7 +199,7 @@ class GraphContextWithSubgraphSearch(GraphContext):
 class SubgraphContext(GraphContext):
     edge_of_interest: tuple[str, str]
 
-    def get_input_dict(self) -> Dict:
+    def get_input_dict(self) -> dict:
         """Prepare the input for the Groq API or model inference."""
         return self.model_dump()
 

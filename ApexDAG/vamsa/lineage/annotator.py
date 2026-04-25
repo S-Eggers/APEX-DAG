@@ -1,8 +1,10 @@
 import logging
+
 import networkx as nx
-from typing import List, Tuple
-from ..core.types import PRType
+
 from ApexDAG.util.logger import configure_apexdag_logger
+
+from ..core.types import PRType
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
@@ -19,7 +21,7 @@ class AnnotationWIR:
     """
     Annotates the WIR using the Vamsa Annotation algorithm via the provided Knowledge Base.
     """
-    def __init__(self, wir: nx.DiGraph, prs: List[PRType], knowledge_base):
+    def __init__(self, wir: nx.DiGraph, prs: list[PRType], knowledge_base):
         self.wir = wir
         self.prs = prs
         self.knowledge_base = knowledge_base
@@ -37,15 +39,15 @@ class AnnotationWIR:
         for vs in seed_set:
             library, module = self.extract_library_and_module(vs)
             forward_stack = [vs]
-            
+
             while forward_stack:
                 node = forward_stack.pop(0)
                 inputs, caller, process, outputs = self._extract_pr_elements(node)
-                
+
                 if self.check_if_visited(process):
                     continue
                 self.visit_node(process)
-                
+
                 context = self._get_annotation(caller)
                 if isinstance(context, list):
                     for subcontext in context:
@@ -53,7 +55,7 @@ class AnnotationWIR:
                         if input_annotations or annotations_output: break
                 else:
                     input_annotations, annotations_output = self.knowledge_base(library, module, context, process)
-                
+
                 for vo, annotation_output in zip(outputs, annotations_output):
                     self._annotate_node(vo, annotation_output)
 

@@ -1,6 +1,7 @@
 import argparse
-import os
 import concurrent.futures
+import os
+
 from ApexDAG.crawl_notebooks.jetbrains_analysis.jetbrains_notebook_processor import (
     JetbrainsNotebookProcessor,
 )

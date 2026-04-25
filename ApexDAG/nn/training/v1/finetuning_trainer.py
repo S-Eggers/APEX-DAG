@@ -1,8 +1,10 @@
 import os
+
 import torch
 import wandb
-from ApexDAG.nn.training.base_trainer import BaseTrainer
 from torch_geometric.loader import DataLoader
+
+from ApexDAG.nn.training.base_trainer import BaseTrainer
 
 
 class FinetuningTrainer(BaseTrainer):

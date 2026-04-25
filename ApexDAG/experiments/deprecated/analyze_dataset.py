@@ -1,11 +1,11 @@
+import logging
 import os
 import sys
-import logging
-import pandas as pd
 
+import pandas as pd
 from ApexDAG.notebook import Notebook
-from ApexDAG.util.notebook_stat_miner import NotebookStatMiner
 from ApexDAG.util.kaggle_dataset_iterator import KaggleDatasetIterator
+from ApexDAG.util.notebook_stat_miner import NotebookStatMiner
 
 
 def analyze_kaggle_dataset(args, logger: logging.Logger) -> None:

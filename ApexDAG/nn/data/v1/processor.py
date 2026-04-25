@@ -1,8 +1,9 @@
 import logging
 import traceback
-import tqdm
 from pathlib import Path
+
 import networkx as nx
+import tqdm
 
 from ApexDAG.sca.graph_utils import load_graph
 from ApexDAG.util.logger import configure_apexdag_logger

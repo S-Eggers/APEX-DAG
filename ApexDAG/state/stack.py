@@ -1,9 +1,8 @@
-from contextlib import contextmanager
-from typing import Optional
-import networkx as nx
 import logging
+from contextlib import contextmanager
 
-from ApexDAG.sca.constants import VERBOSE
+import networkx as nx
+
 from ApexDAG.state.state import State
 from ApexDAG.util.logger import configure_apexdag_logger
 
@@ -35,9 +34,9 @@ class Stack:
     @nested.setter
     def nested(self, nested: bool) -> None:
         self._nested = nested
-        
+
     def create_child_state(
-        self, context: str = None, parent_context: Optional[str] = None
+        self, context: str = None, parent_context: str | None = None
     ) -> None:
         if context in self._state:
             raise ValueError(f"State {context} already exists")
@@ -50,7 +49,7 @@ class Stack:
         self._current_state = context
 
     @contextmanager
-    def scope(self, context: str, parent_context: Optional[str] = None):
+    def scope(self, context: str, parent_context: str | None = None):
         """
         Guarantees safe state transitions. Automatically builds the child state, 
         yields it to the AST visitor, and securely restores the parent context on exit, 
@@ -64,7 +63,7 @@ class Stack:
 
     def add_class_instance(self, instance: str, class_name: str):
         self.instances[instance] = class_name
-        
+
     def restore_state(self, context: str) -> None:
         if context in self._state:
             self._current_state = context
@@ -84,12 +83,12 @@ class Stack:
 
         base_state = self._state[base_context]
         base_state.merge(args, cell_id=cell_id)
-        
+
         self._current_state = base_context
-        
+
     def merge_class_method_state(
-        self, 
-        base_context: str, 
+        self,
+        base_context: str,
         method_state: "State",
         method_name: str,
         edge_type: str,
@@ -111,10 +110,10 @@ class Stack:
             raise ValueError(f"No state {base_context} to merge")
 
         base_state = self._state[base_context]
-        
+
         # Get method's graph
         method_graph = method_state.get_graph()
-        
+
         # Build node mapping for self.* to instance_name.*
         node_mapping = {}
         if instance_name:
@@ -124,14 +123,14 @@ class Stack:
                     attr_name = node.replace("self", "")
                     instance_attr = f"{instance_name}{attr_name}"
                     node_mapping[node] = instance_attr
-                    
+
                     if self._state['module'].current_target not in self._state['module'].variable_versions:
                         self._state['module'].variable_versions[self._state['module'].current_target] = []
                     self._state['module'].variable_versions[self._state['module'].current_target].append(instance_attr)
-        
+
         # Create a new graph with renamed nodes for merging
         renamed_graph = nx.MultiDiGraph()
-        
+
         # Add all nodes with mapping applied
         for node, node_attrs in method_graph.nodes(data=True):
             mapped_node = node_mapping.get(node, node)
@@ -140,26 +139,26 @@ class Stack:
             if node in node_mapping:
                 attrs_copy["label"] = mapped_node
             renamed_graph.add_node(mapped_node, **attrs_copy)
-        
+
         # Add all edges with mapping applied to both source and target
         for source, target, key, edge_data in method_graph.edges(keys=True, data=True):
             mapped_source = node_mapping.get(source, source)
             mapped_target = node_mapping.get(target, target)
             renamed_graph.add_edge(mapped_source, mapped_target, key=key, **edge_data)
-        
+
         # Update variable versions - create mapped version
         new_variable_versions = {}
         for var_name, versions in method_state.variable_versions.items():
             if var_name == "self":
                 continue  # Skip self parameter
-            
+
             mapped_versions = []
             for version in versions:
                 if version in node_mapping:
                     mapped_versions.append(node_mapping[version])
                 else:
                     mapped_versions.append(version)
-            
+
             # Determine the variable name in base context
             if any(v in node_mapping for v in versions):
                 # This is an instance attribute
@@ -170,34 +169,34 @@ class Stack:
                 )
             else:
                 base_var_name = var_name
-            
+
             new_variable_versions[base_var_name] = mapped_versions
-        
+
         for var_name, versions in new_variable_versions.items():
             if var_name in base_state.variable_versions:
                 last_var = base_state.variable_versions[var_name][-1]
                 new_var = versions[0]
-                
+
                 base_state.add_edge(
-                    source=last_var, 
-                    target=new_var, 
-                    label=method_name, 
+                    source=last_var,
+                    target=new_var,
+                    label=method_name,
                     edge_type=edge_type,
                     raw_code=method_name,
                     cell_id=cell_id
                 )
             else:
                 base_state.variable_versions[var_name] = versions
-        
+
         # Compose the renamed graph into base state
         base_state._G = nx.compose(base_state._G, renamed_graph)
-        
+
         self._current_state = base_context
 
     def get_current_state(self) -> State:
         return self._state[self._current_state]
 
-    def get_last_variable_version(self, variable: str, max_depth: int = 99) -> Optional[str]:
+    def get_last_variable_version(self, variable: str, max_depth: int = 99) -> str | None:
         current_state = self.get_current_state()
         if variable in current_state.variable_versions:
             return current_state.variable_versions.get(variable)[-1]

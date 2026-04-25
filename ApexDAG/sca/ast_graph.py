@@ -1,9 +1,10 @@
 import ast
+from abc import ABC
+from copy import deepcopy
+
 import networkx as nx
 from tqdm import tqdm
-from typing import List
-from copy import deepcopy
-from abc import ABC, abstractmethod
+
 from ApexDAG.notebook import Notebook
 
 
@@ -71,28 +72,28 @@ class ASTGraph(ABC):
         """
         self.cells = cells
         self.code = ""
-        
+
         self.current_cell_id = "global_notebook"
         self.current_cell_source = "<notebook_root>"
         master_root_id = self.create_notebook_root()
-        
+
         for cell in cells:
             self.current_cell_id = cell.get("cell_id", "legacy_fallback")
             source = cell.get("source", "")
-            
-            self.current_cell_source = source  
+
+            self.current_cell_source = source
             self.code += source + "\n"
-            
+
             if not source.strip():
                 continue
-                
+
             try:
                 abstract_syntax_tree = ast.parse(source)
                 cell_module_id = self.visit(abstract_syntax_tree)
-                
+
                 if master_root_id is not None and cell_module_id is not None:
                     self.connect_notebook_root(master_root_id, cell_module_id)
-                
+
             except SyntaxError as e:
                 raise SyntaxError(f"SyntaxError in cell {self.current_cell_id}: {e}")
 
@@ -168,11 +169,11 @@ class ASTGraph(ABC):
             end_col_offset.
         """
         source_to_use = getattr(self, "current_cell_source", None) or self.code
-        
+
         lines = source_to_use.splitlines()
         if not lines or node.lineno > len(lines):
             return ""
-            
+
         return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
     def draw(self):
@@ -192,7 +193,7 @@ class ASTGraph(ABC):
         """
         pass
 
-    def get_nodes(self) -> List[nx.classes.reportviews.NodeView]:
+    def get_nodes(self) -> list[nx.classes.reportviews.NodeView]:
         """
         Retrieves a list of all nodes present in the graph.
 
@@ -215,7 +216,7 @@ class ASTGraph(ABC):
         self._check_graph_status()
         return self._G.nodes
 
-    def get_edges(self) -> List[nx.classes.reportviews.EdgeView]:
+    def get_edges(self) -> list[nx.classes.reportviews.EdgeView]:
         """
         Retrieves a list of all edges present in the graph.
 
@@ -238,7 +239,7 @@ class ASTGraph(ABC):
         self._check_graph_status()
         return self._G.edges
 
-    def get_leaf_nodes(self) -> List[nx.classes.reportviews.NodeView]:
+    def get_leaf_nodes(self) -> list[nx.classes.reportviews.NodeView]:
         """
         Retrieves a list of leaf nodes present in the graph.
 
@@ -260,7 +261,7 @@ class ASTGraph(ABC):
         self._check_graph_status()
         return self._leaf_nodes
 
-    def get_t2t_paths(self, max_depth=5) -> List[List[int]]:
+    def get_t2t_paths(self, max_depth=5) -> list[list[int]]:
         """
         Retrieves all simple paths between leaf nodes in the graph up to a specified maximum depth.
 

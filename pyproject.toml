@@ -14,7 +14,7 @@ dependencies = [
     "jupyter>=1.0.0",
     "nbformat>=5.10.0",
     "networkx>=3.3",
-    "numpy>=1.26.4,<2.0.0", 
+    "numpy>=1.26.4,<2.0.0",
     "pandas>=2.2.0",
     "pydantic>=2.10.0",
     "python-dotenv>=1.0.0",
@@ -25,35 +25,29 @@ dependencies = [
     "torchaudio>=2.11.0",
     "torchvision>=0.26.0",
     "tqdm>=4.66.0",
+    "transformers>=5.6.2",
+]
+
+[dependency-groups]
+dev = [
+    "ruff>=0.15.12",
 ]
 
 [build-system]
 requires = ["setuptools>=61.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools.packages.find]
+include = ["ApexDAG", "ApexDAG.*"]
+
 [tool.ruff]
-src = ["ApexDAG", "tests"]
+src = ["ApexDAG", "apex-dag-jupyter"]
 line-length = 88
 indent-width = 4
-exclude = [
-    ".git",
-    ".ruff_cache",
-    "__pypackages__",
-    "build",
-    "dist",
-    "node_modules",
-    ".venv",
-    "apex-dag-jupyter",
-    "jetbains_dfg_100k_new",
-    "data",
-    "demo",
-    "output",
-    "sample_output"
-]
 
 [tool.ruff.lint]
-select = ["E", "F", "W", "I", "B"]
-ignore = ["ARG001", "ARG002"]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "ANN"]
+ignore = []
 
 [tool.ruff.format]
 quote-style = "double"

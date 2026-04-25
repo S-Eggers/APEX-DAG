@@ -1,10 +1,10 @@
-import torch
 import logging
-from ApexDAG.labeler.edge_labeler import EdgeLabeler
-from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
-from ApexDAG.labeler.heuristics import DegreeBasedHeuristic
-from ApexDAG.util.logger import configure_apexdag_logger
 
+import torch
+from ApexDAG.labeler.edge_labeler import EdgeLabeler
+from ApexDAG.labeler.heuristics import DegreeBasedHeuristic
+from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
+from ApexDAG.util.logger import configure_apexdag_logger
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ class GATLabeler(EdgeLabeler):
         """
         self.encoder = model_dict["encoder"]
         self.model = model_dict["model"]
-        
+
         self.device = next(self.model.parameters()).device
         self.heuristic = DegreeBasedHeuristic(device=self.device)
 
@@ -35,7 +35,7 @@ class GATLabeler(EdgeLabeler):
 
         with torch.no_grad():
             output = self.model(graph_encoded)
-            probabilities = output["node_type_preds"] 
+            probabilities = output["node_type_preds"]
 
             if len(probabilities) != len(graph_edges_list):
                 logger.error(

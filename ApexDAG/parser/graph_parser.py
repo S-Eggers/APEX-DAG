@@ -1,4 +1,3 @@
-import abc
 
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
 

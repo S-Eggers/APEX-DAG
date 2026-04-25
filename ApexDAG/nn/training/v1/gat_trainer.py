@@ -1,17 +1,20 @@
-import os
 import logging
-from enum import Enum
-from pathlib import Path
+import os
 from datetime import datetime
-from torch.utils.data import random_split, Subset
+from enum import Enum
+
+from torch.utils.data import Subset, random_split
 from torch.utils.tensorboard import SummaryWriter
 
 from ApexDAG.nn.dataset import GraphDataset
-from ApexDAG.nn.training.pretraining_trainer import PretrainingTrainer, PretrainingTrainerMasked
 from ApexDAG.nn.training.finetuning_trainer import FinetuningTrainer
-from ApexDAG.util.training_utils import GraphTransformsMode, DOMAIN_LABEL_TO_SUBSAMPLE
+from ApexDAG.nn.training.pretraining_trainer import (
+    PretrainingTrainer,
+    PretrainingTrainerMasked,
+)
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 from ApexDAG.util.logger import configure_apexdag_logger
+from ApexDAG.util.training_utils import DOMAIN_LABEL_TO_SUBSAMPLE, GraphTransformsMode
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
@@ -28,9 +31,9 @@ class GATTrainer:
         self.mode = mode
         self.subsample_train = config.get("subsample", False)
         self.graph_transform_mode = config.get("mode", "ORIGINAL")
-        self.subsample_threshold = self.config.get("subsample_thereshold", 0.999999) 
+        self.subsample_threshold = self.config.get("subsample_thereshold", 0.999999)
         self.trainer = None
-        
+
         run_name = f"{self.mode.value}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
         self.log_dir = os.path.join(self.config.get("log_dir", "runs"), run_name)
         self.writer = SummaryWriter(log_dir=self.log_dir)
@@ -54,7 +57,7 @@ class GATTrainer:
                 ]
             else:
                 filtered_indices = train_dataset.indices
-                
+
             train_dataset = Subset(dataset, filtered_indices)
 
         return train_dataset, val_dataset
@@ -104,7 +107,7 @@ class GATTrainer:
                 graph_transform_mode=graph_transform_mode, logger=logger,
                 writer=self.writer # INJECT TENSORBOARD WRITER
             )
-            
+
         best_loss = self.trainer.train(num_epochs=self.config["num_epochs"])
 
         for type_conf_matrix in self.trainer.conf_matrices_types:

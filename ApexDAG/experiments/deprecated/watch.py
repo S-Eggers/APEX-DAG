@@ -1,11 +1,11 @@
+import logging
 import os
 import time
-import logging
-from watchdog.observers import Observer
-from watchdog.events import FileSystemEventHandler
 
 from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 
 
 class NotebookHandler(FileSystemEventHandler):

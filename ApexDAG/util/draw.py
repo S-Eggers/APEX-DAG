@@ -1,8 +1,7 @@
-import os
 import json
-import numpy as np
+import os
+
 import networkx as nx
-from networkx.drawing.nx_agraph import graphviz_layout
 
 
 class Draw:
@@ -61,30 +60,30 @@ class Draw:
         """
         import json
         elements = []
-        
+
         for node, data in G.nodes(data=True):
             payload = {
                 "id": str(node),
                 "node_type": 0,
                 "label": str(node)
             }
-            
+
             payload.update(data)
-            
+
             elements.append({"data": payload})
 
         # Convert edges
         for src, tgt, data in G.edges(data=True):
             payload = {
-                "source": str(src), 
+                "source": str(src),
                 "target": str(tgt),
                 "edge_type": 0,
                 "label": "edge"
             }
-            
+
             safe_data = {k: v for k, v in data.items() if k != "id"}
             payload.update(safe_data)
-            
+
             elements.append({"data": payload})
 
         return json.dumps({"elements": elements})

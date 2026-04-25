@@ -1,17 +1,17 @@
 import ast
 import itertools
 import logging
-from typing import Tuple, Optional
 
-from ..core.types import WIRNode, WIRNodeType, PRType
-from ..core.utils import add_id, flatten, is_empty_or_none_list
 from ApexDAG.util.logger import configure_apexdag_logger
+
+from ..core.types import PRType, WIRNode
+from ..core.utils import add_id, flatten, is_empty_or_none_list
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 
-def extract_from_node(node: WIRNode, field: str) -> Optional[WIRNode]:
+def extract_from_node(node: WIRNode, field: str) -> WIRNode | None:
     """
     Extracts specific structural elements (operation, input, output, caller) from an AST node.
     WARNING: Highly complex match/case structure inherited from original Vamsa implementation.
@@ -78,7 +78,7 @@ def extract_from_node(node: WIRNode, field: str) -> Optional[WIRNode]:
             if field == "operation": return WIRNode(ast_node.__class__.__name__ + add_id())
         case "keyword":
             if field == "input": return WIRNode(ast_node.value)
-            elif field == "output": 
+            elif field == "output":
                 if ast_node.arg is not None: return WIRNode(ast_node.arg + add_id())
             elif field == "operation": return WIRNode(ast_node.__class__.__name__ + add_id())
         case "ListComp":
@@ -101,11 +101,11 @@ def extract_from_node(node: WIRNode, field: str) -> Optional[WIRNode]:
             if field == "operation": return WIRNode(ast_node.__class__.__name__ + add_id())
         case _:
             pass
-            
+
     return WIRNode(None)
 
 
-def GenPR(v: WIRNode, PRs: list[PRType]) -> Tuple[WIRNode, list[PRType]]:
+def GenPR(v: WIRNode, PRs: list[PRType]) -> tuple[WIRNode, list[PRType]]:
     """
     Recursively processes an AST node to generate WIR variables and append to PRs.
     """
@@ -149,5 +149,5 @@ def GenPR(v: WIRNode, PRs: list[PRType]) -> Tuple[WIRNode, list[PRType]]:
 
     for _i, _c, _p, _o in itertools.product(input_nodes, caller_nodes, operation_nodes, output_nodes):
         PRs.append((_i, _c, _p, _o))
-        
+
     return O, PRs

@@ -1,6 +1,8 @@
-import os
 import logging
+import os
+
 import networkx as nx
+
 from ApexDAG.util.draw import Draw
 from ApexDAG.util.logger import configure_apexdag_logger
 
@@ -17,7 +19,7 @@ def convert_multidigraph_to_digraph(
     errors = []
     for node, attrs in G.nodes(data=True):
         if "label" not in attrs:
-            errors.append(f"Node {node} is missing attribute(s): {str(attrs)}")
+            errors.append(f"Node {node} is missing attribute(s): {attrs!s}")
         else:
             new_G.add_node(node, **attrs)
 
@@ -47,7 +49,7 @@ def convert_multidigraph_to_digraph(
                 if i < len(edges) - 1:
                     intermediate_node = f"{v}_intermediate_{i + 1}"
                     inherited_cell_id = edge_data.get("cell_id", "unknown_cell")
-                    
+
                     new_G.add_node(
                         intermediate_node,
                         label=intermediate_node,

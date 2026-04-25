@@ -1,12 +1,13 @@
-import random
 import logging
-import torch
+import random
+
 import networkx as nx
+import torch
 from torch_geometric.data import Data
 
-from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 from ApexDAG.nn.data.v2.embedding import CodeBERTEmbedding
 from ApexDAG.nn.data.v2.pruner import GraphPruner
+from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 
 logger = logging.getLogger(__name__)
 
@@ -61,10 +62,10 @@ class EncoderV2:
         for u, v, attrs in edges:
             edge_sources.append(node_to_idx[u])
             edge_targets.append(node_to_idx[v])
-            
+
             operation_text = str(attrs.get("label", ""))
             edge_features.append(self._embedding.embed(operation_text))
-            
+
             domain_lbl = attrs.get("predicted_label", attrs.get("edge_type", -1))
             edge_labels.append(int(domain_lbl))
             edge_existence.append(1.0)
@@ -96,7 +97,7 @@ class EncoderV2:
     def _sample_negative_edges(self, graph, node_to_idx, num_neg_samples) -> set:
         nodes = list(graph.nodes())
         negative_edges = set()
-        
+
         existing_edges = set()
         for u, v in graph.edges():
             existing_edges.add((u, v))
@@ -104,7 +105,7 @@ class EncoderV2:
 
         max_possible = len(nodes) * (len(nodes) - 1)
         if len(existing_edges) >= max_possible:
-            return set() 
+            return set()
 
         actual_samples = min(num_neg_samples, max_possible - len(existing_edges))
 
@@ -112,6 +113,6 @@ class EncoderV2:
             u, v = random.sample(nodes, 2)
             if (u, v) not in existing_edges:
                 negative_edges.add((node_to_idx[u], node_to_idx[v]))
-                existing_edges.add((u, v)) 
+                existing_edges.add((u, v))
 
         return negative_edges

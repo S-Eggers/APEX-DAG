@@ -1,5 +1,6 @@
-import os
 import json
+import os
+
 from tqdm import tqdm
 
 
@@ -37,7 +38,7 @@ class KaggleDatasetIterator:
 
                     # Check if the item is a JSON file
                     if item.endswith(".json"):
-                        with open(item_path, "r", encoding="utf-8") as f:
+                        with open(item_path, encoding="utf-8") as f:
                             json_file = json.load(f)
 
                     # Check if the item is an IPython Notebook file

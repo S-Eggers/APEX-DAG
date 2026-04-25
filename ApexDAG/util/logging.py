@@ -1,7 +1,4 @@
 import logging
-import os
-
-from dotenv import load_dotenv
 
 
 def setup_logging(name: str, verbose: bool) -> logging.Logger:

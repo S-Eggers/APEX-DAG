@@ -1,10 +1,10 @@
+import logging
 import os
 import re
 import time
-import logging
 import traceback
-import pandas as pd
 
+import pandas as pd
 from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph
 from ApexDAG.util.kaggle_dataset_iterator import KaggleDatasetIterator

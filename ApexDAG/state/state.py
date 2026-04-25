@@ -1,11 +1,11 @@
-import re
 import logging
+import re
+
 import networkx as nx
-from typing import Optional
 from networkx import Graph, MultiDiGraph
 
-from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES, VERBOSE, DOMAIN_EDGE_TYPES
-from ApexDAG.sca.models import GraphNode, GraphEdge
+from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES, EDGE_TYPES, NODE_TYPES
+from ApexDAG.sca.models import GraphEdge, GraphNode
 from ApexDAG.util.logger import configure_apexdag_logger
 
 configure_apexdag_logger()
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 
 class State:
-    def __init__(self, name: str, parent_context: Optional[str] = None) -> None:
+    def __init__(self, name: str, parent_context: str | None = None) -> None:
         self.edge_for_current_target: dict = {}
         self.variable_versions: dict = {}
         self.imported_names: dict = {}
@@ -26,7 +26,7 @@ class State:
         self.last_variable: str = None
         self.payload: dict = None
         self.context: str = name
-        self.parent_context: Optional[str] = parent_context
+        self.parent_context: str | None = parent_context
         self._G: MultiDiGraph = MultiDiGraph()
 
     def __getitem__(self, name):
@@ -119,9 +119,9 @@ class State:
                     new_var = value[0]
                     # ENFORCE CONTRACT: Pass explicit keywords
                     self.add_edge(
-                        source=last_var, 
-                        target=new_var, 
-                        label=var_edge, 
+                        source=last_var,
+                        target=new_var,
+                        label=var_edge,
                         edge_type=edge_type,
                         raw_code=var_edge, # Fallback source for control flows
                         cell_id=cell_id
@@ -150,9 +150,9 @@ class State:
             new_variable_versions[variable].append(var_name)
             # ENFORCE CONTRACT: Cell ID and raw_code on edges
             self.add_edge(
-                source=loop[1], 
-                target=var_name, 
-                label="end_loop", 
+                source=loop[1],
+                target=var_name,
+                label="end_loop",
                 edge_type=EDGE_TYPES["LOOP"],
                 raw_code="end_loop",
                 cell_id=cell_id
@@ -165,9 +165,9 @@ class State:
                 new_variable_versions[variable].append(var_name)
                 for node in branches:
                     self.add_edge(
-                        source=node, 
-                        target=var_name, 
-                        label="end_if", 
+                        source=node,
+                        target=var_name,
+                        label="end_if",
                         edge_type=EDGE_TYPES["BRANCH"],
                         raw_code="end_if",
                         cell_id=cell_id
@@ -199,11 +199,11 @@ class State:
             yield node
 
     def add_node(
-        self, 
-        node_name: str, 
-        node_type: int, 
-        code: str = "", 
-        cell_id: str = "unknown_cell", 
+        self,
+        node_name: str,
+        node_type: int,
+        code: str = "",
+        cell_id: str = "unknown_cell",
         label: str = None
     ) -> None:
         if not self._G.has_node(node_name):
@@ -220,7 +220,7 @@ class State:
                     label = "branch"
                 else:
                     label = re.sub(r'_[a-zA-Z0-9\-]{3,8}_\d+(?:_\d+)?$', '', node_name)
-                    
+
             node_model = GraphNode(
                 id=node_name,
                 label=label,
@@ -249,7 +249,7 @@ class State:
         for node in self._G.successors(node_identifier):
             yield node
 
-    def has_edge(self, source: str, target: str, key: Optional[str] = None) -> bool:
+    def has_edge(self, source: str, target: str, key: str | None = None) -> bool:
         if key:
             return self._G.has_edge(source, target, key=key)
         else:
@@ -295,9 +295,9 @@ class State:
                     target=target,
                     edge_type=edge_type,
                     cell_id=cell_id,
-                    label=label 
+                    label=label
                 )
-                
+
                 position_and_meta = {
                     "lineno": lineno,
                     "col_offset": col_offset,
@@ -306,10 +306,10 @@ class State:
                     "count": 1,
                     "raw_code": raw_code
                 }
-                
+
                 attrs = edge_model.to_networkx_attrs()
                 attrs.update(position_and_meta)
-                
+
                 self._G.add_edge(source, target, key=key, **attrs)
         else:
             logger.debug(
@@ -342,7 +342,7 @@ class State:
                         break
                 if has_special_edge:
                     break
-            
+
             if not has_special_edge:
                 nodes_to_remove.update(component)
         return nodes_to_remove
@@ -357,10 +357,10 @@ class State:
             return set(), []
 
         edges_to_add = []
-        
+
         boundary_predecessors = {
-            p for h in nodes_to_remove_eda 
-            for p in self._G.predecessors(h) 
+            p for h in nodes_to_remove_eda
+            for p in self._G.predecessors(h)
             if p not in nodes_to_remove_eda
         }
 
@@ -368,7 +368,7 @@ class State:
             # Traversal starting from nodes inside the EDA component that are successors of `pred`
             search_q = [s for s in self._G.successors(pred) if s in nodes_to_remove_eda]
             visited_in_eda = set(search_q)
-            
+
             processed_external_succs = set()
 
             while search_q:
@@ -383,7 +383,7 @@ class State:
                         if self._G.has_edge(curr, succ):
                             for _, data in self._G.get_edge_data(curr, succ).items():
                                 edges_to_add.append((pred, succ, data.copy()))
-        
+
         return nodes_to_remove_eda, edges_to_add
 
     def _update_node_types(self) -> None:
@@ -393,7 +393,7 @@ class State:
                 if self._G.nodes[v].get("node_type") != NODE_TYPES["DATASET"]:
                     self._G.nodes[v]["node_type"] = NODE_TYPES["DATASET"]
                     q.append(v)
-        
+
         visited = set(q)
         while q:
             curr = q.pop(0)
@@ -405,7 +405,7 @@ class State:
                         if edge_data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_TRANSFORM"]:
                             is_dataset_transform = True
                             break
-                    
+
                     if is_dataset_transform:
                         self._G.nodes[succ]["node_type"] = NODE_TYPES["DATASET"]
                         visited.add(succ)
@@ -416,7 +416,7 @@ class State:
 
         if lineage_mode:
             nodes_to_remove.update(self._filter_unlabeled_components())
-            
+
             nodes_to_remove_eda, edges_to_add = self._rewire_eda_nodes()
 
             if nodes_to_remove_eda:
@@ -441,11 +441,11 @@ class State:
 
             node_data_x = self.get_node(node_x)
             node_type_x = node_data_x.get("node_type")
-            
+
             if node_type_x == NODE_TYPES["IF"]:
                 should_optimize = True
                 temp_new_edges = []
-                
+
                 for next_node in self.successor_node_iterator(node_x):
                     for prev_node in self.predecessor_node_iterator(node_x):
                         for _, attributes in self.get_edge_iterator(node_x, next_node):
@@ -454,7 +454,7 @@ class State:
                                 EDGE_TYPES["BRANCH"],
                             ]:
                                 should_optimize = False
-                            
+
                             temp_new_edges.append({
                                 "source": prev_node,
                                 "target": next_node,
@@ -463,7 +463,7 @@ class State:
                                 "raw_code": attributes.get("raw_code") or attributes.get("code", ""),
                                 "cell_id": attributes.get("cell_id", node_data_x.get("cell_id", "unknown_cell"))
                             })
-                
+
                 if should_optimize:
                     nodes_to_remove.append(node_x)
                     edges_to_add += temp_new_edges

@@ -1,6 +1,7 @@
-import torch
 import logging
-from transformers import AutoTokenizer, AutoModel
+
+import torch
+from transformers import AutoModel, AutoTokenizer
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +13,10 @@ class CodeBERTEmbedding:
     def __init__(self, model_name: str = "microsoft/graphcodebert-base"):
         self.model_name = model_name
         self._max_output_dim = 768
-        
+
         logger.info(f"Loading HF Tokenizer and Model: {self.model_name}")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        
+
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
             self.model = AutoModel.from_pretrained(self.model_name).to(self.device)
@@ -41,14 +42,14 @@ class CodeBERTEmbedding:
         clean_code = str(code_snippet).replace("\n", " ").strip()
 
         inputs = self.tokenizer(
-            clean_code, 
-            return_tensors="pt", 
-            padding=True, 
-            truncation=True, 
+            clean_code,
+            return_tensors="pt",
+            padding=True,
+            truncation=True,
             max_length=512
         ).to(self.device)
 
         outputs = self.model(**inputs)
         cls_embedding = outputs.last_hidden_state[0, 0, :]
-        
+
         return cls_embedding.cpu()

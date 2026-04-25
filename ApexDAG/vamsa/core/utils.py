@@ -1,7 +1,8 @@
 import logging
-from typing import Set, List
-from .types import PRType
+
 from ApexDAG.util.logger import configure_apexdag_logger
+
+from .types import PRType
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
@@ -32,17 +33,17 @@ def flatten(lst):
         else:
             yield item
 
-def check_bipartie(PRs: Set[PRType]) -> bool:
+def check_bipartie(PRs: set[PRType]) -> bool:
     """
     Validates if the generated Process Relations form a bipartite graph.
     """
     operations = set([pr[2] for pr in PRs])
     other = set(flatten([[pr[0], pr[1], pr[3]] for pr in PRs]))
     intersections = operations.intersection(other)
-    
+
     if len(intersections) > 0:
         logger.warning(f"Bipartite violation detected. Intersections: {intersections}")
-        
+
     return len(intersections) == 0
 
 def get_relevant_code(node, file_lines) -> str | None:
@@ -54,7 +55,7 @@ def get_relevant_code(node, file_lines) -> str | None:
             return file_lines[node.lineno - 1][node.col_offset : node.end_col_offset]
     return None
 
-def merge_prs(P: List[PRType], P_prime: List[PRType]) -> Set[PRType]:
+def merge_prs(P: list[PRType], P_prime: list[PRType]) -> set[PRType]:
     """
     Deduplicates and merges two sets of Process Relations while preserving order.
     """

@@ -1,18 +1,17 @@
-import requests
-from bs4 import BeautifulSoup
 import json
 import os
 import random
-from typing import Dict, List, Optional
-from urllib.parse import urljoin, urlparse
 from typing import Literal
-from groq import Groq
+from urllib.parse import urljoin, urlparse
+
 import google.generativeai as genai
 import instructor
-from pydantic import BaseModel, Field
+import requests
+from bs4 import BeautifulSoup
+from groq import Groq
+from pydantic import BaseModel
 
 from ApexDAG.vamsa.kb_advancement.KBChangeProposal import KBChangeProposal
-
 
 # ============================
 # ===== Pydantic Models =====
@@ -21,11 +20,11 @@ from ApexDAG.vamsa.kb_advancement.KBChangeProposal import KBChangeProposal
 class KBEntryDetails(BaseModel):
     library: str
     api_name: str
-    inputs: List[str]
-    outputs: List[str]
+    inputs: list[str]
+    outputs: list[str]
     caller: str
-    module: Optional[str] = None
-    transformation_type: Optional[str] = None
+    module: str | None = None
+    transformation_type: str | None = None
 
 
 class ProposalResponse(BaseModel):
@@ -42,35 +41,35 @@ class ProposalResponse(BaseModel):
 
 class ProposalMaker:
     def __init__(
-        self, 
-        link_to_documentation: str, 
+        self,
+        link_to_documentation: str,
         provider: str = "gemini",
-        api_key: Optional[str] = None
+        api_key: str | None = None
     ):
         self.link_to_documentation = link_to_documentation
-        self.past_proposals: List[Dict] = []
-        self.impact_of_past_proposals: List[Dict] = []
+        self.past_proposals: list[dict] = []
+        self.impact_of_past_proposals: list[dict] = []
         self.provider = provider.lower()
 
         if self.provider == "groq":
             self.api_key = api_key or os.getenv("GROQ_API_KEY")
             if not self.api_key:
                 raise ValueError("GROQ_API_KEY not set")
-            
+
             client = Groq(api_key=self.api_key)
             self.client = instructor.from_groq(client, mode=instructor.Mode.TOOLS)
             self.model_name = "moonshotai/kimi-k2-instruct-0905"
-        
+
         elif self.provider == "gemini":
             self.api_key = api_key or os.getenv("GEMINI_API_KEY")
             if not self.api_key:
                 raise ValueError("GEMINI_API_KEY not set")
-            
+
             genai.configure(api_key=self.api_key)
             client = genai.GenerativeModel("gemini-flash-latest")
             self.client = instructor.from_gemini(client, mode=instructor.Mode.GEMINI_JSON)
             self.model_name = "gemini-flash-latest"
-        
+
         else:
             raise ValueError(f"Unsupported provider: {provider}. Use 'groq' or 'gemini'.")
 
@@ -78,7 +77,7 @@ class ProposalMaker:
     # ===== Traversal Logic ======
     # ============================
 
-    def extract_doc_links(self) -> List[str]:
+    def extract_doc_links(self) -> list[str]:
         """Extract internal documentation links from a Sphinx-based API index."""
         response = requests.get(self.link_to_documentation, timeout=30)
         response.raise_for_status()
@@ -100,7 +99,7 @@ class ProposalMaker:
 
             # Focus API-generated pages (sklearn / pandas / catboost)
             if "/generated/" in full_url or "/reference/" in full_url or "/features/" in full_url:
-                # for catboos 
+                # for catboos
                 full_url = full_url.replace("/en/en/", "/en/")
                 links.add(full_url)
 
@@ -122,13 +121,13 @@ class ProposalMaker:
         # Token safety
         return text[:12000]
 
-    def scrape_entire_docs(self, max_pages: int = 5) -> Dict[str, str]:
+    def scrape_entire_docs(self, max_pages: int = 5) -> dict[str, str]:
         """Traverse and scrape all discovered documentation pages."""
         print("🔍 Discovering documentation links...")
         links = self.extract_doc_links()
 
         scraped_pages = {}
-        #sampled links 
+        #sampled links
         sampled_links = random.sample(links, min(max_pages, len(links)))
         for i, link in enumerate(sampled_links):
             try:
@@ -145,10 +144,10 @@ class ProposalMaker:
 
     def query_llm(
         self,
-        scraped_docs: Dict[str, str],
-        baseline_data: Optional[Dict] = None,
+        scraped_docs: dict[str, str],
+        baseline_data: dict | None = None,
         KB=None
-    ) -> Dict:
+    ) -> dict:
         structured_input = "\n\n".join(
             f"=== PAGE: {url} ===\n{content}"
             for url, content in scraped_docs.items()
@@ -192,10 +191,10 @@ Avoid duplicates. Prefer commonly-used APIs.
                 messages=messages,
                 response_model=ProposalResponse,
             )
-        
+
         elif self.provider == "gemini":
             full_prompt = "You extract structured API metadata from documentation.\n\n" + prompt
-            
+
             response = self.client.create(
                 messages=[{"role": "user", "content": full_prompt}],
                 response_model=ProposalResponse,

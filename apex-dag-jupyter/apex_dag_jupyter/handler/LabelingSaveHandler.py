@@ -1,7 +1,9 @@
 import json
 from pathlib import Path
+
 import tornado
 from jupyter_server.base.handlers import APIHandler
+
 
 class LabelingSaveHandler(APIHandler):
     @tornado.web.authenticated
@@ -9,7 +11,7 @@ class LabelingSaveHandler(APIHandler):
         try:
             input_data = self.get_json_body()
             requested_filename = input_data.get("filename", "annotated_graph.json")
-            
+
             safe_base_dir = Path.home() / ".apexdag" / "annotations"
             safe_base_dir.mkdir(parents=True, exist_ok=True)
 
@@ -43,7 +45,7 @@ class LabelingSaveHandler(APIHandler):
                 f.write(code_data)
 
             self.finish(json.dumps({
-                "success": True, 
+                "success": True,
                 "message": f"Saved JSON to {target_path.name}"
             }))
 

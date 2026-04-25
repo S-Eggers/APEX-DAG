@@ -1,18 +1,17 @@
-import yaml
-import signal
 import logging
-import wandb
-import torch
-
+import signal
 from pathlib import Path
 
-from ApexDAG.util.logging import setup_wandb
+import torch
+import wandb
+import yaml
 from ApexDAG.nn.gat import MultiTaskGAT
-from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
+from ApexDAG.nn.training import GATTrainer, GraphEncoder, GraphProcessor, Modes
+from ApexDAG.util.logging import setup_wandb
 from ApexDAG.util.training_utils import (
-    set_seed,
     TASKS_PER_GRAPH_TRANSFORM_MODE_PRETRAIN,
     GraphTransformsMode,
+    set_seed,
 )
 
 
@@ -44,7 +43,7 @@ def log_config(config_file):
     artifact.add_file(config_file)
     wandb.log_artifact(artifact)
 
-    with open(config_file, "r") as f:
+    with open(config_file) as f:
         config = yaml.safe_load(f)
 
     wandb.config.update(config)
@@ -57,7 +56,7 @@ def pretrain_gat(args, logger: logging.Logger) -> None:
 
     config_path = args.config_path
 
-    with open(config_path, "r") as f:
+    with open(config_path) as f:
         config = yaml.safe_load(f)
         graph_transform_mode = config.get("mode", "ORIGINAL")
         config["mode"] = GraphTransformsMode[graph_transform_mode]

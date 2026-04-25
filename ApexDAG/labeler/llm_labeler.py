@@ -1,12 +1,10 @@
-from ApexDAG.sca import (
-    EDGE_TYPES,
-    DOMAIN_EDGE_TYPES,
-    REVERSE_DOMAIN_EDGE_TYPES,
-)
-from ApexDAG.labeler.edge_labeler import EdgeLabeler
-from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
 from ApexDAG.label_notebooks.online_labeler import OnlineGraphLabeler as GraphLabeler
 from ApexDAG.label_notebooks.utils import Config
+from ApexDAG.labeler.edge_labeler import EdgeLabeler
+from ApexDAG.sca import (
+    DOMAIN_EDGE_TYPES,
+)
+from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
 
 
 class LLMLabeler(EdgeLabeler):

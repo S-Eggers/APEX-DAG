@@ -1,5 +1,5 @@
-from traitlets.config import Configurable
 from traitlets import Unicode
+from traitlets.config import Configurable
 
 
 class APEXDAGConfig(Configurable):

@@ -1,5 +1,7 @@
-from .ApexDAGBaseHandler import ApexDAGBaseHandler
 from ApexDAG.pipeline.vamsa_pipeline_factory import VamsaPipelineFactory
+
+from .ApexDAGBaseHandler import ApexDAGBaseHandler
+
 
 class VamsaHandler(ApexDAGBaseHandler):
     @property

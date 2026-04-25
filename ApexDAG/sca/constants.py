@@ -63,7 +63,7 @@ AST Node and Edge Types
 AST_NODE_TYPES = {
     # Modules
     "Module": 100, "Interactive": 101, "Expression": 102, "FunctionType": 103,
-    
+
     # Statements
     "FunctionDef": 200, "AsyncFunctionDef": 201, "ClassDef": 202, "Return": 203,
     "Delete": 204, "Assign": 205, "AugAssign": 206, "AnnAssign": 207,
@@ -71,7 +71,7 @@ AST_NODE_TYPES = {
     "AsyncWith": 213, "Match": 214, "Raise": 215, "Try": 216, "TryStar": 217,
     "Assert": 218, "Import": 219, "ImportFrom": 220, "Global": 221, "Nonlocal": 222,
     "Expr": 223, "Pass": 224, "Break": 225, "Continue": 226,
-    
+
     # Expressions
     "BoolOp": 300, "NamedExpr": 301, "BinOp": 302, "UnaryOp": 303, "Lambda": 304,
     "IfExp": 305, "Dict": 306, "Set": 307, "ListComp": 308, "SetComp": 309,
@@ -79,7 +79,7 @@ AST_NODE_TYPES = {
     "YieldFrom": 314, "Compare": 315, "Call": 316, "FormattedValue": 317,
     "JoinedStr": 318, "Constant": 319, "Attribute": 320, "Subscript": 321,
     "Starred": 322, "Name": 323, "List": 324, "Tuple": 325, "Slice": 326,
-    
+
     # Operators & Contexts
     "Load": 400, "Store": 401, "Del": 402,
     "And": 410, "Or": 411, "Add": 412, "Sub": 413, "Mult": 414, "MatMult": 415,
@@ -88,17 +88,17 @@ AST_NODE_TYPES = {
     "Invert": 430, "Not": 431, "UAdd": 432, "USub": 433,
     "Eq": 440, "NotEq": 441, "Lt": 442, "LtE": 443, "Gt": 444, "GtE": 445,
     "Is": 446, "IsNot": 447, "In": 448, "NotIn": 449,
-    
+
     # Pattern Matching
     "MatchValue": 500, "MatchSingleton": 501, "MatchSequence": 502,
     "MatchMapping": 503, "MatchClass": 504, "MatchStar": 505,
     "MatchAs": 506, "MatchOr": 507,
-    
+
     # Structural & Misc
     "arg": 600, "arguments": 601, "keyword": 602, "alias": 603,
     "withitem": 604, "match_case": 605, "comprehension": 606,
     "excepthandler": 607, "ExceptHandler": 608,
-    
+
     # Fallback
     "AST_UNKNOWN": 999
 }

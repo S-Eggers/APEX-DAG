@@ -1,10 +1,10 @@
-import json
+import logging
 import os
 import re
-import pandas as pd
-from collections import defaultdict, Counter
-import logging
+from collections import Counter, defaultdict
+
 import ijson
+import pandas as pd
 
 
 class NotebookProcessor:
@@ -146,11 +146,11 @@ class NotebookProcessor:
 
     @classmethod
     def get_object_pattern(cls, alias_pattern):
-        return r"({})\.\w+\(".format(alias_pattern)
+        return rf"({alias_pattern})\.\w+\("
 
     @classmethod
     def get_attribute_pattern(cls, alias_pattern):
-        return r"({})\.\w+".format(alias_pattern)
+        return rf"({alias_pattern})\.\w+"
 
     @classmethod
     def methods_used_in_code(cls, code, import_table):

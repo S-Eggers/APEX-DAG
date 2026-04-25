@@ -14,16 +14,17 @@ The approach involves:
 This method allows us to systematically retrieve a large number of repositories beyond the 1000 results limit imposed by the API.
 """
 
-import json
-import time
-import requests
-import os
 import argparse
-import pandas as pd
+import json
 import logging
-from tqdm import tqdm
+import os
+import time
 from datetime import datetime
+
+import pandas as pd
+import requests
 from requests.exceptions import HTTPError
+from tqdm import tqdm
 
 DELAY_BETWEEN_QUERIES = 2
 

@@ -1,23 +1,23 @@
+import json
+import logging
 import os
 import re
-import json
 import time
-import logging
+
 import instructor
 import networkx as nx
-from tqdm import tqdm
-from typing import Literal
 from dotenv import load_dotenv
-from pydantic import parse_obj_as, TypeAdapter, ValidationError
+from pydantic import TypeAdapter, ValidationError
+from tqdm import tqdm
 
-from ApexDAG.sca.graph_utils import load_graph
-from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.label_notebooks.message_template import generate_message
 from ApexDAG.label_notebooks.pydantic_models import (
-    LabelledEdge,
     GraphContextWithSubgraphSearch,
+    LabelledEdge,
     SubgraphContext,
 )
+from ApexDAG.label_notebooks.utils import Config
+from ApexDAG.sca.graph_utils import load_graph
 
 
 class TokenLimitExceededError(Exception):
@@ -145,7 +145,7 @@ class GraphLabeler:
     def read_code(self, code_path: str):
         if not os.path.exists(code_path):
             raise FileNotFoundError(f"The file at '{code_path}' does not exist.")
-        with open(code_path, "r", encoding="utf-8") as f:
+        with open(code_path, encoding="utf-8") as f:
             code = f.read()
         return code.splitlines()
 

@@ -1,13 +1,15 @@
 import argparse
-import os
-import networkx as nx
 import logging
+import os
 import time
+
+import networkx as nx
+from dotenv import load_dotenv
 from tqdm import tqdm
+
 from ApexDAG.label_notebooks.label_graph import GraphLabeler
 from ApexDAG.label_notebooks.utils import load_config
 from ApexDAG.sca.graph_utils import load_graph
-from dotenv import load_dotenv
 
 load_dotenv()
 
@@ -86,7 +88,7 @@ if __name__ == "__main__":
     try:
         while True:
             files = [f for f in os.listdir(source_path) if f.endswith(".execution_graph")]
-            
+
             new_files = [f for f in files if f not in processed_files]
 
             if not new_files:
@@ -126,7 +128,7 @@ if __name__ == "__main__":
                     processed_files.add(filename)
                 except Exception as e:
                     logger.error(f"Failed to process {filename}: {e}", exc_info=True)
-            
+
             logger.info("Finished processing all new files. Waiting for new files...")
             time.sleep(60)
 

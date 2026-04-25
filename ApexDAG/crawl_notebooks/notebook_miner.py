@@ -1,13 +1,14 @@
-from tqdm import tqdm
-import os
 import json
 import logging
+import os
 import time
 
-from ApexDAG.crawl_notebooks.notebook_processor import NotebookProcessor
+from tqdm import tqdm
+
 from ApexDAG.crawl_notebooks.github_crawler.github_repository_notebook_iterator import (
     PaginatedNotebookIterator,
 )
+from ApexDAG.crawl_notebooks.notebook_processor import NotebookProcessor
 
 
 class NotebookMiner:

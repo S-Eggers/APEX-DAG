@@ -1,9 +1,8 @@
-import os
-import sys
 import argparse
-from pathlib import Path
+import sys
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 from ApexDAG.notebook import Notebook
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph as DataFlowGraph

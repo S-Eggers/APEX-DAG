@@ -1,19 +1,19 @@
-import os
-import torch
 import logging
+import os
 import traceback
-import tqdm
 from pathlib import Path
-import networkx as nx
 
+import networkx as nx
+import torch
+import tqdm
 
 from ApexDAG.nn.data.v1.tensor_encoder import Encoder
+from ApexDAG.util.logger import configure_apexdag_logger
 from ApexDAG.util.training_utils import (
+    GraphTransformsMode,
     InsufficientNegativeEdgesException,
     InsufficientPositiveEdgesException,
-    GraphTransformsMode
 )
-from ApexDAG.util.logger import configure_apexdag_logger
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
@@ -60,7 +60,7 @@ class GraphEncoder:
         for index, graph in enumerate(graphs):
             logger.info(f"Encoding graph {index+1}/{len(graphs)}")
             if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
-                continue 
+                continue
 
             if self.bidirectional:
                 graph = self._make_bidirectional(graph)
@@ -70,10 +70,10 @@ class GraphEncoder:
                     encoded_graph = encoder.encode_reversed(graph, feature_to_encode)
                 else:
                     encoded_graph = encoder.encode(graph, feature_to_encode)
-                    
+
                 torch.save(encoded_graph, self.encoded_checkpoint_path / f"graph_{index}.pt")
                 self.encoded_graphs.append(encoded_graph)
-                
+
             except KeyboardInterrupt:
                 logger.warning("Encoding interrupted, continuing with next graph...")
                 continue

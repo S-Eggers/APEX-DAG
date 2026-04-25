@@ -1,8 +1,16 @@
 import warnings
+
 import networkx as nx
+
+from ApexDAG.sca.constants import EDGE_TYPES, NODE_TYPES
+from ApexDAG.sca.graph_utils import (
+    convert_multidigraph_to_digraph,
+    get_subgraph,
+    load_graph,
+    save_graph,
+)
 from ApexDAG.util.draw import Draw
-from ApexDAG.sca.constants import NODE_TYPES, EDGE_TYPES
-from ApexDAG.sca.graph_utils import convert_multidigraph_to_digraph, get_subgraph, save_graph, load_graph
+
 
 class LegacyIOMixin:
     """
@@ -13,7 +21,7 @@ class LegacyIOMixin:
         warnings.warn(
             f"'{method_name}' is deprecated and will be removed in a future release. "
             "Retrieve the state via 'get_state()' and orchestrate externally.",
-            DeprecationWarning, 
+            DeprecationWarning,
             stacklevel=3
         )
 

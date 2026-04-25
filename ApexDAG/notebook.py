@@ -1,4 +1,5 @@
 import re
+
 import nbformat
 import networkx as nx
 
@@ -172,9 +173,7 @@ class Notebook:
                 else:
                     node2execution_count[index] = cell.execution_count
 
-                if cell.execution_count == 1 and not greedy:
-                    self._source = index
-                elif self._source < 0:
+                if (cell.execution_count == 1 and not greedy) or self._source < 0:
                     self._source = index
 
                 prev_index = index

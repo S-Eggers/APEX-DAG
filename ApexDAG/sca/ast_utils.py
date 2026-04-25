@@ -1,13 +1,10 @@
 import ast
 import re
-from typing import Optional
 
 
-def get_operator_description(node: ast.AST) -> Optional[str]:
+def get_operator_description(node: ast.AST) -> str | None:
     try:
-        if isinstance(node, ast.Compare):
-            operator = node.ops[0].__class__.__name__.lower()
-        elif isinstance(node, ast.BoolOp):
+        if isinstance(node, ast.Compare) or isinstance(node, ast.BoolOp):
             operator = node.ops[0].__class__.__name__.lower()
         elif isinstance(node, ast.In):
             operator = node.__doc__.lower()
@@ -54,7 +51,7 @@ def tokenize_method(method: str, imported_names: dict, import_from_modules: dict
     s1 = re.sub("(.)([A-Z][a-z]+)", r"\1 \2", method)
     s2 = re.sub("([a-z0-9])([A-Z])", r"\1 \2", s1)
     tokens = re.split(r"[._\s]", s2)
-    for library_alias in imported_names.keys():
+    for library_alias in imported_names:
         if library_alias in tokens and library_alias not in import_from_modules:
             tokens.remove(library_alias)
     return " ".join(tokens).lower()
@@ -67,7 +64,7 @@ def tokenize_literal(literal: str) -> str:
     tokens = re.split(r"[._\s\-/]", s2)
     return " ".join(filter(None, tokens)).lower()
 
-def get_names(node: ast.AST, code_buffer: str = None) -> Optional[list[str]]:
+def get_names(node: ast.AST, code_buffer: str = None) -> list[str] | None:
     """Extracts raw string names from various AST node types."""
     match node:
         case ast.Name():
@@ -116,16 +113,16 @@ def get_target_components(raw_target_list: list) -> list[list[str]]:
         components.append(raw_target_list)
     return components
 
-def get_lr_values(left: ast.AST, right: ast.AST, code_buffer: str = None) -> tuple[Optional[str], Optional[str]]:
+def get_lr_values(left: ast.AST, right: ast.AST, code_buffer: str = None) -> tuple[str | None, str | None]:
     """Extracts base names for left/right binary operations."""
-    def get_name(node: ast.AST) -> Optional[str]:
+    def get_name(node: ast.AST) -> str | None:
         names = get_names(node, code_buffer)
         if not names: return None
         flat_names = flatten_list(names)
         return flat_names[0] if flat_names else None
     return get_name(left), get_name(right)
 
-def get_base_name(node: ast.AST) -> Optional[str]:
+def get_base_name(node: ast.AST) -> str | None:
     """Recursively resolves the base identifier of an AST node."""
     if isinstance(node, ast.Name):
         return node.id

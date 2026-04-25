@@ -1,11 +1,10 @@
 import ast
-from typing import List
-from ApexDAG.notebook import Notebook
 
+from ApexDAG.notebook import Notebook
 from ApexDAG.sca.ast_graph import ASTGraph
+from ApexDAG.sca.constants import AST_EDGE_TYPES, AST_NODE_TYPES
+from ApexDAG.sca.models import GraphEdge, GraphNode
 from ApexDAG.util.draw import Draw
-from ApexDAG.sca.constants import AST_NODE_TYPES, AST_EDGE_TYPES
-from ApexDAG.sca.models import GraphNode, GraphEdge
 
 
 class PythonASTGraph(ASTGraph, ast.NodeVisitor):
@@ -14,7 +13,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         Implements the master root node to prevent a disconnected AST forest.
         """
         node_label = "Notebook"
-        numeric_type = AST_NODE_TYPES.get("Module", 100) 
+        numeric_type = AST_NODE_TYPES.get("Module", 100)
         cell_context = getattr(self, "current_cell_id", "global_notebook")
 
         node_model = GraphNode(
@@ -26,7 +25,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         )
 
         self._G.add_node(node_model.id, **node_model.to_networkx_attrs())
-        
+
         node_id = self.node_counter
         self.node_counter += 1
         return node_id
@@ -47,7 +46,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         Visits a given AST node, processes it, and builds a directed graph representation.
         """
         node_id: int = self.add_node(node)
-        
+
         for field, value in ast.iter_fields(node):
             if isinstance(value, list):
                 for item in value:
@@ -56,9 +55,9 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
                     ):
                         child_id = self.visit(item)
                         self.add_edge(
-                            source=node_id, 
-                            target=child_id, 
-                            edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"], 
+                            source=node_id,
+                            target=child_id,
+                            edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"],
                             label=field
                         )
             elif isinstance(value, ast.AST) and not isinstance(
@@ -66,9 +65,9 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
             ):
                 child_id = self.visit(value)
                 self.add_edge(
-                    source=node_id, 
-                    target=child_id, 
-                    edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"], 
+                    source=node_id,
+                    target=child_id,
+                    edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"],
                     label=field
                 )
 
@@ -89,7 +88,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         )
 
         self._G.add_node(node_model.id, **node_model.to_networkx_attrs())
-        
+
         node_id = self.node_counter
         self.node_counter += 1
         return node_id
@@ -106,8 +105,8 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         )
 
         self._G.add_edge(
-            edge_model.source, 
-            edge_model.target, 
+            edge_model.source,
+            edge_model.target,
             **edge_model.to_networkx_attrs()
         )
 
@@ -135,7 +134,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         draw.ast(self._G, self._t2t_paths)
 
     @staticmethod
-    def from_notebook_windows(notebook: Notebook) -> List["PythonASTGraph"]:
+    def from_notebook_windows(notebook: Notebook) -> list["PythonASTGraph"]:
         """
         Creates a list of ASTGraph objects from code cells of a given notebook.
         """

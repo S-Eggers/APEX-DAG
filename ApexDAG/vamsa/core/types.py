@@ -1,9 +1,9 @@
 import ast
 from dataclasses import dataclass
-from typing import List, Union, Tuple
+from typing import Union
 
-WIRNodeType = Union[str, List[str], ast.AST, List[ast.AST]]
-PRType = Tuple[str, str, str, str]
+WIRNodeType = Union[str, list[str], ast.AST, list[ast.AST]]
+PRType = tuple[str, str, str, str]
 
 @dataclass
 class WIRNode:

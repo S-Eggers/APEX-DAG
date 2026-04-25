@@ -1,14 +1,16 @@
 import json
+
 import tornado
-from jupyter_server.base.handlers import APIHandler
 from ApexDAG.sca import (
-    REVERSE_AST_NODE_TYPES, 
-    REVERSE_AST_EDGE_TYPES, 
-    REVERSE_NODE_TYPES,
-    REVERSE_EDGE_TYPES,
+    REVERSE_AST_EDGE_TYPES,
+    REVERSE_AST_NODE_TYPES,
+    REVERSE_DOMAIN_EDGE_TYPES,
     REVERSE_DOMAIN_NODE_TYPES,
-    REVERSE_DOMAIN_EDGE_TYPES
+    REVERSE_EDGE_TYPES,
+    REVERSE_NODE_TYPES,
 )
+from jupyter_server.base.handlers import APIHandler
+
 
 class ConstantsHandler(APIHandler):
     @tornado.web.authenticated

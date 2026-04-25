@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GATv2Conv, LayerNorm
 
+
 class GATBlock(nn.Module):
     def __init__(self, in_dim, out_dim, num_heads, dropout, edge_dim, residual=False):
         super().__init__()

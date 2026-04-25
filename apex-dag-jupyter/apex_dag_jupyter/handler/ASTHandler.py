@@ -1,5 +1,7 @@
-from .ApexDAGBaseHandler import ApexDAGBaseHandler
 from ApexDAG.pipeline.ast_pipeline_factory import ASTPipelineFactory
+
+from .ApexDAGBaseHandler import ApexDAGBaseHandler
+
 
 class ASTHandler(ApexDAGBaseHandler):
     @property

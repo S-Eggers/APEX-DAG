@@ -1,17 +1,18 @@
+import logging
 import random
+
 import networkx as nx
 import torch
-import logging
 from torch_geometric.data import Data
 
+from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
+from ApexDAG.util.logger import configure_apexdag_logger
 from ApexDAG.util.training_utils import (
     InsufficientNegativeEdgesException,
     InsufficientPositiveEdgesException,
 )
-from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
-from .embedding import Embedding, EmbeddingType
-from ApexDAG.util.logger import configure_apexdag_logger
 
+from .embedding import Embedding, EmbeddingType
 
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
@@ -39,7 +40,7 @@ class Encoder:
 
         all_edges = edges + list(negative_edges)
         source_nodes, target_nodes = zip(*all_edges) if all_edges else ([], [])
-        
+
         source_nodes_tensor = torch.tensor(source_nodes, dtype=torch.long)
         target_nodes_tensor = torch.tensor(target_nodes, dtype=torch.long)
 
@@ -64,7 +65,7 @@ class Encoder:
 
         new_edges = []
         new_edges_indices = []
-        
+
         for node_idx, node in enumerate(graph.nodes()):
             connected_edges_out = [(u, v) for (u, v) in graph.edges() if u == node]
             connected_edges_in = [(u, v) for (u, v) in graph.edges() if v == node]
@@ -140,18 +141,18 @@ class Encoder:
             u, v = random.sample(nodes, 2)
             if (u, v) not in graph.edges and (v, u) not in graph.edges:
                 negative_edges.add((node_to_id[u], node_to_id[v]))
-                
+
         return negative_edges
 
     def _extract_node_features(self, graph):
         node_features, node_types = [], []
-        
+
         for _, attrs in graph.nodes(data=True):
             raw_code = attrs.get("code", "")
             label = attrs.get("label", "")
-            
+
             semantic_text = str(raw_code) if raw_code and raw_code != "None" else str(label)
-            
+
             if "\n" in semantic_text:
                 semantic_text = semantic_text.replace("\n", " ")
 
@@ -181,7 +182,7 @@ class Encoder:
                 if is_positive
                 else torch.zeros(self._embedding.dimension)
             )
-            
+
             edge_type_for_training = (
                 int(map_labels_to_int(attrs.get(feature_to_encode, -1)))
                 if is_positive else -1

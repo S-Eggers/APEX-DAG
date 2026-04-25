@@ -6,7 +6,7 @@ import { getNotebookCode } from './getNotebookCode';
 export const updateEnvironmentWidget = (
   widget: EnvironmentWidget | null,
   notebookPanel: NotebookPanel,
-  settings: any // Replace with your AppSettings interface
+  settings: any
 ) => {
   if (!widget) return;
 

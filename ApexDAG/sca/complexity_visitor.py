@@ -1,5 +1,5 @@
 import ast
-from typing import Dict, Any
+
 
 class ComplexityVisitor(ast.NodeVisitor):
     """
@@ -7,7 +7,7 @@ class ComplexityVisitor(ast.NodeVisitor):
     Tracks structural frequencies and maximum control-flow nesting depth.
     """
     def __init__(self) -> None:
-        self.metrics: Dict[str, int] = {
+        self.metrics: dict[str, int] = {
             "loops": 0,
             "for_else": 0,
             "while_else": 0,
@@ -37,7 +37,7 @@ class ComplexityVisitor(ast.NodeVisitor):
         self.metrics["loops"] += 1
         if node.orelse:
             self.metrics["for_else"] += 1
-            
+
         self._enter_nested_block()
         self.generic_visit(node)
         self._exit_nested_block()
@@ -46,7 +46,7 @@ class ComplexityVisitor(ast.NodeVisitor):
         self.metrics["loops"] += 1
         if node.orelse:
             self.metrics["for_else"] += 1
-            
+
         self._enter_nested_block()
         self.generic_visit(node)
         self._exit_nested_block()
@@ -55,7 +55,7 @@ class ComplexityVisitor(ast.NodeVisitor):
         self.metrics["loops"] += 1
         if node.orelse:
             self.metrics["while_else"] += 1
-            
+
         self._enter_nested_block()
         self.generic_visit(node)
         self._exit_nested_block()
@@ -107,7 +107,7 @@ class ComplexityVisitor(ast.NodeVisitor):
         self._enter_nested_block()
         self.generic_visit(node)
         self._exit_nested_block()
-        
+
     def visit_AsyncWith(self, node: ast.AsyncWith) -> None:
         self.metrics["with_blocks"] += 1
         self._enter_nested_block()

@@ -1,12 +1,14 @@
 import json
+
 import tornado
 from jupyter_server.base.handlers import APIHandler
+
 
 class ApexDAGBaseHandler(APIHandler):
     """
     Abstract base handler for all ApexDAG pipeline executions.
     """
-    
+
     def initialize(self, model=None, jupyter_server_app_config=None):
         self.model = model
         self.jupyter_server_app_config = jupyter_server_app_config
@@ -25,10 +27,10 @@ class ApexDAGBaseHandler(APIHandler):
     def post(self):
         try:
             input_data = self.get_json_body()
-            
+
             cells_payload = input_data.get("cells")
             code_payload = input_data.get("code", "")
-            
+
             if isinstance(cells_payload, list) and len(cells_payload) > 0:
                 cells = cells_payload
             elif isinstance(code_payload, list):
@@ -37,16 +39,16 @@ class ApexDAGBaseHandler(APIHandler):
             else:
                 self.log.warning("Legacy string payload received. Applying fallback cell_id.")
                 cells = [{"cell_id": "legacy_fallback", "source": str(code_payload)}]
-            
+
             pipeline = self.create_pipeline(input_data)
-            
+
             try:
                 analysis_results = pipeline.execute(cells)
             except SyntaxError as e:
                 self.log.error(f"SyntaxError in {self.__class__.__name__}: {e}", exc_info=True)
                 self.set_status(400)
                 self.finish(json.dumps({
-                    "message": f"Syntax error: {str(e)}",
+                    "message": f"Syntax error: {e!s}",
                     "success": False,
                     self.response_key: self.last_analysis_results,
                 }))

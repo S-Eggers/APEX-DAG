@@ -1,15 +1,15 @@
-from typing import Set, List
 from ..core.types import PRType
-from ..core.utils import remove_id, add_id
+from ..core.utils import add_id, remove_id
 
-def remove_assignments(PRs_filtered: List[PRType]) -> List[PRType]:
+
+def remove_assignments(PRs_filtered: list[PRType]) -> list[PRType]:
     """
     Optimizes the WIR by removing raw assignment operations and collapsing the lineage edges.
     """
     assign_operations = [
         (pr_id, {"input": pr[0], "output": pr[3]})
         for pr_id, pr in enumerate(PRs_filtered)
-        if pr[2] is not None and "Assign" == remove_id(pr[2]) and pr[1] is None
+        if pr[2] is not None and remove_id(pr[2]) == "Assign" and pr[1] is None
     ]
     added_prs = []
     indices_to_delete = []
@@ -29,11 +29,11 @@ def remove_assignments(PRs_filtered: List[PRType]) -> List[PRType]:
                         pr2[3],
                     ))
         indices_to_delete.append(assign_pr_id)
-        
+
     PRs_filtered_new = [pr for i, pr in enumerate(PRs_filtered) if i not in indices_to_delete]
     return PRs_filtered_new + added_prs
 
-def filter_PRs(PRs: List[PRType]) -> List[PRType]:
+def filter_PRs(PRs: list[PRType]) -> list[PRType]:
     """
     Consolidates redundant operation nodes generated during tuple/list destructuring.
     """
@@ -54,10 +54,10 @@ def filter_PRs(PRs: List[PRType]) -> List[PRType]:
             continue
         else:
             filtered_PRs.append((I, c, p, O))
-            
+
     return filtered_PRs
 
-def fix_bibartie_issue_import_from(PRs: List[PRType]) -> List[PRType]:
+def fix_bibartie_issue_import_from(PRs: list[PRType]) -> list[PRType]:
     """
     Patches a specific Vamsa graph construction bug regarding 'ImportFrom' node connections.
     """
@@ -72,5 +72,5 @@ def fix_bibartie_issue_import_from(PRs: List[PRType]) -> List[PRType]:
             filtered_PRs.append((I, imported[c], p, O))
         else:
             filtered_PRs.append((I, c, p, O))
-            
+
     return filtered_PRs

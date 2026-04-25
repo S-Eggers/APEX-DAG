@@ -1,19 +1,19 @@
-import yaml
 import logging
-import torch
 import time
-from tqdm import tqdm
-import wandb
 from pathlib import Path
+
+import torch
+import wandb
+import yaml
+from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
+from ApexDAG.nn.training import GATTrainer, GraphEncoder, GraphProcessor, Modes
+from ApexDAG.util.logging import setup_wandb
 from ApexDAG.util.training_utils import (
+    TASKS_PER_GRAPH_TRANSFORM_MODE_FINETUNE,
     GraphTransformsMode,
     set_seed,
-    TASKS_PER_GRAPH_TRANSFORM_MODE_FINETUNE,
 )
-from ApexDAG.util.logging import setup_wandb
-
-from ApexDAG.nn.training import GraphProcessor, GraphEncoder, GATTrainer, Modes
-from ApexDAG.experiments.pretrain import create_model as create_pretrain_model
+from tqdm import tqdm
 
 
 def create_model(config):
@@ -62,7 +62,7 @@ def finetune_gat(args, logger: logging.Logger) -> None:
 
     mode = Modes.FINETUNING
 
-    with open(args.config_path, "r") as f:
+    with open(args.config_path) as f:
         config = yaml.safe_load(f)
         graph_transform_mode = config.get("mode", "ORIGINAL")
         config["mode"] = GraphTransformsMode[graph_transform_mode]

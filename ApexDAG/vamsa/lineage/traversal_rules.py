@@ -1,17 +1,17 @@
-from typing import List
+
 from ..core.types import PRType
 
-def is_constant(var: str, prs: List[PRType]) -> bool:
+
+def is_constant(var: str, prs: list[PRType]) -> bool:
     """
     Check if a variable is a constant. Var is constant if it is not an output of any other PR.
     """
-    if var is None: 
+    if var is None:
         return False
     for pr in prs:
         _, _, _, output_nodes = pr
         if output_nodes is None: continue
-        if isinstance(output_nodes, list) and var in output_nodes: return False
-        elif var == output_nodes: return False
+        if (isinstance(output_nodes, list) and var in output_nodes) or var == output_nodes: return False
     return True
 
 def drop_traversal(pr, tracker):

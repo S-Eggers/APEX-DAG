@@ -1,6 +1,7 @@
 import logging
 import sys
 
+
 def configure_apexdag_logger(jupyter_logger: logging.Logger = None) -> logging.Logger:
     base_logger = logging.getLogger("ApexDAG")
     base_logger.setLevel(logging.INFO)
@@ -12,7 +13,7 @@ def configure_apexdag_logger(jupyter_logger: logging.Logger = None) -> logging.L
         for handler in jupyter_logger.handlers:
             base_logger.addHandler(handler)
 
-        base_logger.propagate = False 
+        base_logger.propagate = False
     else:
         handler = logging.StreamHandler(sys.stdout)
         formatter = logging.Formatter(

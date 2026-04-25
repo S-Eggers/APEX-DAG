@@ -1,7 +1,9 @@
+import logging
 import os
+
 import nbformat
 from tqdm import tqdm
-import logging
+
 
 class LocalNotebookIterator:
     def __init__(self, local_path, log_file):
@@ -39,7 +41,7 @@ class LocalNotebookIterator:
 
     def _read_notebook(self, filename):
         try:
-            with open(filename, 'r', encoding='utf-8') as f:
+            with open(filename, encoding='utf-8') as f:
                 return nbformat.read(f, as_version=4)
         except Exception as e:
             self.logger.warning(f"Could not read notebook {filename}. Error: {e}")

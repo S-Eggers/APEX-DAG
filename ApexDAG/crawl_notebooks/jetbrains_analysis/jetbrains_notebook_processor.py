@@ -1,8 +1,9 @@
 import json
 import os
-import requests
 import time
+
 import nbformat
+import requests
 from tqdm import tqdm
 
 from ApexDAG.crawl_notebooks.notebook_processor import NotebookProcessor

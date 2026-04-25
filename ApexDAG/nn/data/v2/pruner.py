@@ -1,4 +1,5 @@
 import logging
+
 import networkx as nx
 
 logger = logging.getLogger(__name__)
@@ -17,7 +18,7 @@ class GraphPruner:
         while nodes_removed:
             nodes_removed = False
             iteration += 1
-            
+
             out_degrees = dict(pruned_G.out_degree())
             dead_ends = [node for node, out_deg in out_degrees.items() if out_deg == 0]
             nodes_to_delete = []

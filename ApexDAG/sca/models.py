@@ -1,21 +1,22 @@
-from dataclasses import dataclass, field, asdict
-from typing import Optional, List, Dict, Any, Union
+from dataclasses import asdict, dataclass, field
+from typing import Any
+
 
 @dataclass(kw_only=True)
 class GraphNode:
     """
     Strict contract for all nodes in the ApexDAG ecosystem.
     """
-    id: Union[str, int]
+    id: str | int
     label: str
     node_type: int
     cell_id: str
     code: str = ""
-    
-    predicted_label: Optional[int] = None
-    domain_label: Optional[str] = None
-    base_inputs: Optional[str] = None
-    transform_history: List[Dict[str, Any]] = field(default_factory=list)
+
+    predicted_label: int | None = None
+    domain_label: str | None = None
+    base_inputs: str | None = None
+    transform_history: list[dict[str, Any]] = field(default_factory=list)
 
     def to_networkx_attrs(self) -> dict:
         raw_dict = asdict(self)
@@ -28,14 +29,14 @@ class GraphEdge:
     """
     Strict contract for all edges in the ApexDAG ecosystem.
     """
-    source: Union[str, int]
-    target: Union[str, int]
+    source: str | int
+    target: str | int
     edge_type: int
     label: str = "edge"
     cell_id: str
-    
-    predicted_label: Optional[int] = None
-    domain_label: Optional[str] = None
+
+    predicted_label: int | None = None
+    domain_label: str | None = None
 
     def to_networkx_attrs(self) -> dict:
 

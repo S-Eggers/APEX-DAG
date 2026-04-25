@@ -1,5 +1,7 @@
 import abc
+
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
+
 
 class EdgeLabeler(abc.ABC):
     @abc.abstractmethod
