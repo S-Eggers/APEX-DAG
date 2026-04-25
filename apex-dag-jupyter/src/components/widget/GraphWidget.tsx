@@ -13,12 +13,20 @@ export class GraphWidget extends ReactWidget {
   private notebookCode: ExtractedCell[] = [];
   private nbPanel: NotebookPanel | null = null;
   private commands: any;
+  private rawDatasetPath: string = 'raw_dataset';
 
   constructor(mode: GraphMode = 'dataflow', commands?: any) {
     super();
     this.mode = mode;
     this.addClass('jp-react-widget');
     this.commands = commands;
+  }
+
+  setDatasetPath(path: string) {
+    if (this.rawDatasetPath !== path) {
+      this.rawDatasetPath = path;
+      this.update();
+    }
   }
 
   setNotebookContext(
@@ -66,12 +74,18 @@ export class GraphWidget extends ReactWidget {
         resetTrigger={this.resetTrigger}
         notebookName={this.notebookName}
         notebookCode={this.notebookCode}
+        rawDatasetPath={this.rawDatasetPath}
         onLocateCell={this.handleLocateCell}
         onNextNotebook={notebookPath => {
           if (!this.commands) return;
+          const attachOptions = this.nbPanel
+            ? { mode: 'tab-after', ref: this.nbPanel.id }
+            : { mode: 'split-left', ref: this.id };
 
           this.commands.execute('docmanager:open', {
-            path: notebookPath
+            path: notebookPath,
+            factory: 'Notebook',
+            options: attachOptions
           });
         }}
       />

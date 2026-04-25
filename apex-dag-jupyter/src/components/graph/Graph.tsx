@@ -5,7 +5,7 @@ import {
   filterLegendItems,
   MODE_CONFIG
 } from '../../config/GraphConfig';
-import { getBackend, callBackend } from '../../utils/callBackend';
+import { callBackend } from '../../utils/callBackend';
 import { useCytoscape } from '../../hooks/useCytoscape';
 
 import NodeDetailsPanel from './panels/NodeDetailsPanel';
@@ -21,6 +21,7 @@ export default function Graph({
   taxonomy,
   notebookName,
   notebookCode,
+  rawDatasetPath,
   onLocateCell,
   onNextNotebook
 }: GraphProps) {
@@ -135,7 +136,10 @@ export default function Graph({
   const handleNextNotebook = async () => {
     setNextState('loading');
     try {
-      const result = await getBackend('labeling/next');
+      const result = await callBackend('labeling/next', {
+        datasetPath: rawDatasetPath || 'raw_dataset'
+      });
+
       if (result.success && result.path) {
         setNextState('success');
         if (onNextNotebook) {
@@ -158,7 +162,7 @@ export default function Graph({
       {mode === 'labeling' && (
         <div className="absolute top-4 left-4 z-30 flex items-center gap-3 bg-white p-2 rounded shadow-md border border-gray-200">
           <span className="text-xs text-gray-500 font-mono">
-            {notebookName}_annotated.json
+            {notebookName}.json
           </span>
 
           <a

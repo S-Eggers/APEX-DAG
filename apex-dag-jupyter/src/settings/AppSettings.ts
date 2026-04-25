@@ -6,6 +6,7 @@ export class AppSettings {
   highlightRelevantSubgraphs = false;
   greedyNotebookExtraction = true;
   llmClassification = false;
+  rawDatasetPath = 'raw_dataset';
 
   update(settings: ISettingRegistry.ISettings) {
     this.debounceDelay =
@@ -19,5 +20,7 @@ export class AppSettings {
       (settings.get('greedyNotebookExtraction').composite as boolean) ?? true;
     this.llmClassification =
       (settings.get('llmClassification').composite as boolean) ?? false;
+    this.rawDatasetPath =
+      (settings.get('rawDatasetPath').composite as string) ?? 'raw_dataset';
   }
 }

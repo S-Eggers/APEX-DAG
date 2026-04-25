@@ -7,6 +7,7 @@ from .handler.EnvironmentHandler import EnvironmentHandler
 from .handler.LabelingSaveHandler import LabelingSaveHandler#
 from .handler.LabelingPredictHandler import LabelingPredictHandler
 from .handler.LabelingGenerateHandler import LabelingGenerateHandler
+from .handler.LabelingNextHandler import LabelingNextHandler
 from .handler.ConstantsHandler import ConstantsHandler
 from .handler.VamsaHandler import VamsaHandler
 
@@ -48,6 +49,11 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
         (
             url_path_join(base_url, "apex-dag", "labeling", "generate"),
             LabelingGenerateHandler,
+            {}
+        ),
+        (
+            url_path_join(base_url, "apex-dag", "labeling", "next"),
+            LabelingNextHandler,
             {}
         ),
         (

@@ -12,6 +12,10 @@ export const updateGraphWidget = (
 ) => {
   if (!graphWidget) return;
 
+  if (settings && settings.rawDatasetPath && 'setDatasetPath' in graphWidget) {
+    (graphWidget as any).setDatasetPath(settings.rawDatasetPath);
+  }
+
   const cells = notebookPanel.content.model?.cells;
   if (!cells) {
     console.warn('No notebook cells available for extraction.');

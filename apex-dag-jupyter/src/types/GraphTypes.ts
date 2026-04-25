@@ -19,6 +19,7 @@ export interface GraphProps {
   taxonomy: any;
   notebookName: string;
   notebookCode: ExtractedCell[];
+  rawDatasetPath: string;
   onLocateCell?: (cellId: string) => void;
   onNextNotebook?: (path: string) => void;
 }
@@ -29,6 +30,7 @@ export interface GraphComponentProps {
   resetTrigger: number;
   notebookName: string;
   notebookCode: ExtractedCell[];
+  rawDatasetPath: string;
   onLocateCell?: (cellId: string) => void;
   onNextNotebook?: (path: string) => void;
 }

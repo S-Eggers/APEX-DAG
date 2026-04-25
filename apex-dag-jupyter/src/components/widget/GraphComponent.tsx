@@ -9,6 +9,7 @@ const GraphComponent: React.FC<GraphComponentProps> = ({
   resetTrigger,
   notebookName,
   notebookCode,
+  rawDatasetPath,
   onLocateCell,
   onNextNotebook
 }) => {
@@ -31,6 +32,7 @@ const GraphComponent: React.FC<GraphComponentProps> = ({
         taxonomy={taxonomy}
         notebookName={notebookName}
         notebookCode={notebookCode}
+        rawDatasetPath={rawDatasetPath}
         onLocateCell={onLocateCell}
         onNextNotebook={onNextNotebook}
       />
