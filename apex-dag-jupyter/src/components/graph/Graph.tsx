@@ -5,12 +5,14 @@ import {
   filterLegendItems,
   MODE_CONFIG
 } from '../../config/GraphConfig';
-import callBackend from '../../utils/callBackend';
+import { getBackend, callBackend } from '../../utils/callBackend';
 import { useCytoscape } from '../../hooks/useCytoscape';
 
 import NodeDetailsPanel from './panels/NodeDetailsPanel';
 import EdgeDetailsPanel from './panels/EdgeDetailsPanel';
 import GraphLegend from './panels/GraphLegend';
+
+type ActionState = 'idle' | 'loading' | 'success' | 'error';
 
 export default function Graph({
   graphData,
@@ -19,12 +21,15 @@ export default function Graph({
   taxonomy,
   notebookName,
   notebookCode,
-  onLocateCell
+  onLocateCell,
+  onNextNotebook
 }: GraphProps) {
   const graphRef = useRef<HTMLDivElement>(null);
 
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<any | null>(null);
+  const [saveState, setSaveState] = useState<ActionState>('idle');
+  const [nextState, setNextState] = useState<ActionState>('idle');
 
   const [groupedLegendItems, setGroupedLegendItems] = useState<
     Record<string, LegendItemType[]>
@@ -101,6 +106,8 @@ export default function Graph({
 
   const handleSaveAnnotations = async () => {
     if (!cyRef.current) return;
+    setSaveState('loading');
+
     const currentGraphJson = (cyRef.current.json() as any).elements;
     const rawPythonCode = notebookCode.map((c: any) => c.source).join('\n');
 
@@ -112,12 +119,37 @@ export default function Graph({
       });
 
       if (result.success) {
-        alert('Annotations saved securely.');
+        setSaveState('success');
       } else {
         console.error('Save failed: ', result.message);
+        setSaveState('error');
       }
     } catch (e) {
       console.error('Network or Auth error during save: ', e);
+      setSaveState('error');
+    } finally {
+      setTimeout(() => setSaveState('idle'), 2000);
+    }
+  };
+
+  const handleNextNotebook = async () => {
+    setNextState('loading');
+    try {
+      const result = await getBackend('labeling/next');
+      if (result.success && result.path) {
+        setNextState('success');
+        if (onNextNotebook) {
+          onNextNotebook(result.path);
+        }
+      } else {
+        console.error(result.message || 'No more notebooks available.');
+        setNextState('error');
+      }
+    } catch (e) {
+      console.error('Failed to fetch next notebook:', e);
+      setNextState('error');
+    } finally {
+      setTimeout(() => setNextState('idle'), 2000);
     }
   };
 
@@ -126,13 +158,43 @@ export default function Graph({
       {mode === 'labeling' && (
         <div className="absolute top-4 left-4 z-30 flex items-center gap-3 bg-white p-2 rounded shadow-md border border-gray-200">
           <span className="text-xs text-gray-500 font-mono">
-            {notebookName}_annotated.gml
+            {notebookName}_annotated.json
           </span>
+
           <a
             onClick={handleSaveAnnotations}
-            className="bg-blue-600 !text-white px-4 py-2 rounded shadow hover:bg-blue-700 transition hover:cursor-pointer"
+            className={`px-4 py-2 rounded shadow font-medium block cursor-pointer transition-colors duration-200 !text-white ${
+              saveState === 'success'
+                ? 'bg-green-600'
+                : saveState === 'error'
+                  ? 'bg-red-600'
+                  : saveState === 'loading'
+                    ? 'bg-blue-400 !cursor-wait'
+                    : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
-            Save GML
+            {saveState === 'idle' && 'Save JSON'}
+            {saveState === 'loading' && 'Saving...'}
+            {saveState === 'success' && 'Saved ✓'}
+            {saveState === 'error' && 'Error ✗'}
+          </a>
+
+          <a
+            onClick={handleNextNotebook}
+            className={`px-4 py-2 rounded shadow cursor-pointer block font-medium !text-white transition-colors duration-200 ${
+              nextState === 'success'
+                ? 'bg-green-600'
+                : nextState === 'error'
+                  ? 'bg-red-600'
+                  : nextState === 'loading'
+                    ? 'bg-gray-600 !cursor-wait'
+                    : 'bg-gray-800 hover:bg-gray-900'
+            }`}
+          >
+            {nextState === 'idle' && 'Next'}
+            {nextState === 'loading' && 'Loading...'}
+            {nextState === 'success' && 'Opening ✓'}
+            {nextState === 'error' && 'Empty ✗'}
           </a>
         </div>
       )}

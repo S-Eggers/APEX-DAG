@@ -9,7 +9,8 @@ const GraphComponent: React.FC<GraphComponentProps> = ({
   resetTrigger,
   notebookName,
   notebookCode,
-  onLocateCell
+  onLocateCell,
+  onNextNotebook
 }) => {
   const taxonomy = useGraphTaxonomy(mode);
 
@@ -31,6 +32,7 @@ const GraphComponent: React.FC<GraphComponentProps> = ({
         notebookName={notebookName}
         notebookCode={notebookCode}
         onLocateCell={onLocateCell}
+        onNextNotebook={onNextNotebook}
       />
     </div>
   );

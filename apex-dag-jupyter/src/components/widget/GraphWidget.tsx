@@ -12,11 +12,13 @@ export class GraphWidget extends ReactWidget {
   private notebookName: string = 'untitled';
   private notebookCode: ExtractedCell[] = [];
   private nbPanel: NotebookPanel | null = null;
+  private commands: any;
 
-  constructor(mode: GraphMode = 'dataflow') {
+  constructor(mode: GraphMode = 'dataflow', commands?: any) {
     super();
     this.mode = mode;
     this.addClass('jp-react-widget');
+    this.commands = commands;
   }
 
   setNotebookContext(
@@ -65,6 +67,13 @@ export class GraphWidget extends ReactWidget {
         notebookName={this.notebookName}
         notebookCode={this.notebookCode}
         onLocateCell={this.handleLocateCell}
+        onNextNotebook={notebookPath => {
+          if (!this.commands) return;
+
+          this.commands.execute('docmanager:open', {
+            path: notebookPath
+          });
+        }}
       />
     );
   }

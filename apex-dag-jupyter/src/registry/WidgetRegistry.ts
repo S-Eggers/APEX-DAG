@@ -22,7 +22,7 @@ export interface WidgetConfig {
   rank: number;
   group: number;
   debouncedUpdate: boolean;
-  factory: () => Widget;
+  factory: (commands?: any) => Widget;
   update: (
     content: Widget,
     nbPanel: NotebookPanel,
@@ -86,7 +86,7 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     rank: 5,
     group: 3,
     debouncedUpdate: true,
-    factory: () => new GraphWidget('labeling'),
+    factory: commands => new GraphWidget('labeling', commands),
     update: (content, nbPanel, settings) => {
       updateGraphWidget(content as GraphWidget, nbPanel, 'labeling', settings);
     }

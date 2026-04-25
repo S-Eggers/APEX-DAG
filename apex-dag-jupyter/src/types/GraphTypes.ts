@@ -20,6 +20,7 @@ export interface GraphProps {
   notebookName: string;
   notebookCode: ExtractedCell[];
   onLocateCell?: (cellId: string) => void;
+  onNextNotebook?: (path: string) => void;
 }
 
 export interface GraphComponentProps {
@@ -29,6 +30,7 @@ export interface GraphComponentProps {
   notebookName: string;
   notebookCode: ExtractedCell[];
   onLocateCell?: (cellId: string) => void;
+  onNextNotebook?: (path: string) => void;
 }
 
 export interface LabelOption {

@@ -38,6 +38,9 @@ export const updateGraphWidget = (
   if (mode === 'lineage' || mode === 'vamsa' || mode === 'labeling') {
     payload.llmClassification = settings.llmClassification;
   }
+  if (mode === 'labeling') {
+    payload.filename = notebookPanel.context.path;
+  }
 
   callBackend(mode, payload)
     .then(response => {

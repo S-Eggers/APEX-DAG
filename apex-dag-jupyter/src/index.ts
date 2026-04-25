@@ -49,7 +49,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         return wrapper;
       }
 
-      wrapper = new MainAreaWidget({ content: config.factory() });
+      wrapper = new MainAreaWidget({ content: config.factory(app.commands) });
       wrapper.title.label = config.label;
       wrapper.title.icon = ApexIcon;
       wrapper.title.closable = true;
