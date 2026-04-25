@@ -7,7 +7,7 @@ const sharedLineageConfig = {
   legends: [
     {
       type: 'node',
-      color: nColors.VARIABLE,
+      color: SEMANTIC_COLORS.nodes.VARIABLE,
       label: 'Variable',
       borderStyle: 'solid',
       numericType: 0,
@@ -15,100 +15,112 @@ const sharedLineageConfig = {
     },
     {
       type: 'node',
-      color: nColors.IMPORT,
-      label: 'Library',
+      color: SEMANTIC_COLORS.nodes.IMPORT,
+      label: 'Library / Origin',
       borderStyle: 'solid',
       numericType: 1,
       category: 'Entities'
     },
     {
       type: 'node',
-      color: nColors.DATASET,
-      label: 'Dataset',
-      borderStyle: 'solid',
-      numericType: 2,
-      category: 'Data'
-    },
-    {
-      type: 'node',
-      color: nColors.UDF,
-      label: 'UDF',
+      color: SEMANTIC_COLORS.nodes.UDF,
+      label: 'UDF (Custom Logic)',
       borderStyle: 'solid',
       numericType: 3,
       category: 'Entities'
     },
     {
       type: 'node',
-      color: nColors.LITERAL,
-      label: 'Literal',
+      color: SEMANTIC_COLORS.nodes.MODEL,
+      label: 'ML Model',
       borderStyle: 'solid',
-      numericType: 8,
+      numericType: 4,
+      category: 'Entities'
+    },
+    {
+      type: 'node',
+      color: SEMANTIC_COLORS.nodes.DATASET,
+      label: 'Dataset / Table',
+      borderStyle: 'solid',
+      numericType: 2,
+      category: 'Data'
+    },
+    {
+      type: 'node',
+      color: SEMANTIC_COLORS.nodes.Constant,
+      label: 'Hyperparameter',
+      borderStyle: 'dashed',
+      numericType: 6,
+      category: 'Data'
+    },
+    {
+      type: 'node',
+      color: SEMANTIC_COLORS.nodes.LITERAL,
+      label: 'Static Value',
+      borderStyle: 'solid',
+      numericType: 7,
       category: 'Data'
     },
     {
       type: 'edge',
-      color: eColors.MODEL_TRAIN,
-      label: 'Model Train/Eval',
+      color: SEMANTIC_COLORS.edges.MODEL_TRAIN,
+      label: 'Model Op (Train/Pred)',
       borderStyle: 'solid',
       numericType: 0,
       category: 'Operations'
     },
     {
       type: 'edge',
-      color: eColors.ENVIRONMENT_EXPORT,
-      label: 'Environment+Data Export',
-      borderStyle: 'solid',
-      numericType: 4,
-      category: 'Operations'
-    },
-    {
-      type: 'edge',
-      color: eColors.BRANCH,
-      label: 'EDA',
-      borderStyle: 'solid',
-      numericType: 3,
-      category: 'Operations'
-    },
-    {
-      type: 'edge',
-      color: eColors.DATA_IMPORT_EXTRACTION,
-      label: 'Data Import',
+      color: SEMANTIC_COLORS.edges.DATA_IMPORT_EXTRACTION,
+      label: 'Data Load',
       borderStyle: 'solid',
       numericType: 1,
       category: 'Operations'
     },
     {
       type: 'edge',
-      color: eColors.DATA_TRANSFORM,
-      label: 'Data Transform',
+      color: SEMANTIC_COLORS.edges.DATA_TRANSFORM,
+      label: 'Transformation',
       borderStyle: 'solid',
       numericType: 2,
       category: 'Operations'
+    },
+    {
+      type: 'edge',
+      color: SEMANTIC_COLORS.edges.BRANCH,
+      label: 'EDA / Inspection',
+      borderStyle: 'dotted',
+      numericType: 3,
+      category: 'Operations'
     }
   ] as LegendItemType[],
+
   getNodeColor: (type: number) => {
     const map: Record<number, string> = {
-      0: nColors.VARIABLE,
-      1: nColors.IMPORT,
-      2: nColors.DATASET,
-      3: nColors.UDF,
-      4: nColors.INTERMEDIATE,
-      5: nColors.IF,
-      7: nColors.LOOP,
-      8: nColors.LITERAL
+      0: SEMANTIC_COLORS.nodes.VARIABLE,
+      1: SEMANTIC_COLORS.nodes.IMPORT,
+      2: SEMANTIC_COLORS.nodes.DATASET,
+      3: SEMANTIC_COLORS.nodes.UDF,
+      4: SEMANTIC_COLORS.nodes.MODEL,
+      5: SEMANTIC_COLORS.nodes.Name,
+      6: SEMANTIC_COLORS.nodes.Constant,
+      7: SEMANTIC_COLORS.nodes.LITERAL,
+      8: SEMANTIC_COLORS.nodes.NOT_RELEVANT
     };
-    return map[type] || nColors.VARIABLE;
+    return map[type] || SEMANTIC_COLORS.nodes.VARIABLE;
   },
+
   getEdgeColor: (type: number) => {
     const map: Record<number, string> = {
-      0: eColors.MODEL_TRAIN,
-      1: eColors.DATA_IMPORT_EXTRACTION,
-      2: eColors.DATA_TRANSFORM,
-      3: eColors.BRANCH,
-      4: eColors.ENVIRONMENT_EXPORT,
-      5: eColors.FUNCTION_CALL
+      0: SEMANTIC_COLORS.edges.MODEL_TRAIN,
+      1: SEMANTIC_COLORS.edges.DATA_IMPORT_EXTRACTION,
+      2: SEMANTIC_COLORS.edges.DATA_TRANSFORM,
+      3: SEMANTIC_COLORS.edges.BRANCH,
+      4: SEMANTIC_COLORS.edges.ENVIRONMENT_EXPORT,
+      5: SEMANTIC_COLORS.edges.FUNCTION_CALL,
+      6: SEMANTIC_COLORS.edges.NOT_RELEVANT
     };
-    return map[type] || eColors.DATA_TRANSFORM;
+    return map[type] || SEMANTIC_COLORS.edges.DATA_TRANSFORM;
   }
 };
 

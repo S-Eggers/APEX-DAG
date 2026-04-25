@@ -41,7 +41,8 @@ export const SEMANTIC_COLORS = {
     Import: '#fca5a5',
     ImportFrom: '#fca5a5',
 
-    AST_UNKNOWN: '#ef4444'
+    AST_UNKNOWN: '#ef4444',
+    NOT_RELEVANT: DEFAULT_EDGE_COLOR
   } as Record<string, string>,
 
   edges: {
@@ -55,6 +56,7 @@ export const SEMANTIC_COLORS = {
     DATA_IMPORT_EXTRACTION: '#98FB98',
     DATA_TRANSFORM: '#d3d3d3',
     ENVIRONMENT_EXPORT: '#FFDAB9',
-    AST_PARENT_CHILD: '#9ca3af'
+    AST_PARENT_CHILD: '#9ca3af',
+    NOT_RELEVANT: DEFAULT_EDGE_COLOR
   } as Record<string, string>
 };

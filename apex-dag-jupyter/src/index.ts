@@ -84,18 +84,24 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
           if (!wrapper.isAttached) {
             let attachOptions: any = {};
-            let anchorRefId: string | undefined = undefined;
-            for (const w of activeWrappers.values()) {
-              if (w.isAttached && w !== wrapper) {
-                anchorRefId = w.id;
-                break;
-              }
-            }
 
-            if (anchorRefId) {
-              attachOptions = { mode: 'tab-after', ref: anchorRefId };
+            const attachedApexWidgets = Array.from(
+              activeWrappers.values()
+            ).filter(w => w.isAttached && !w.isDisposed);
+
+            if (attachedApexWidgets.length > 0) {
+              const lastApexWidget =
+                attachedApexWidgets[attachedApexWidgets.length - 1];
+
+              attachOptions = {
+                mode: 'tab-after',
+                ref: lastApexWidget.id
+              };
             } else if (currentNb && args['isToolbar']) {
-              attachOptions = { mode: 'split-right', ref: currentNb.id };
+              attachOptions = {
+                mode: 'split-right',
+                ref: currentNb.id
+              };
             }
 
             app.shell.add(wrapper, 'main', attachOptions);

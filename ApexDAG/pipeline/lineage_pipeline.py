@@ -1,15 +1,19 @@
 from typing import Dict, Any
-from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
+from ApexDAG.parser.graph_parser import GraphParser
+from ApexDAG.sca.graph_refiner import GraphRefiner
+from ApexDAG.labeler.edge_labeler import EdgeLabeler
+from ApexDAG.serializer.lineage_serializer import LineageSerializer
+
 
 class LineagePipeline:
     """Orchestrates the steps of lineage extraction."""
     
     def __init__(
         self,
-        parser: 'GraphParser',
-        labeler: 'EdgeLabeler',
-        refiner: 'GraphRefiner',
-        serializer: 'GraphSerializer',
+        parser: GraphParser,
+        labeler: EdgeLabeler,
+        refiner: GraphRefiner,
+        serializer: LineageSerializer,
         highlight_relevant: bool
     ):
         self.parser = parser
