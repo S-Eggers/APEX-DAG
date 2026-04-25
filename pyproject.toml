@@ -45,6 +45,10 @@ exclude = [
     ".venv",
     "apex-dag-jupyter",
     "jetbains_dfg_100k_new",
+    "data",
+    "demo",
+    "output",
+    "sample_output"
 ]
 
 [tool.ruff.lint]

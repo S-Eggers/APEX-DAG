@@ -11,8 +11,8 @@ except ImportError:
     warnings.warn("Importing 'apex_dag_jupyter' outside a proper installation.")
     __version__ = "dev"
 
-from ApexDAG.nn.models.gat_v1 import MultiTaskGATv1
-from ApexDAG.nn.data.encoder import GraphEncoder
+from ApexDAG.nn.models.v1.gat import MultiTaskGATv1
+from ApexDAG.nn.data.v1.encoder import GraphEncoder
 from ApexDAG.util.logger import configure_apexdag_logger
 from .handlers import setup_handlers
 from .config import APEXDAGConfig
@@ -24,7 +24,6 @@ def _jupyter_server_extension_points():
     return [{"module": "apex_dag_jupyter"}]
 
 def create_model(config, reversed_mode, tasks):
-    # Enforces the v1 legacy architecture to support existing checkpoints
     return MultiTaskGATv1(
         hidden_dim=config["hidden_dim"],
         dim_embed=config["dim_embed"],
@@ -38,16 +37,9 @@ def create_model(config, reversed_mode, tasks):
     )
 
 def load_apex_model(logger: logging.Logger):
-    """
-    Loads the ML model using robust, package-relative path resolution.
-    Ideally, these paths should be injected via Jupyter configuration, 
-    but this ensures it survives being run from arbitrary directories.
-    """
     logger.info("APEX-DAG Plugin: Initializing ML Model...")
     
-    # Dynamically resolve the package root directory
     package_root = Path(__file__).parent.parent.absolute()
-    
     config_path = package_root / "models" / "config" / "default_reversed.yaml"
     checkpoint_path = package_root / "models" / "checkpoints" / "model_epoch_finetuned_GraphTransformsMode.REVERSED_440.pt"
 
