@@ -1,11 +1,23 @@
 import { Widget } from '@lumino/widgets';
 import { NotebookPanel } from '@jupyterlab/notebook';
+import { LabIcon } from '@jupyterlab/ui-components';
+
 import CommandIDs from '../types/CommandIDs';
 import { GraphWidget } from '../components/widget/GraphWidget';
 import { EnvironmentWidget } from '../components/widget/EnvironmentWidget';
 import { updateGraphWidget } from '../utils/GraphService';
 import updateEnvironmentWidget from '../utils/updateEnvironmentWidget';
 import { AppSettings } from '../settings/AppSettings';
+
+// Import the pre-built icons
+import {
+  astIcon,
+  dataflowIcon,
+  lineageIcon,
+  vamsaIcon,
+  labelingIcon,
+  environmentIcon
+} from '../utils/ApexIcons';
 
 export type WidgetType =
   | 'dataflow'
@@ -21,6 +33,7 @@ export interface WidgetConfig {
   label: string;
   rank: number;
   group: number;
+  icon: LabIcon;
   debouncedUpdate: boolean;
   factory: (commands?: any) => Widget;
   update: (
@@ -37,6 +50,7 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     label: 'AST',
     rank: 1,
     group: 1,
+    icon: astIcon,
     debouncedUpdate: false,
     factory: () => new GraphWidget('ast'),
     update: (content, nbPanel, settings) => {
@@ -49,6 +63,7 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     label: 'Dataflow',
     rank: 2,
     group: 2,
+    icon: dataflowIcon,
     debouncedUpdate: false,
     factory: () => new GraphWidget('dataflow'),
     update: (content, nbPanel, settings) => {
@@ -61,6 +76,7 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     label: 'Lineage',
     rank: 3,
     group: 3,
+    icon: lineageIcon,
     debouncedUpdate: true,
     factory: () => new GraphWidget('lineage'),
     update: (content, nbPanel, settings) => {
@@ -73,6 +89,7 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     label: 'Vamsa',
     rank: 4,
     group: 3,
+    icon: vamsaIcon,
     debouncedUpdate: false,
     factory: () => new GraphWidget('vamsa'),
     update: (content, nbPanel, settings) => {
@@ -85,6 +102,7 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     label: 'Annotate',
     rank: 5,
     group: 3,
+    icon: labelingIcon,
     debouncedUpdate: true,
     factory: commands => new GraphWidget('labeling', commands),
     update: (content, nbPanel, settings) => {
@@ -97,6 +115,7 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     label: 'Environment',
     rank: 6,
     group: 4,
+    icon: environmentIcon,
     debouncedUpdate: false,
     factory: () => new EnvironmentWidget(),
     update: (content, nbPanel, settings) => {

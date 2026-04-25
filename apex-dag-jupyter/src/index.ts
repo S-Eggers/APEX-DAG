@@ -15,7 +15,6 @@ import { toArray } from '@lumino/algorithm';
 import { Widget } from '@lumino/widgets';
 
 import CommandIDs from './types/CommandIDs';
-import ApexIcon from './utils/ApexIcon';
 import { AppSettings } from './settings/AppSettings';
 import {
   WIDGET_REGISTRY,
@@ -23,6 +22,7 @@ import {
   WidgetType
 } from './registry/WidgetRegistry';
 import { ApexNativeDropdownWidget } from './components/toolbar/ApexNativeDropdownWidget';
+import { APEX_GRADIENT_SVG, settingsIcon } from './utils/ApexIcons';
 
 const plugin: JupyterFrontEndPlugin<void> = {
   id: CommandIDs.plugin,
@@ -38,6 +38,10 @@ const plugin: JupyterFrontEndPlugin<void> = {
     mainMenu: IMainMenu,
     settingRegistry: ISettingRegistry | null
   ) => {
+    const gradientContainer = document.createElement('div');
+    gradientContainer.innerHTML = APEX_GRADIENT_SVG;
+    document.body.appendChild(gradientContainer);
+
     const appSettings = new AppSettings();
     const activeWrappers = new Map<WidgetType, MainAreaWidget<Widget>>();
 
@@ -51,7 +55,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
 
       wrapper = new MainAreaWidget({ content: config.factory(app.commands) });
       wrapper.title.label = config.label;
-      wrapper.title.icon = ApexIcon;
+      wrapper.title.icon = config.icon;
       wrapper.title.closable = true;
 
       activeWrappers.set(config.type, wrapper);
@@ -77,7 +81,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
         caption: config.label,
         label: config.label,
         icon: args =>
-          args['isPalette'] || args['isToolbar'] ? undefined : ApexIcon,
+          args['isPalette'] || args['isToolbar'] ? undefined : config.icon,
         execute: args => {
           const wrapper = getOrCreateWidget(config);
           const currentNb = tracker.currentWidget;
@@ -128,7 +132,7 @@ const plugin: JupyterFrontEndPlugin<void> = {
     app.commands.addCommand(settingsCmdId, {
       label: 'Settings',
       caption: 'Open APEX-DAG Configuration',
-      icon: args => (args['isPalette'] ? undefined : ApexIcon),
+      icon: args => (args['isPalette'] ? undefined : settingsIcon),
       execute: () => {
         app.commands.execute('settingeditor:open', { query: 'APEX-DAG' });
       }

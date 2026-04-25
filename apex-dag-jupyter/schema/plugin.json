@@ -1,45 +1,123 @@
 {
-  "jupyter.lab.shortcuts": [],
-  "title": "apex-dag-jupyter",
-  "description": "apex-dag-jupyter settings.",
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "apex-dag:open-ast",
+      "keys": ["Accel Alt A"],
+      "selector": "body"
+    },
+    {
+      "command": "apex-dag:open-dataflow",
+      "keys": ["Accel Alt D"],
+      "selector": "body"
+    },
+    {
+      "command": "apex-dag:open-lineage",
+      "keys": ["Accel Alt L"],
+      "selector": "body"
+    },
+    {
+      "command": "apex-dag:open-vamsa",
+      "keys": ["Accel Alt V"],
+      "selector": "body"
+    },
+    {
+      "command": "apex-dag:open-labeling",
+      "keys": ["Accel Alt M"],
+      "selector": "body"
+    },
+    {
+      "command": "apex-dag:open-environment",
+      "keys": ["Accel Alt E"],
+      "selector": "body"
+    },
+    {
+      "command": "apex-dag:open-settings",
+      "keys": ["Accel Alt S"],
+      "selector": "body"
+    }
+  ],
+  "title": "APEX-DAG Settings",
+  "description": "Configuration for the APEX-DAG JupyterLab extension.",
   "type": "object",
   "properties": {
-    "rawDatasetPath": {
-      "type": "string",
-      "title": "Raw Dataset Path",
-      "description": "Relative or absolute path to the directory containing unannotated notebooks (e.g., 'raw_dataset/').",
-      "default": "raw_dataset"
+    "extraction": {
+      "type": "object",
+      "title": "1. Data Extraction",
+      "default": {
+        "rawDatasetPath": "raw_dataset",
+        "greedyNotebookExtraction": true
+      },
+      "properties": {
+        "greedyNotebookExtraction": {
+          "type": "boolean",
+          "title": "Exhaustive Context Capture",
+          "description": "When enabled, the engine treats the notebook as a sequential script (top-to-bottom). When disabled, the engine strictly respects the Kernel execution state and ignores unexecuted cells."
+        },
+        "rawDatasetPath": {
+          "type": "string",
+          "title": "Labeling Dataset Root",
+          "description": "The workspace-relative directory used by the 'Next' notebook iterator to stream unannotated assets."
+        }
+      },
+      "additionalProperties": false
     },
-    "debounceDelay": {
-      "title": "Debounce Delay (ms)",
-      "description": "The time to wait in milliseconds after a user stops typing before updating the lineage widget. Requires a page reload to take effect.",
-      "type": "number",
-      "default": -1,
-      "minimum": -1
+    "processing": {
+      "type": "object",
+      "title": "2. Graph Processing",
+      "default": {
+        "replaceDataflowInUDFs": false,
+        "highlightRelevantSubgraphs": false,
+        "useGraphRefiner": true
+      },
+      "properties": {
+        "replaceDataflowInUDFs": {
+          "type": "boolean",
+          "title": "UDF Scope Inlining",
+          "description": "When enabled, the refiner will attempt to inline the internal dataflow of User Defined Functions into the main dataflow and lineage graph."
+        },
+        "highlightRelevantSubgraphs": {
+          "type": "boolean",
+          "title": "Deterministic Lineage Pruning",
+          "description": "Aggressively removes topological paths that do not contribute to a Dataset, Model, or Environment Export, leaving only the core lineage chain."
+        },
+        "useGraphRefiner": {
+          "type": "boolean",
+          "title": "Post-Inference Heuristic Refiner",
+          "description": "Applies a deterministic rule-engine after neural classification to ensure logical consistency in the final graph topology."
+        }
+      },
+      "additionalProperties": false
     },
-    "replaceDataflowInUDFs": {
-      "title": "Replace Dataflow in UDFs",
-      "description": "Replace user-defined function (UDF) calls with actual dataflow and connect with return value of function call. ",
-      "type": "boolean",
-      "default": false
+    "ml": {
+      "type": "object",
+      "title": "3. Machine Learning",
+      "default": {
+        "llmClassification": false
+      },
+      "properties": {
+        "llmClassification": {
+          "type": "boolean",
+          "title": "Neural Lineage Inference",
+          "description": "Toggle between inference engines. When enabled, a Large Language Model (LLM) handles classification; when disabled, the system utilizes the local GAT backend."
+        }
+      },
+      "additionalProperties": false
     },
-    "highlightRelevantSubgraphs": {
-      "title": "Highlight Relevant Subgraphs",
-      "description": "Highlight relevant subgraphs and remove non-data paths.",
-      "type": "boolean",
-      "default": false
-    },
-    "greedyNotebookExtraction": {
-      "title": "Greedy Notebook Extraction",
-      "description": "Extract all the code from top to bottom and ignore cell execution order (if turned false, code gets ordered by execution number and ignored if no execution at all)",
-      "type": "boolean",
-      "default": true
-    },
-    "llmClassification": {
-      "title": "LLM Lineage Classification",
-      "description": "Use LLM for classifying nodes in the data flow graph (DFG).",
-      "type": "boolean",
-      "default": false
+    "ui": {
+      "type": "object",
+      "title": "4. UI & Rendering",
+      "default": {
+        "debounceDelay": -1
+      },
+      "properties": {
+        "debounceDelay": {
+          "type": "number",
+          "title": "Analysis Throttle (ms)",
+          "description": "Cooldown period before graph re-computation. Use -1 to disable debouncing and trigger updates immediately upon cell execution.",
+          "minimum": -1
+        }
+      },
+      "additionalProperties": false
     }
   },
   "additionalProperties": false

@@ -145,9 +145,17 @@ class Encoder:
 
     def _extract_node_features(self, graph):
         node_features, node_types = [], []
+        
         for _, attrs in graph.nodes(data=True):
-            variable_name = " ".join(attrs.get("label", "").split("_")[:-1])
-            embedding = self._embedding.embed(variable_name)
+            raw_code = attrs.get("code", "")
+            label = attrs.get("label", "")
+            
+            semantic_text = str(raw_code) if raw_code and raw_code != "None" else str(label)
+            
+            if "\n" in semantic_text:
+                semantic_text = semantic_text.replace("\n", " ")
+
+            embedding = self._embedding.embed(semantic_text)
             node_type = int(attrs.get("node_type", -1))
 
             node_features.append(embedding)

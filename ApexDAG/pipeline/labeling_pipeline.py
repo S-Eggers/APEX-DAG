@@ -17,6 +17,8 @@ class LabelingPipeline:
         dfg.get_state().optimize()
         
         self.labeler.apply_labels(dfg)
-        self.refiner.refine(dfg)
+
+        if self.refiner:
+            self.refiner.refine(dfg)
         
         return self.serializer.to_dict(dfg)

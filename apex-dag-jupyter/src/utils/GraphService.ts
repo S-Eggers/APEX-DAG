@@ -44,6 +44,7 @@ export const updateGraphWidget = (
   }
   if (mode === 'labeling') {
     payload.filename = notebookPanel.context.path;
+    payload.useGraphRefiner = settings.useGraphRefiner;
   }
 
   callBackend(mode, payload)

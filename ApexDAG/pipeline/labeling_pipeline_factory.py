@@ -10,10 +10,12 @@ class LabelingPipelineFactory:
     @staticmethod
     def create(request_payload: dict, model: dict) -> LabelingPipeline:
         use_llm = request_payload.get("llmClassification", False)
-        parser = GraphParser(replace_dataflow=request_payload.get("replaceDataflowInUDFs", False))
-        
+        use_refiner = request_payload.get("useRefiner", True)
+        replace_dataflow = request_payload.get("replaceDataflowInUDFs", False)
+
+        parser = GraphParser(replace_dataflow=replace_dataflow)
         labeler = LLMLabeler() if use_llm else GATLabeler(model)
-        refiner = GraphRefiner()
+        refiner = GraphRefiner() if use_refiner else None
         serializer = LabelingSerializer()
         
         return LabelingPipeline(
