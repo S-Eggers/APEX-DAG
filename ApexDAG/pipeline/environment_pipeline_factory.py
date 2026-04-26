@@ -8,9 +8,9 @@ from ApexDAG.serializer.environment_serializer import EnvironmentSerializer
 
 class EnvironmentPipelineFactory:
     @staticmethod
-    def create(request_payload: dict[str, Any] = None) -> EnvironmentPipeline:
+    def create(request_payload: dict[str, Any] | None = None) -> EnvironmentPipeline:
         return EnvironmentPipeline(
             serializer=EnvironmentSerializer(),
             import_visitor_cls=ImportVisitor,
-            complexity_visitor_cls=ComplexityVisitor
+            complexity_visitor_cls=ComplexityVisitor,
         )

@@ -2,7 +2,7 @@ from torch_geometric.data import Dataset
 
 
 class GraphDataset(Dataset):
-    def __init__(self, data_list):
+    def __init__(self, data_list) -> None:
         super().__init__()
         self.data_list = data_list
 

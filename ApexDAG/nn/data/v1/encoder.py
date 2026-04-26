@@ -18,8 +18,10 @@ from ApexDAG.util.training_utils import (
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
+
 class GraphEncoder:
     """Handles encoding of NetworkX graphs into PyTorch Geometric tensors."""
+
     def __init__(
         self,
         encoded_checkpoint_path: Path,
@@ -28,7 +30,7 @@ class GraphEncoder:
         load_encoded_old_if_exist: bool,
         mode: str = "original",
         bidirectional: bool = False,
-    ):
+    ) -> None:
         self.bidirectional = bidirectional
         self.mode = mode
         self.encoded_checkpoint_path = encoded_checkpoint_path
@@ -42,13 +44,16 @@ class GraphEncoder:
             logger.info("Loading encoded graphs...")
             return [
                 torch.load(self.encoded_checkpoint_path / path)
-                for path in tqdm.tqdm(os.listdir(self.encoded_checkpoint_path), desc="Loading encoded graphs")
+                for path in tqdm.tqdm(
+                    os.listdir(self.encoded_checkpoint_path),
+                    desc="Loading encoded graphs",
+                )
             ]
         return False
 
     def _make_bidirectional(self, graph: nx.DiGraph) -> nx.DiGraph:
         """
-        Makes the graph bidirectional. 
+        Makes the graph bidirectional.
         """
         return graph.to_undirected().to_directed()
 
@@ -58,7 +63,7 @@ class GraphEncoder:
         encoder = Encoder()
 
         for index, graph in enumerate(graphs):
-            logger.info(f"Encoding graph {index+1}/{len(graphs)}")
+            logger.info(f"Encoding graph {index + 1}/{len(graphs)}")
             if len(graph.nodes) < self.min_nodes and len(graph.edges) < self.min_edges:
                 continue
 
@@ -66,18 +71,26 @@ class GraphEncoder:
                 graph = self._make_bidirectional(graph)
 
             try:
-                if self.mode in [GraphTransformsMode.REVERSED.value, GraphTransformsMode.REVERSED_MASKED.value]:
+                if self.mode in [
+                    GraphTransformsMode.REVERSED.value,
+                    GraphTransformsMode.REVERSED_MASKED.value,
+                ]:
                     encoded_graph = encoder.encode_reversed(graph, feature_to_encode)
                 else:
                     encoded_graph = encoder.encode(graph, feature_to_encode)
 
-                torch.save(encoded_graph, self.encoded_checkpoint_path / f"graph_{index}.pt")
+                torch.save(
+                    encoded_graph, self.encoded_checkpoint_path / f"graph_{index}.pt"
+                )
                 self.encoded_graphs.append(encoded_graph)
 
             except KeyboardInterrupt:
                 logger.warning("Encoding interrupted, continuing with next graph...")
                 continue
-            except (InsufficientNegativeEdgesException, InsufficientPositiveEdgesException) as e:
+            except (
+                InsufficientNegativeEdgesException,
+                InsufficientPositiveEdgesException,
+            ) as e:
                 logger.error(f"{e.__class__.__name__} in graph {index}")
                 continue
             except Exception:

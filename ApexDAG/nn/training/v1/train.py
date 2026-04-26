@@ -38,21 +38,21 @@ class Modes(Enum):
 class GraphProcessor:
     """Handles loading and preprocessing of graphs."""
 
-    def __init__(self, checkpoint_path: Path):
+    def __init__(self, checkpoint_path: Path) -> None:
         self.checkpoint_path = checkpoint_path
         self.graphs = []
 
-    def check_graph(self, G):
+    def check_graph(self, G) -> None:
         """Ensures graph attributes are properly formatted."""
-        for node, data in G.nodes(data=True):
+        for _node, data in G.nodes(data=True):
             for key in data:
                 data[key] = "None" if data[key] is None else str(data[key])
 
-        for u, v, data in G.edges(data=True):
+        for _u, _v, data in G.edges(data=True):
             for key in data:
                 data[key] = "None" if data[key] is None else str(data[key])
 
-    def load_preprocessed_graphs(self):
+    def load_preprocessed_graphs(self) -> None:
         """Loads preprocessed graphs from the checkpoint path."""
         if not self.checkpoint_path.exists():
             raise FileNotFoundError(
@@ -86,12 +86,11 @@ class GraphEncoder:
         load_encoded_old_if_exist: bool,
         mode: str = "original",
         bidirectional: bool = False,
-    ):  # add bidirectionality experiment!
+    ) -> None:  # add bidirectionality experiment!
         self.bidirectional = bidirectional
         self.mode = mode
         self.encoded_checkpoint_path = encoded_checkpoint_path
         self.encoded_graphs = []
-        logger = logger
 
         # hyperparams
         self.min_nodes = min_nodes
@@ -147,9 +146,7 @@ class GraphEncoder:
                 )
                 self.encoded_graphs.append(encoded_graph)
             except KeyboardInterrupt:
-                logger.warning(
-                    "Encoding interrupted, continuing with next graph..."
-                )
+                logger.warning("Encoding interrupted, continuing with next graph...")
                 continue
             except InsufficientNegativeEdgesException:
                 logger.error(f"Insufficient negative edges in graph {index}")
@@ -168,7 +165,7 @@ class GraphEncoder:
 class GATTrainer:
     """Handles model training."""
 
-    def __init__(self, config, logger: logging.Logger, mode: Modes):
+    def __init__(self, config, logger: logging.Logger, mode: Modes) -> None:
         self.config = config
         self.mode = mode
         logger = logger

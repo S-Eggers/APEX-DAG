@@ -17,6 +17,7 @@ from ApexDAG.vamsa.kb_advancement.KBChangeProposal import KBChangeProposal
 # ===== Pydantic Models =====
 # ============================
 
+
 class KBEntryDetails(BaseModel):
     library: str
     api_name: str
@@ -39,13 +40,14 @@ class ProposalResponse(BaseModel):
 # ===== Proposal Maker ======
 # ============================
 
+
 class ProposalMaker:
     def __init__(
         self,
         link_to_documentation: str,
         provider: str = "gemini",
-        api_key: str | None = None
-    ):
+        api_key: str | None = None,
+    ) -> None:
         self.link_to_documentation = link_to_documentation
         self.past_proposals: list[dict] = []
         self.impact_of_past_proposals: list[dict] = []
@@ -67,11 +69,15 @@ class ProposalMaker:
 
             genai.configure(api_key=self.api_key)
             client = genai.GenerativeModel("gemini-flash-latest")
-            self.client = instructor.from_gemini(client, mode=instructor.Mode.GEMINI_JSON)
+            self.client = instructor.from_gemini(
+                client, mode=instructor.Mode.GEMINI_JSON
+            )
             self.model_name = "gemini-flash-latest"
 
         else:
-            raise ValueError(f"Unsupported provider: {provider}. Use 'groq' or 'gemini'.")
+            raise ValueError(
+                f"Unsupported provider: {provider}. Use 'groq' or 'gemini'."
+            )
 
     # ============================
     # ===== Traversal Logic ======
@@ -98,7 +104,11 @@ class ProposalMaker:
                 continue
 
             # Focus API-generated pages (sklearn / pandas / catboost)
-            if "/generated/" in full_url or "/reference/" in full_url or "/features/" in full_url:
+            if (
+                "/generated/" in full_url
+                or "/reference/" in full_url
+                or "/features/" in full_url
+            ):
                 # for catboos
                 full_url = full_url.replace("/en/en/", "/en/")
                 links.add(full_url)
@@ -127,7 +137,7 @@ class ProposalMaker:
         links = self.extract_doc_links()
 
         scraped_pages = {}
-        #sampled links
+        # sampled links
         sampled_links = random.sample(links, min(max_pages, len(links)))
         for i, link in enumerate(sampled_links):
             try:
@@ -143,14 +153,10 @@ class ProposalMaker:
     # ============================
 
     def query_llm(
-        self,
-        scraped_docs: dict[str, str],
-        baseline_data: dict | None = None,
-        KB=None
+        self, scraped_docs: dict[str, str], baseline_data: dict | None = None, KB=None
     ) -> dict:
         structured_input = "\n\n".join(
-            f"=== PAGE: {url} ===\n{content}"
-            for url, content in scraped_docs.items()
+            f"=== PAGE: {url} ===\n{content}" for url, content in scraped_docs.items()
         )
 
         prompt = f"""
@@ -170,7 +176,7 @@ DOCUMENTATION:
 {structured_input}
 
 BASELINE REPORT (annotations searched for but unaccounted for in the KB):
-{json.dumps(baseline_data['most_common_unannotated_operations'], indent=2) if baseline_data else "None"}
+{json.dumps(baseline_data["most_common_unannotated_operations"], indent=2) if baseline_data else "None"}
 
 CURRENT KB:
 {json.dumps(KB.knowledge_base.to_dict(orient="records"), indent=2) if KB else "None"}
@@ -182,7 +188,10 @@ Avoid duplicates. Prefer commonly-used APIs.
 
         if self.provider == "groq":
             messages = [
-                {"role": "system", "content": "You extract structured API metadata from documentation."},
+                {
+                    "role": "system",
+                    "content": "You extract structured API metadata from documentation.",
+                },
                 {"role": "user", "content": prompt},
             ]
 
@@ -193,7 +202,9 @@ Avoid duplicates. Prefer commonly-used APIs.
             )
 
         elif self.provider == "gemini":
-            full_prompt = "You extract structured API metadata from documentation.\n\n" + prompt
+            full_prompt = (
+                "You extract structured API metadata from documentation.\n\n" + prompt
+            )
 
             response = self.client.create(
                 messages=[{"role": "user", "content": full_prompt}],

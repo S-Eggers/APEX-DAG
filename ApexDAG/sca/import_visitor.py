@@ -8,7 +8,9 @@ class ImportVisitor(ast.NodeVisitor):
         self.classes: list[str] = []
         self.functions: list[str] = []
 
-        self.import_usage: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        self.import_usage: dict[str, dict[str, int]] = defaultdict(
+            lambda: defaultdict(int)
+        )
         self.import_counts: dict[str, int] = defaultdict(int)
 
         self._context_stack: list[str] = []
@@ -23,10 +25,7 @@ class ImportVisitor(ast.NodeVisitor):
         return ".".join(self._context_stack) if self._context_stack else None
 
     def _is_shadowed(self, name: str) -> bool:
-        for scope in reversed(self._scope_stack[1:]):
-            if name in scope:
-                return True
-        return False
+        return any(name in scope for scope in reversed(self._scope_stack[1:]))
 
     def _register_target(self, target: ast.AST) -> None:
         if isinstance(target, ast.Name):
@@ -60,7 +59,9 @@ class ImportVisitor(ast.NodeVisitor):
         self._context_stack.pop()
 
     def visit_FunctionDef(self, node: ast.FunctionDef) -> None:
-        full_name: str = f"{self.current_context}.{node.name}" if self.current_context else node.name
+        full_name: str = (
+            f"{self.current_context}.{node.name}" if self.current_context else node.name
+        )
         self.functions.append(full_name)
 
         self._context_stack.append(node.name)
@@ -87,7 +88,9 @@ class ImportVisitor(ast.NodeVisitor):
     def visit_Attribute(self, node: ast.Attribute) -> None:
         if isinstance(node.value, ast.Name):
             name: str = node.value.id
-            if (name in self.import_usage or name in self._scope_stack[0]) and not self._is_shadowed(name):
+            if (
+                name in self.import_usage or name in self._scope_stack[0]
+            ) and not self._is_shadowed(name):
                 self.import_usage[name][node.attr] += 1
                 self.import_counts[name] += 1
                 return
@@ -95,7 +98,9 @@ class ImportVisitor(ast.NodeVisitor):
 
     def visit_Name(self, node: ast.Name) -> None:
         name: str = node.id
-        if (name in self.import_usage or name in self._scope_stack[0]) and not self._is_shadowed(name):
+        if (
+            name in self.import_usage or name in self._scope_stack[0]
+        ) and not self._is_shadowed(name):
             self.import_usage[name]["__direct__"] += 1
             self.import_counts[name] += 1
         self.generic_visit(node)

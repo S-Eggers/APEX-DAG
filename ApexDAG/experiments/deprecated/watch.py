@@ -9,14 +9,14 @@ from watchdog.observers import Observer
 
 
 class NotebookHandler(FileSystemEventHandler):
-    def __init__(self, file_to_watch, logger, action):
+    def __init__(self, file_to_watch, logger, action) -> None:
         super().__init__()
         self.file_to_watch = os.path.basename(file_to_watch)
         self.logger = logger
         self.action = action
         self.last_file_change = 0
 
-    def on_modified(self, event):
+    def on_modified(self, event) -> None:
         if event.src_path.endswith(self.file_to_watch):
             file_mod_time = os.path.getmtime(event.src_path)
             if (

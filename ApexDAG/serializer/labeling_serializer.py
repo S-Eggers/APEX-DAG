@@ -12,7 +12,7 @@ class LabelingSerializer:
             payload = {
                 "id": str(n),
                 "label": data.get("label") or data.get("code") or str(n),
-                "node_type": 0
+                "node_type": 0,
             }
 
             payload.update(data)
@@ -25,7 +25,7 @@ class LabelingSerializer:
                 "source": str(u),
                 "target": str(v),
                 "edge_type": 2,
-                "label": data.get("label") or data.get("code") or "edge"
+                "label": data.get("label") or data.get("code") or "edge",
             }
 
             safe_data = {k: val for k, val in data.items() if k not in ("id", "key")}

@@ -7,7 +7,13 @@ from ApexDAG.serializer.labeling_serializer import LabelingSerializer
 
 
 class LabelingPipeline:
-    def __init__(self, parser: GraphParser, labeler: EdgeLabeler, refiner: GraphRefiner, serializer: LabelingSerializer):
+    def __init__(
+        self,
+        parser: GraphParser,
+        labeler: EdgeLabeler,
+        refiner: GraphRefiner,
+        serializer: LabelingSerializer,
+    ) -> None:
         self.parser = parser
         self.labeler = labeler
         self.refiner = refiner

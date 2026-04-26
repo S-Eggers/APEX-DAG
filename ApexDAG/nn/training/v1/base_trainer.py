@@ -34,7 +34,7 @@ class BaseTrainer:
         lr=0.001,
         weight_decay=0.00001,
         graph_transform_mode=GraphTransformsMode.ORIGINAL,
-    ):
+    ) -> None:
         self.model = model.to(device)
         self.device = device
         self.train_loader = DataLoader(
@@ -64,8 +64,7 @@ class BaseTrainer:
         ]  # defined in subclasses
         self.graph_transform_mode = graph_transform_mode
 
-
-    def save_checkpoint(self, epoch, val_loss, suffix_name="", filename=None):
+    def save_checkpoint(self, epoch, val_loss, suffix_name="", filename=None) -> None:
         if filename is None:
             filename = f"model_epoch_{suffix_name}_{epoch}.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
@@ -79,7 +78,7 @@ class BaseTrainer:
             checkpoint_path,
         )
 
-    def log_confusion_matrix(self, loader, phase, pred_type="edge_type_preds"):
+    def log_confusion_matrix(self, loader, phase, pred_type="edge_type_preds") -> None:
         self.model.eval().to(self.device)
         all_preds = []
         all_labels = []
@@ -235,11 +234,11 @@ class BaseTrainer:
         wandb.log({"Best_Losses": best_losses_table})
         return self.best_val_loss
 
-    def log_histograms(self, epoch):
+    def log_histograms(self, epoch) -> None:
         for name, param in self.model.named_parameters():
             self.writer.add_histogram(name, param, epoch)
 
-    def log_embeddings(self, epoch, data, attribute="node_type_preds"):
+    def log_embeddings(self, epoch, data, attribute="node_type_preds") -> None:
         self.model.eval()
         with torch.no_grad():
             node_embeddings = self.model(data)[attribute]

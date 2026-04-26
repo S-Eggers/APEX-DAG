@@ -10,7 +10,7 @@ from ApexDAG.nn.training.base_trainer import BaseTrainer
 class FinetuningTrainer(BaseTrainer):
     def __init__(
         self, model, train_dataset, val_dataset, test_dataset, batch_size=32, **kwargs
-    ):
+    ) -> None:
         super().__init__(model, train_dataset, val_dataset, **kwargs)
         self.test_loader = DataLoader(
             test_dataset, batch_size=batch_size, shuffle=False
@@ -21,7 +21,7 @@ class FinetuningTrainer(BaseTrainer):
             "edge_type_loss": float("inf"),
         }
 
-    def save_checkpoint(self, epoch, val_loss, suffix_name="", filename=None):
+    def save_checkpoint(self, epoch, val_loss, suffix_name="", filename=None) -> None:
         if filename is None:
             filename = f"model_epoch_finetuned_{suffix_name}_{epoch}.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)

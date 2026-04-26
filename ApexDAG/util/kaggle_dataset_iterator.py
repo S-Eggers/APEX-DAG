@@ -5,7 +5,7 @@ from tqdm import tqdm
 
 
 class KaggleDatasetIterator:
-    def __init__(self, main_folder):
+    def __init__(self, main_folder) -> None:
         self.main_folder = main_folder
         self.results = []
         self._iterator: tqdm = None
@@ -13,16 +13,15 @@ class KaggleDatasetIterator:
     def __iter__(self):
         self._process_folders()
         self._iterator = tqdm(self.results, desc="Processed competitions")
-        for result in self._iterator:
-            yield result
+        yield from self._iterator
 
-    def print(self, message: str):
+    def print(self, message: str) -> None:
         if self._iterator:
             self._iterator.write(message)
         else:
             raise RuntimeError("No iterator initialized")
 
-    def _process_folders(self):
+    def _process_folders(self) -> None:
         # Iterate through all items in the main folder
         for subfolder in os.listdir(self.main_folder):
             subfolder_path = os.path.join(self.main_folder, subfolder)

@@ -67,7 +67,9 @@ class LabelledEdge(BaseModel):
         "MISSING",
         "MORE_CONTEXT_NEEDED",
     ] = Field(..., description="Domain-specific label for the edge.")
-    reasoning: str | None = Field(None, description="The reasoning provided by the LLM for the domain label.")
+    reasoning: str | None = Field(
+        None, description="The reasoning provided by the LLM for the domain label."
+    )
 
     class Config:
         title = "LabelledEdge"
@@ -93,7 +95,9 @@ class LabelledEdge(BaseModel):
         )
 
     @classmethod
-    def from_edge(cls, edge: Edge, domain_label: DomainLabel, reasoning: str | None = None) -> "LabelledEdge":
+    def from_edge(
+        cls, edge: Edge, domain_label: DomainLabel, reasoning: str | None = None
+    ) -> "LabelledEdge":
         return cls(
             source=edge.source,
             target=edge.target,
@@ -117,7 +121,7 @@ class GraphContext(BaseModel):
         parents_edges = [edge for edge in self.edges if edge.target == node_id]
         return children_edges, parents_edges
 
-    def populate_edge_dict(self):
+    def populate_edge_dict(self) -> None:
         """Populate the edge_dict with sources as keys and lists of target indices as values."""
         self.edge_dict.clear()
         for index, edge in enumerate(self.edges):
@@ -135,7 +139,7 @@ class GraphContextWithSubgraphSearch(GraphContext):
         subgraph_nodes = set()
         subgraph_edges = []
 
-        def dfs(current_node_id, current_depth):
+        def dfs(current_node_id, current_depth) -> None:
             if current_depth >= max_depth or current_node_id in visited:
                 visited.add(current_node_id)
                 subgraph_nodes.add(current_node_id)

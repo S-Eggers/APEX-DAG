@@ -2,6 +2,7 @@
 KB Evaluation Framework
 Automated testing and evaluation of Knowledge Base entries
 """
+
 import ast
 import json
 import logging
@@ -20,6 +21,7 @@ logging.basicConfig(level=logging.WARNING)  # Shows WARNING, ERROR, CRITICAL onl
 @dataclass
 class AnnotationMetrics:
     """Metrics for annotation KB evaluation"""
+
     total_operation_nodes: int = 0
     annotated_operation_nodes: int = 0
     total_nodes: int = 0
@@ -41,12 +43,15 @@ class AnnotationMetrics:
     # dead_entries: List[str] = field(default_factory=list)
 
     # Missed operations
-    unannotated_operations: list[tuple[str, str, str]] = field(default_factory=list)  # (library, caller, operation)
+    unannotated_operations: list[tuple[str, str, str]] = field(
+        default_factory=list
+    )  # (library, caller, operation)
 
 
 @dataclass
 class TraversalMetrics:
     """Metrics for traversal KB evaluation"""
+
     total_tracked: int = 0
     c_plus_size: int = 0
     c_minus_size: int = 0
@@ -66,6 +71,7 @@ class TraversalMetrics:
 @dataclass
 class KBEvaluationReport:
     """Complete evaluation report"""
+
     notebook_path: str
     annotation_metrics: AnnotationMetrics
     traversal_metrics: TraversalMetrics
@@ -75,7 +81,7 @@ class KBEvaluationReport:
 class InstrumentedKB(KB):
     """KB wrapper that tracks usage statistics"""
 
-    def __init__(self, knowledge_base=None):
+    def __init__(self, knowledge_base=None) -> None:
         super().__init__(knowledge_base)
         self.query_log = []
         self.hit_log = []
@@ -84,12 +90,7 @@ class InstrumentedKB(KB):
 
     def __call__(self, L, L_prime, c, p):
         # Log the query
-        query = {
-            "library": L,
-            "module": L_prime,
-            "caller": c,
-            "operation": p
-        }
+        query = {"library": L, "module": L_prime, "caller": c, "operation": p}
         self.query_log.append(query)
 
         # Call parent method
@@ -101,19 +102,19 @@ class InstrumentedKB(KB):
 
         if is_hit:
             # Track which entry was used
-            entry_key = f"{L or 'None'}::{L_prime or 'None'}::{c or 'None'}::{p or 'None'}"
+            entry_key = (
+                f"{L or 'None'}::{L_prime or 'None'}::{c or 'None'}::{p or 'None'}"
+            )
             self.entry_usage[entry_key] += 1
         else:
-            self.unsuccessful_operations.add(str({'library': L, 'caller': c, 'operation': p.split(':')[0]}))
+            self.unsuccessful_operations.add(
+                str({"library": L, "caller": c, "operation": p.split(":")[0]})
+            )
         return inputs, outputs
 
     def back_query(self, O, p):
         # Track back queries too
-        query = {
-            "type": "back_query",
-            "outputs": O,
-            "operation": p
-        }
+        query = {"type": "back_query", "outputs": O, "operation": p}
         self.query_log.append(query)
 
         inputs = super().back_query(O, p)
@@ -131,14 +132,14 @@ class InstrumentedKB(KB):
             "misses": len(self.hit_log) - sum(self.hit_log),
             "hit_rate": sum(self.hit_log) / len(self.hit_log) if self.hit_log else 0,
             "entry_usage": dict(self.entry_usage),
-            "unsuccessful_operations": list(self.unsuccessful_operations)
+            "unsuccessful_operations": list(self.unsuccessful_operations),
         }
 
 
 class InstrumentedProvenanceTracker:
     """Wrapper to track traversal rule usage"""
 
-    def __init__(self, tracker):
+    def __init__(self, tracker) -> None:
         self.tracker = tracker
         self.rule_usage = defaultdict(int)
         self.traversal_depth = []
@@ -149,7 +150,7 @@ class InstrumentedProvenanceTracker:
         depth_stack = [0]
 
         def instrumented_guide_eval(pr, col_excl=None):
-            input_nodes, _, operation_node, _ = pr
+            _input_nodes, _, operation_node, _ = pr
             op_name = remove_id(operation_node) if operation_node else None
 
             # Track rule usage
@@ -184,21 +185,27 @@ class InstrumentedProvenanceTracker:
         return {
             "rule_usage": dict(self.rule_usage),
             "max_depth": max(self.traversal_depth) if self.traversal_depth else 0,
-            "avg_depth": sum(self.traversal_depth) / len(self.traversal_depth) if self.traversal_depth else 0,
-            "total_traversals": len(self.traversal_depth)
+            "avg_depth": sum(self.traversal_depth) / len(self.traversal_depth)
+            if self.traversal_depth
+            else 0,
+            "total_traversals": len(self.traversal_depth),
         }
 
 
 class KBEvaluator:
     """Main evaluation framework for KB entries"""
 
-    def __init__(self, kb: KB | None = None):
-        self.kb = InstrumentedKB(kb) # if kb is None else kb
+    def __init__(self, kb: KB | None = None) -> None:
+        self.kb = InstrumentedKB(kb)  # if kb is None else kb
 
-    def evaluate_notebook(self, notebook_path: str, what_track: set[str] = {"features"}) -> KBEvaluationReport:
+    def evaluate_notebook(
+        self, notebook_path: str, what_track: set[str] | None = None
+    ) -> KBEvaluationReport:
         """Evaluate KB on a single notebook - NO TRY/EXCEPT, errors should propagate"""
 
         # Reset KB logs for per-notebook metrics
+        if what_track is None:
+            what_track = {"features"}
         if isinstance(self.kb, InstrumentedKB):
             self.kb.query_log = []
             self.kb.hit_log = []
@@ -218,13 +225,12 @@ class KBEvaluator:
 
         # Generate WIR with proper output path
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
             output_filename = tmp.name
 
         wir, prs, tuples = GenWIR(
-            parsed_ast,
-            output_filename=output_filename,
-            if_draw_graph=False
+            parsed_ast, output_filename=output_filename, if_draw_graph=False
         )
 
         # Clean up temp file
@@ -234,7 +240,7 @@ class KBEvaluator:
         if os.path.exists(txt_file):
             os.remove(txt_file)
 
-        input_nodes, output_nodes, caller_nodes, operation_nodes = tuples
+        _input_nodes, _output_nodes, _caller_nodes, operation_nodes = tuples
 
         # Collect basic metrics
         metrics.total_nodes = len(wir.nodes)
@@ -246,13 +252,12 @@ class KBEvaluator:
 
         # Collect annotation metrics
         metrics = self._collect_annotation_metrics(
-            annotated_wir,
-            operation_nodes,
-            metrics
+            annotated_wir, operation_nodes, metrics
         )
 
         # Track provenance with instrumentation
         from ApexDAG.vamsa.track_provenance import ProvenanceTracker
+
         tracker = ProvenanceTracker(annotated_wir, prs[::-1])
         instrumented_tracker = InstrumentedProvenanceTracker(tracker)
         # Reset tracker state for clean per-notebook metrics
@@ -270,11 +275,15 @@ class KBEvaluator:
             notebook_path=notebook_path,
             annotation_metrics=metrics,
             traversal_metrics=traversal_metrics,
-            errors=errors
+            errors=errors,
         )
 
-    def evaluate_corpus(self, corpus_path: str, what_track: set[str] = {"features"}) -> list[KBEvaluationReport]:
+    def evaluate_corpus(
+        self, corpus_path: str, what_track: set[str] | None = None
+    ) -> list[KBEvaluationReport]:
         """Evaluate KB on multiple notebooks - with per-file error handling"""
+        if what_track is None:
+            what_track = {"features"}
         reports = []
 
         if os.path.isfile(corpus_path):
@@ -289,7 +298,7 @@ class KBEvaluator:
         # Sort files for deterministic ordering across runs
         files = sorted(files)
 
-        for i, file_path in enumerate(files, 1):
+        for _i, file_path in enumerate(files, 1):
             try:
                 report = self.evaluate_notebook(file_path, what_track)
                 reports.append(report)
@@ -298,14 +307,14 @@ class KBEvaluator:
                     notebook_path=file_path,
                     annotation_metrics=AnnotationMetrics(),
                     traversal_metrics=TraversalMetrics(),
-                    errors=[f"Evaluation failed: {e!s}"]
+                    errors=[f"Evaluation failed: {e!s}"],
                 )
                 reports.append(error_report)
 
         successful = len([r for r in reports if not r.errors])
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print(f"Completed: {successful}/{len(files)} successful")
-        print('='*80)
+        print("=" * 80)
 
         return reports
 
@@ -336,6 +345,7 @@ class KBEvaluator:
         if path.endswith(".ipynb"):
             from nbconvert import PythonExporter
             from nbformat import read
+
             with open(path, encoding="utf-8") as f:
                 nb_node = read(f, as_version=4)
                 exporter = PythonExporter()
@@ -345,18 +355,32 @@ class KBEvaluator:
             with open(path, encoding="utf-8") as f:
                 return f.read()
 
-    def _collect_annotation_metrics(self, annotated_wir, operation_nodes, metrics: AnnotationMetrics) -> AnnotationMetrics:
+    def _collect_annotation_metrics(
+        self, annotated_wir, operation_nodes, metrics: AnnotationMetrics
+    ) -> AnnotationMetrics:
         """Collect metrics from annotated WIR"""
 
         # Count annotated nodes
-        metrics.annotated_nodes = sum(["annotations" in annotated_wir.annotated_wir.nodes[node] for node in annotated_wir.annotated_wir.nodes])
-        metrics.annotated_operation_nodes = sum(["annotations" in annotated_wir.annotated_wir.nodes[node] for node in operation_nodes])
+        metrics.annotated_nodes = sum(
+            [
+                "annotations" in annotated_wir.annotated_wir.nodes[node]
+                for node in annotated_wir.annotated_wir.nodes
+            ]
+        )
+        metrics.annotated_operation_nodes = sum(
+            [
+                "annotations" in annotated_wir.annotated_wir.nodes[node]
+                for node in operation_nodes
+            ]
+        )
 
         # Calculate coverage
         if metrics.total_nodes > 0:
             metrics.annotation_coverage = metrics.annotated_nodes / metrics.total_nodes
         if metrics.total_operation_nodes > 0:
-            metrics.operation_annotation_coverage = metrics.annotated_operation_nodes / metrics.total_operation_nodes
+            metrics.operation_annotation_coverage = (
+                metrics.annotated_operation_nodes / metrics.total_operation_nodes
+            )
 
         # KB stats
         if isinstance(self.kb, InstrumentedKB):
@@ -368,7 +392,9 @@ class KBEvaluator:
             metrics.unannotated_operations = kb_stats["unsuccessful_operations"]
         return metrics
 
-    def _collect_traversal_metrics(self, C_plus, C_minus, instrumented_tracker, metrics: TraversalMetrics) -> TraversalMetrics:
+    def _collect_traversal_metrics(
+        self, C_plus, C_minus, instrumented_tracker, metrics: TraversalMetrics
+    ) -> TraversalMetrics:
         """Collect traversal metrics"""
 
         metrics.c_plus_size = len(C_plus)
@@ -376,7 +402,6 @@ class KBEvaluator:
         metrics.total_tracked = metrics.c_plus_size + metrics.c_minus_size
         metrics.columns_tracked = C_plus.union(C_minus)
         # coverage
-
 
         # Get traversal stats
         stats = instrumented_tracker.get_stats()
@@ -386,7 +411,9 @@ class KBEvaluator:
 
         return metrics
 
-    def _generate_comparison_report(self, reports1: list[KBEvaluationReport], reports2: list[KBEvaluationReport]) -> dict:
+    def _generate_comparison_report(
+        self, reports1: list[KBEvaluationReport], reports2: list[KBEvaluationReport]
+    ) -> dict:
         """Generate comparison report between two KB evaluations"""
 
         def aggregate_reports(reports):
@@ -401,16 +428,23 @@ class KBEvaluator:
             all_rule_usage = defaultdict(int)
 
             for report in reports:
-                total_coverage += report.annotation_metrics.operation_annotation_coverage
+                total_coverage += (
+                    report.annotation_metrics.operation_annotation_coverage
+                )
                 total_hit_rate += report.annotation_metrics.kb_hit_rate
                 total_c_plus += report.traversal_metrics.c_plus_size
                 total_c_minus += report.traversal_metrics.c_minus_size
-                unsuccessful_ops.update(report.annotation_metrics.unsuccessful_operations)
+                unsuccessful_ops.update(
+                    report.annotation_metrics.unsuccessful_operations
+                )
 
                 for entry, usage in report.annotation_metrics.kb_entry_usage.items():
                     all_entry_usage[entry] += usage
 
-                for rule, usage in report.traversal_metrics.traversal_rule_usage.items():
+                for (
+                    rule,
+                    usage,
+                ) in report.traversal_metrics.traversal_rule_usage.items():
                     all_rule_usage[rule] += usage
 
             return {
@@ -421,7 +455,7 @@ class KBEvaluator:
                 "total_notebooks": count,
                 "entry_usage": dict(all_entry_usage),
                 "rule_usage": dict(all_rule_usage),
-                "unsuccessful_operations": list(unsuccessful_ops)
+                "unsuccessful_operations": list(unsuccessful_ops),
             }
 
         agg1 = aggregate_reports(reports1)
@@ -431,13 +465,19 @@ class KBEvaluator:
             "baseline": agg1,
             "enhanced": agg2,
             "improvements": {
-                "annotation_coverage_delta": agg2["avg_annotation_coverage"] - agg1["avg_annotation_coverage"],
+                "annotation_coverage_delta": agg2["avg_annotation_coverage"]
+                - agg1["avg_annotation_coverage"],
                 "kb_hit_rate_delta": agg2["avg_kb_hit_rate"] - agg1["avg_kb_hit_rate"],
                 "c_plus_size_delta": agg2["avg_c_plus_size"] - agg1["avg_c_plus_size"],
-                "c_minus_size_delta": agg2["avg_c_minus_size"] - agg1["avg_c_minus_size"],
-                "new_entries_used": len(set(agg2["entry_usage"].keys()) - set(agg1["entry_usage"].keys())),
-                "new_rules_used": len(set(agg2["rule_usage"].keys()) - set(agg1["rule_usage"].keys()))
-            }
+                "c_minus_size_delta": agg2["avg_c_minus_size"]
+                - agg1["avg_c_minus_size"],
+                "new_entries_used": len(
+                    set(agg2["entry_usage"].keys()) - set(agg1["entry_usage"].keys())
+                ),
+                "new_rules_used": len(
+                    set(agg2["rule_usage"].keys()) - set(agg1["rule_usage"].keys())
+                ),
+            },
         }
 
     def generate_report(self, reports: list[KBEvaluationReport], output_path: str):
@@ -448,10 +488,19 @@ class KBEvaluator:
         successful_notebooks = len([r for r in reports if not r.errors])
 
         # Average metrics
-        avg_annotation_coverage = sum(r.annotation_metrics.annotation_coverage for r in reports) / total_notebooks
-        avg_kb_hit_rate = sum(r.annotation_metrics.kb_hit_rate for r in reports) / total_notebooks
-        avg_c_plus = sum(r.traversal_metrics.c_plus_size for r in reports) / total_notebooks
-        avg_c_minus = sum(r.traversal_metrics.c_minus_size for r in reports) / total_notebooks
+        avg_annotation_coverage = (
+            sum(r.annotation_metrics.annotation_coverage for r in reports)
+            / total_notebooks
+        )
+        avg_kb_hit_rate = (
+            sum(r.annotation_metrics.kb_hit_rate for r in reports) / total_notebooks
+        )
+        avg_c_plus = (
+            sum(r.traversal_metrics.c_plus_size for r in reports) / total_notebooks
+        )
+        avg_c_minus = (
+            sum(r.traversal_metrics.c_minus_size for r in reports) / total_notebooks
+        )
 
         # Aggregate entry usage
         all_entry_usage = defaultdict(int)
@@ -485,12 +534,16 @@ class KBEvaluator:
                 "avg_annotation_coverage": avg_annotation_coverage,
                 "avg_kb_hit_rate": avg_kb_hit_rate,
                 "avg_c_plus_size": avg_c_plus,
-                "avg_c_minus_size": avg_c_minus
+                "avg_c_minus_size": avg_c_minus,
             },
             # "kb_entry_usage": dict(sorted(all_entry_usage.items(), key=lambda x: x[1], reverse=True)),
             # "dead_entries": list(dead_entries),
-            "traversal_rule_usage": dict(sorted(all_rule_usage.items(), key=lambda x: x[1], reverse=True)),
-            "most_common_unannotated_operations": Counter(all_unannotated_ops).most_common(100),
+            "traversal_rule_usage": dict(
+                sorted(all_rule_usage.items(), key=lambda x: x[1], reverse=True)
+            ),
+            "most_common_unannotated_operations": Counter(
+                all_unannotated_ops
+            ).most_common(100),
             # "per_notebook_details": [
             #     {
             #         "path": r.notebook_path,
@@ -508,9 +561,9 @@ class KBEvaluator:
         with open(output_path, "w") as f:
             json.dump(report_data, f, indent=2)
 
-        print(f"\n{'='*80}")
+        print(f"\n{'=' * 80}")
         print("KB EVALUATION REPORT")
-        print('='*80)
+        print("=" * 80)
         print(f"Total Notebooks: {total_notebooks}")
         print(f"Successful: {successful_notebooks}")
         print(f"\nAnnotation Coverage: {avg_annotation_coverage}")
@@ -525,13 +578,12 @@ class KBEvaluator:
         for op, count in Counter([op[2] for op in all_unannotated_ops]).most_common(5):
             print(f"  {op}: {count}")
         print(f"\nFull report saved to: {output_path}")
-        print('='*80)
+        print("=" * 80)
 
         return report_data
 
 
 if __name__ == "__main__":
-
     # Configuration
     corpus_path = "C:\\Users\\ismyn\\UNI\\BIFOLD\\APEXDAG_datasets\\catboost"
     output_path = "output/kb_evaluation_report.json"
@@ -539,12 +591,12 @@ if __name__ == "__main__":
     # Ensure output directory exists
     os.makedirs("output", exist_ok=True)
 
-    print("="*80)
+    print("=" * 80)
     print("KB EVALUATION FRAMEWORK")
-    print("="*80)
+    print("=" * 80)
     print(f"Corpus: {corpus_path}")
     print(f"Output: {output_path}")
-    print("="*80)
+    print("=" * 80)
 
     # Create evaluator
     evaluator = KBEvaluator()

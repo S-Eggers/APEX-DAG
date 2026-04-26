@@ -17,12 +17,12 @@ class LegacyIOMixin:
     Quarantine class for deprecated I/O, Graph Visualization, and Pass-through methods.
     """
 
-    def _warn_deprecated(self, method_name: str):
+    def _warn_deprecated(self, method_name: str) -> None:
         warnings.warn(
             f"'{method_name}' is deprecated and will be removed in a future release. "
             "Retrieve the state via 'get_state()' and orchestrate externally.",
             DeprecationWarning,
-            stacklevel=3
+            stacklevel=3,
         )
 
     def draw_all_subgraphs(self) -> None:
@@ -31,7 +31,7 @@ class LegacyIOMixin:
             self.draw(variable, variable)
         self.draw()
 
-    def draw(self, save_path: str = None, start_node: str = None) -> None:
+    def draw(self, save_path: str | None = None, start_node: str | None = None) -> None:
         self._warn_deprecated("draw")
         draw = Draw(NODE_TYPES, EDGE_TYPES)
 
@@ -55,17 +55,17 @@ class LegacyIOMixin:
             )
             draw.dfg(G, save_path)
 
-    def webrender(self, save_path: str = None) -> None:
+    def webrender(self, save_path: str | None = None) -> None:
         self._warn_deprecated("webrender")
         draw = Draw(NODE_TYPES, EDGE_TYPES)
         G = convert_multidigraph_to_digraph(self._current_state.get_graph(), NODE_TYPES)
         draw.dfg_webrendering(G, save_path)
 
-    def set_domain_label(self, attrs: dict, name: str):
+    def set_domain_label(self, attrs: dict, name: str) -> None:
         self._warn_deprecated("set_domain_label")
         nx.set_edge_attributes(self._current_state._G, attrs, name=name)
 
-    def set_domain_node_label(self, attrs: dict, name: str):
+    def set_domain_node_label(self, attrs: dict, name: str) -> None:
         self._warn_deprecated("set_domain_node_label")
         nx.set_node_attributes(self._current_state._G, attrs, name=name)
 

@@ -37,7 +37,7 @@ RESULTS_DIR = os.getenv("RESULTS_DIR")
 FULL_OUTPUT_DIR = os.path.join(RESULTS_DIR, OUTPUT_DIR)
 
 
-def mine_dataflows_on_jetbrains_dataset(args):
+def mine_dataflows_on_jetbrains_dataset(args) -> None:
     stats = {}
 
     folder_dfg = os.path.join(FULL_OUTPUT_DIR, "execution_graphs")
@@ -105,7 +105,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
             elif 50 <= num_edges <= 250:
                 # Mid-size notebooks: 100% sampling rate
                 sample_this_notebook = True
-            else: # num_edges > 250
+            else:  # num_edges > 250
                 # Large notebooks: 75% sampling rate
                 if random.random() < 0.75:
                     sample_this_notebook = True
@@ -116,7 +116,9 @@ def mine_dataflows_on_jetbrains_dataset(args):
                 stats[filename]["keep"] = True
             else:
                 stats[filename]["keep"] = False
-                iterator.print(filename, f"Skipping notebook {filename} due to sampling.")
+                iterator.print(
+                    filename, f"Skipping notebook {filename} due to sampling."
+                )
 
             if args.draw:
                 dfg.draw(os.path.join("output", name, "dfg"))
@@ -125,8 +127,13 @@ def mine_dataflows_on_jetbrains_dataset(args):
 
         except Exception as e:
             tb = traceback.format_exc()
-            if isinstance(e, (SyntaxError, IndentationError, TabError, UnicodeDecodeError)):
-                iterator.print(filename, f"Syntax error in notebook {notebook_url} ({e.__class__.__name__})")
+            if isinstance(
+                e, (SyntaxError, IndentationError, TabError, UnicodeDecodeError)
+            ):
+                iterator.print(
+                    filename,
+                    f"Syntax error in notebook {notebook_url} ({e.__class__.__name__})",
+                )
             else:
                 iterator.print(filename, tb)  # this only prints to log!
 
@@ -189,7 +196,7 @@ def mine_dataflows_on_jetbrains_dataset(args):
         f"Median LoC (statements): {stats_df[stats_df['dfg_extract_time'] > float('-inf')]['loc'].median()}"
     )
     iterator.print(
-        f"Kept notebooks: {stats_df[stats_df['keep'] == True].shape[0]}/{stats_df.shape[0]}"
+        f"Kept notebooks: {stats_df[stats_df['keep']].shape[0]}/{stats_df.shape[0]}"
     )
 
 

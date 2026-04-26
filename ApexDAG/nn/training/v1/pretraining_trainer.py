@@ -7,7 +7,7 @@ from ApexDAG.nn.training.base_trainer import BaseTrainer
 
 
 class PretrainingTrainer(BaseTrainer):
-    def __init__(self, model, train_dataset, val_dataset, **kwargs):
+    def __init__(self, model, train_dataset, val_dataset, **kwargs) -> None:
         super().__init__(model, train_dataset, val_dataset, **kwargs)
         self.conf_matrices_types = [
             "node_type_preds",
@@ -78,7 +78,7 @@ class PretrainingTrainer(BaseTrainer):
 
         return {k: v.item() for k, v in losses.items()}
 
-    def save_checkpoint(self, epoch, val_loss, suffix_name="", filename=None):
+    def save_checkpoint(self, epoch, val_loss, suffix_name="", filename=None) -> None:
         if filename is None:
             filename = f"model_epoch_pretrained_{suffix_name}_{epoch}.pt"
         checkpoint_path = os.path.join(self.checkpoint_dir, filename)
@@ -98,7 +98,7 @@ class PretrainingTrainer(BaseTrainer):
 
 
 class PretrainingTrainerMasked(PretrainingTrainer):
-    def __init__(self, model, train_dataset, val_dataset, **kwargs):
+    def __init__(self, model, train_dataset, val_dataset, **kwargs) -> None:
         super().__init__(model, train_dataset, val_dataset, **kwargs)
         self.conf_matrices_types = ["node_type_preds", "edge_type_preds"]
 
@@ -206,5 +206,5 @@ class PretrainingTrainerMasked(PretrainingTrainer):
 
     def save_checkpoint(
         self, epoch, val_loss, suffix_name="masked_model", filename=None
-    ):
+    ) -> None:
         super().save_checkpoint(epoch, val_loss, suffix_name, filename)

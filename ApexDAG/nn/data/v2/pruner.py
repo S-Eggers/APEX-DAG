@@ -2,10 +2,14 @@ import logging
 
 import networkx as nx
 
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
+
 class GraphPruner:
-    def __init__(self, protected_node_types: list[int] = None):
+    def __init__(self, protected_node_types: list[int] | None = None) -> None:
         self.protected_node_types = protected_node_types or []
 
     def prune(self, G: nx.MultiDiGraph) -> nx.MultiDiGraph:
@@ -13,7 +17,9 @@ class GraphPruner:
         nodes_removed = True
         iteration = 0
 
-        logger.debug(f"Starting prune: {pruned_G.number_of_nodes()} nodes, {pruned_G.number_of_edges()} edges.")
+        logger.debug(
+            f"Starting prune: {pruned_G.number_of_nodes()} nodes, {pruned_G.number_of_edges()} edges."
+        )
 
         while nodes_removed:
             nodes_removed = False

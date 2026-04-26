@@ -12,7 +12,9 @@ from ApexDAG.crawl_notebooks.notebook_processor import NotebookProcessor
 
 
 class NotebookMiner:
-    def __init__(self, iterator, save_dir, log_file, start_index=0, stop_index=None):
+    def __init__(
+        self, iterator, save_dir, log_file, start_index=0, stop_index=None
+    ) -> None:
         self.save_dir = save_dir
         self.logs_dir = os.path.join(save_dir, "logs")
 
@@ -33,7 +35,7 @@ class NotebookMiner:
 
     def download_and_mine_notebooks(
         self, output_file_name="annotated_test.json", delay=0
-    ):
+    ) -> None:
         """
         Download and process Jupyter notebooks using the Notebook Iterator.
         """

@@ -54,7 +54,7 @@ def convert_multidigraph_to_digraph(
                         intermediate_node,
                         label=intermediate_node,
                         node_type=intermediate_node_type,
-                        cell_id=inherited_cell_id
+                        cell_id=inherited_cell_id,
                     )
                     target_node = intermediate_node
                 else:
@@ -105,7 +105,7 @@ def debug_graph(
     edge_types: dict,
     save_prev=False,
     verbose=False,
-):
+) -> None:
     if os.path.exists(prev_graph_path):
         prev_G = load_graph(prev_graph_path)
     elif save_prev:

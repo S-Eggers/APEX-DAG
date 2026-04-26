@@ -21,7 +21,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
             label=node_label,
             node_type=numeric_type,
             cell_id=cell_context,
-            code="<notebook_root>"
+            code="<notebook_root>",
         )
 
         self._G.add_node(node_model.id, **node_model.to_networkx_attrs())
@@ -38,7 +38,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
             source=root_id,
             target=cell_module_id,
             edge_type=AST_EDGE_TYPES.get("AST_PARENT_CHILD", 0),
-            label="cell_module"
+            label="cell_module",
         )
 
     def generic_visit(self, node: ast.AST) -> int:
@@ -58,7 +58,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
                             source=node_id,
                             target=child_id,
                             edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"],
-                            label=field
+                            label=field,
                         )
             elif isinstance(value, ast.AST) and not isinstance(
                 value, (ast.Load, ast.Store)
@@ -68,7 +68,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
                     source=node_id,
                     target=child_id,
                     edge_type=AST_EDGE_TYPES["AST_PARENT_CHILD"],
-                    label=field
+                    label=field,
                 )
 
         return node_id
@@ -84,7 +84,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
             label=node_label,
             node_type=numeric_type,
             cell_id=cell_context,
-            code=code
+            code=code,
         )
 
         self._G.add_node(node_model.id, **node_model.to_networkx_attrs())
@@ -93,7 +93,9 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         self.node_counter += 1
         return node_id
 
-    def add_edge(self, source: int, target: int, edge_type: int, label: str = "edge") -> None:
+    def add_edge(
+        self, source: int, target: int, edge_type: int, label: str = "edge"
+    ) -> None:
         cell_context = getattr(self, "current_cell_id", "unknown_cell")
 
         edge_model = GraphEdge(
@@ -101,13 +103,11 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
             target=target,
             edge_type=edge_type,
             cell_id=cell_context,
-            label=label
+            label=label,
         )
 
         self._G.add_edge(
-            edge_model.source,
-            edge_model.target,
-            **edge_model.to_networkx_attrs()
+            edge_model.source, edge_model.target, **edge_model.to_networkx_attrs()
         )
 
     def to_json(self):
@@ -115,7 +115,7 @@ class PythonASTGraph(ASTGraph, ast.NodeVisitor):
         G = self.get_graph()
         return draw.ast_to_json(G)
 
-    def draw(self):
+    def draw(self) -> None:
         """
         Renders and saves a visual representation of the graph.
 

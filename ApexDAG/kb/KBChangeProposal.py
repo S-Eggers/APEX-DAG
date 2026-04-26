@@ -4,6 +4,7 @@ from dataclasses import dataclass
 @dataclass
 class KBChangeProposal:
     """Represents a proposed change to the KB"""
+
     change_type: str  # "add_annotation", "add_traversal", "modify", "remove"
     description: str
 

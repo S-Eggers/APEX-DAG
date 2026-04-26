@@ -7,6 +7,7 @@ class GraphNode:
     """
     Strict contract for all nodes in the ApexDAG ecosystem.
     """
+
     id: str | int
     label: str
     node_type: int
@@ -29,6 +30,7 @@ class GraphEdge:
     """
     Strict contract for all edges in the ApexDAG ecosystem.
     """
+
     source: str | int
     target: str | int
     edge_type: int

@@ -5,7 +5,7 @@ from ApexDAG.serializer.ast_serializer import ASTSerializer
 
 
 class ASTPipeline:
-    def __init__(self, parser: ASTParser, serializer: ASTSerializer):
+    def __init__(self, parser: ASTParser, serializer: ASTSerializer) -> None:
         self.parser = parser
         self.serializer = serializer
 

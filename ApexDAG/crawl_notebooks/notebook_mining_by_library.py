@@ -17,7 +17,7 @@ GITHUB_TOKEN: str | None = os.getenv("GITHUB_TOKEN")
 # Download settings
 NOTEBOOKS_PER_LIBRARY = 500
 MAX_FILE_SIZE_KB = 50  # Skip notebooks larger than this
-MIN_FILE_SIZE_KB = 2    # Skip notebooks smaller than this (avoid empty/trivial notebooks)
+MIN_FILE_SIZE_KB = 2  # Skip notebooks smaller than this (avoid empty/trivial notebooks)
 OUTPUT_DIR = "/home/nina/projects/APEX-DAG/data/notebook_data_larger"
 
 # Rate limiting (GitHub allows 30 search requests/min authenticated, 10 unauth)
@@ -52,7 +52,6 @@ LIBRARY_SEARCHES = {
         '"import paddle"',
         '"from paddle"',
     ],
-
     # STats/ classical ML algorithms
     "sklearn": [
         '"import sklearn"',
@@ -74,7 +73,6 @@ LIBRARY_SEARCHES = {
         '"import statsmodels"',
         '"from statsmodels"',
     ],
-
     # NLP
     "transformers": [
         '"from transformers"',
@@ -96,7 +94,6 @@ LIBRARY_SEARCHES = {
         '"import flair"',
         '"from flair"',
     ],
-
     # CV
     "opencv": [
         '"import cv2"',
@@ -122,7 +119,6 @@ LIBRARY_SEARCHES = {
         '"from ultralytics"',
         '"import ultralytics"',
     ],
-
     # AutoML
     "autogluon": [
         '"import autogluon"',
@@ -144,7 +140,6 @@ LIBRARY_SEARCHES = {
         '"from ray.tune"',
         '"from ray import tune"',
     ],
-
     # RL
     "stable_baselines3": [
         '"import stable_baselines3"',
@@ -154,7 +149,6 @@ LIBRARY_SEARCHES = {
         '"import gymnasium"',
         '"import gym"',
     ],
-
     # GNNs
     "pytorch_geometric": [
         '"import torch_geometric"',
@@ -164,7 +158,6 @@ LIBRARY_SEARCHES = {
         '"import dgl"',
         '"from dgl"',
     ],
-
     # Time Series
     "prophet": [
         '"from prophet"',
@@ -182,7 +175,6 @@ LIBRARY_SEARCHES = {
         '"import sktime"',
         '"from sktime"',
     ],
-
     # LLMs
     "diffusers": [
         '"import diffusers"',
@@ -198,6 +190,7 @@ LIBRARY_SEARCHES = {
     ],
 }
 
+
 @dataclass
 class NotebookInfo:
     name: str
@@ -211,12 +204,14 @@ class GitHubNotebookScraper:
 
     BASE_URL = "https://api.github.com"
 
-    def __init__(self, token: str | None = None):
+    def __init__(self, token: str | None = None) -> None:
         self.session = requests.Session()
-        self.session.headers.update({
-            "Accept": "application/vnd.github.v3+json",
-            "User-Agent": "ML-Notebook-Scraper/1.0"
-        })
+        self.session.headers.update(
+            {
+                "Accept": "application/vnd.github.v3+json",
+                "User-Agent": "ML-Notebook-Scraper/1.0",
+            }
+        )
         if token:
             self.session.headers["Authorization"] = f"token {token}"
             print("✓ Using authenticated requests (higher rate limits)")
@@ -225,7 +220,14 @@ class GitHubNotebookScraper:
             print("  Set GITHUB_TOKEN environment variable for better performance")
 
         self.downloaded_urls = set()
-        self.stats = {"searched": 0, "downloaded": 0, "skipped_size": 0, "skipped_small": 0, "skipped_dup": 0, "errors": 0}
+        self.stats = {
+            "searched": 0,
+            "downloaded": 0,
+            "skipped_size": 0,
+            "skipped_small": 0,
+            "skipped_dup": 0,
+            "errors": 0,
+        }
         self.max_file_size_kb = MAX_FILE_SIZE_KB  # Can be overridden
         self.min_file_size_kb = MIN_FILE_SIZE_KB  # Can be overridden
 
@@ -240,10 +242,7 @@ class GitHubNotebookScraper:
         }
 
         try:
-            response = self.session.get(
-                f"{self.BASE_URL}/search/code",
-                params=params
-            )
+            response = self.session.get(f"{self.BASE_URL}/search/code", params=params)
 
             # handle rate limiting
             if response.status_code == 403:
@@ -261,12 +260,14 @@ class GitHubNotebookScraper:
                 repo = item["repository"]["full_name"]
                 path = item["path"]
 
-                notebooks.append(NotebookInfo(
-                    name=item["name"],
-                    repo=repo,
-                    path=path,
-                    url=item["html_url"],
-                ))
+                notebooks.append(
+                    NotebookInfo(
+                        name=item["name"],
+                        repo=repo,
+                        path=path,
+                        url=item["html_url"],
+                    )
+                )
 
             return notebooks
 
@@ -278,7 +279,9 @@ class GitHubNotebookScraper:
     def download_notebook(self, notebook: NotebookInfo, output_path: Path) -> bool:
         """Download a single notebook using GitHub Contents API."""
         try:
-            contents_url = f"{self.BASE_URL}/repos/{notebook.repo}/contents/{notebook.path}"
+            contents_url = (
+                f"{self.BASE_URL}/repos/{notebook.repo}/contents/{notebook.path}"
+            )
             response = self.session.get(contents_url)
 
             if response.status_code == 404:
@@ -294,7 +297,9 @@ class GitHubNotebookScraper:
                 return self.download_notebook(notebook, output_path)
 
             if response.status_code != 200:
-                print(f"     ✗ Failed to get file info (status {response.status_code}): {notebook.name}")
+                print(
+                    f"     ✗ Failed to get file info (status {response.status_code}): {notebook.name}"
+                )
                 self.stats["errors"] += 1
                 return False
 
@@ -322,7 +327,9 @@ class GitHubNotebookScraper:
             content_response = self.session.get(download_url)
 
             if content_response.status_code != 200:
-                print(f"     ✗ Failed to download (status {content_response.status_code}): {notebook.name}")
+                print(
+                    f"     ✗ Failed to download (status {content_response.status_code}): {notebook.name}"
+                )
                 self.stats["errors"] += 1
                 return False
 
@@ -345,8 +352,13 @@ class GitHubNotebookScraper:
             self.stats["errors"] += 1
             return False
 
-    def scrape_library(self, library_name: str, search_terms: list[str],
-                       output_dir: Path, target_count: int) -> int:
+    def scrape_library(
+        self,
+        library_name: str,
+        search_terms: list[str],
+        output_dir: Path,
+        target_count: int,
+    ) -> int:
         """Scrape notebooks for a single library."""
         library_dir = output_dir / library_name
         library_dir.mkdir(parents=True, exist_ok=True)
@@ -354,9 +366,9 @@ class GitHubNotebookScraper:
         downloaded = 0
         seen_repos = {}
 
-        print(f"\n{'='*60}")
+        print(f"\n{'=' * 60}")
         print(f"📚 {library_name.upper()}")
-        print(f"{'='*60}")
+        print(f"{'=' * 60}")
 
         for search_term in search_terms:
             if downloaded >= target_count:
@@ -382,7 +394,9 @@ class GitHubNotebookScraper:
                     continue
 
                 safe_name = f"{nb.repo.replace('/', '_')}_{nb.name}"
-                safe_name = "".join(c for c in safe_name if c.isalnum() or c in "._-")[:100]
+                safe_name = "".join(c for c in safe_name if c.isalnum() or c in "._-")[
+                    :100
+                ]
                 if not safe_name.endswith(".ipynb"):
                     safe_name += ".ipynb"
 
@@ -404,9 +418,12 @@ class GitHubNotebookScraper:
         print(f"\n  Downloaded {downloaded} notebooks to {library_dir}")
         return downloaded
 
-    def scrape_all(self, output_dir: str = OUTPUT_DIR,
-                   target_per_library: int = NOTEBOOKS_PER_LIBRARY,
-                   libraries: list[str] | None = None):
+    def scrape_all(
+        self,
+        output_dir: str = OUTPUT_DIR,
+        target_per_library: int = NOTEBOOKS_PER_LIBRARY,
+        libraries: list[str] | None = None,
+    ):
         """Scrape notebooks for all configured libraries."""
         output_path = Path(output_dir)
         output_path.mkdir(parents=True, exist_ok=True)
@@ -447,12 +464,12 @@ class GitHubNotebookScraper:
 ║                        SUMMARY                               ║
 ╠══════════════════════════════════════════════════════════════╣
 ║  Total notebooks downloaded: {total_downloaded:5d}                           ║
-║  Search queries made:        {self.stats['searched']:5d}                           ║
-║  Skipped (too large):        {self.stats['skipped_size']:5d}                           ║
-║  Skipped (too small):        {self.stats['skipped_small']:5d}                           ║
-║  Skipped (duplicates):       {self.stats['skipped_dup']:5d}                           ║
-║  Errors:                     {self.stats['errors']:5d}                           ║
-║  Time elapsed:               {str(elapsed).split('.')[0]:>10}                    ║
+║  Search queries made:        {self.stats["searched"]:5d}                           ║
+║  Skipped (too large):        {self.stats["skipped_size"]:5d}                           ║
+║  Skipped (too small):        {self.stats["skipped_small"]:5d}                           ║
+║  Skipped (duplicates):       {self.stats["skipped_dup"]:5d}                           ║
+║  Errors:                     {self.stats["errors"]:5d}                           ║
+║  Time elapsed:               {str(elapsed).split(".")[0]:>10}                    ║
 ╚══════════════════════════════════════════════════════════════╝
         """)
 
@@ -468,7 +485,7 @@ class GitHubNotebookScraper:
             "target_per_library": target_per_library,
             "max_file_size_kb": MAX_FILE_SIZE_KB,
             "results": results,
-            "stats": self.stats
+            "stats": self.stats,
         }
         metadata_path = output_path / "scrape_metadata.json"
         metadata_path.write_text(json.dumps(metadata, indent=2))
@@ -477,7 +494,7 @@ class GitHubNotebookScraper:
         return results
 
 
-def main():
+def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(
@@ -496,39 +513,40 @@ Examples:
 
   # List available libraries
   python ml_notebook_scraper.py --list
-        """
+        """,
     )
 
     parser.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         default=OUTPUT_DIR,
-        help=f"Output directory (default: {OUTPUT_DIR})"
+        help=f"Output directory (default: {OUTPUT_DIR})",
     )
     parser.add_argument(
-        "--count", "-n",
+        "--count",
+        "-n",
         type=int,
         default=NOTEBOOKS_PER_LIBRARY,
-        help=f"Notebooks per library (default: {NOTEBOOKS_PER_LIBRARY})"
+        help=f"Notebooks per library (default: {NOTEBOOKS_PER_LIBRARY})",
     )
     parser.add_argument(
-        "--max-size", "-s",
+        "--max-size",
+        "-s",
         type=int,
         default=MAX_FILE_SIZE_KB,
-        help=f"Max file size in KB (default: {MAX_FILE_SIZE_KB})"
+        help=f"Max file size in KB (default: {MAX_FILE_SIZE_KB})",
     )
     parser.add_argument(
-        "--libraries", "-l",
+        "--libraries",
+        "-l",
         nargs="+",
-        help="Specific libraries to scrape (default: all)"
+        help="Specific libraries to scrape (default: all)",
     )
     parser.add_argument(
-        "--list",
-        action="store_true",
-        help="List available libraries and exit"
+        "--list", action="store_true", help="List available libraries and exit"
     )
     parser.add_argument(
-        "--token", "-t",
-        help="GitHub token (or set GITHUB_TOKEN env var)"
+        "--token", "-t", help="GitHub token (or set GITHUB_TOKEN env var)"
     )
 
     args = parser.parse_args()
@@ -545,9 +563,7 @@ Examples:
     scraper = GitHubNotebookScraper(token=token)
     scraper.max_file_size_kb = args.max_size
     scraper.scrape_all(
-        output_dir=args.output,
-        target_per_library=args.count,
-        libraries=args.libraries
+        output_dir=args.output, target_per_library=args.count, libraries=args.libraries
     )
 
 

@@ -6,7 +6,7 @@ from tqdm import tqdm
 
 
 class LocalNotebookIterator:
-    def __init__(self, local_path, log_file):
+    def __init__(self, local_path, log_file) -> None:
         self.local_path = local_path
         self.logger = logging.getLogger(__name__)
         self.log_file = log_file
@@ -41,12 +41,12 @@ class LocalNotebookIterator:
 
     def _read_notebook(self, filename):
         try:
-            with open(filename, encoding='utf-8') as f:
+            with open(filename, encoding="utf-8") as f:
                 return nbformat.read(f, as_version=4)
         except Exception as e:
             self.logger.warning(f"Could not read notebook {filename}. Error: {e}")
             return None
 
-    def print(self, filename="", message=""):
+    def print(self, filename="", message="") -> None:
         message = str(message)
         self.logger.info(f"{filename}: {message}")

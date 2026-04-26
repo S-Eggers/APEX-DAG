@@ -7,7 +7,10 @@ class FocalLoss(nn.Module):
     """
     Focal Loss for severe class imbalances in AST extraction.
     """
-    def __init__(self, gamma: float = 2.0, alpha: torch.Tensor = None, reduction: str = 'mean'):
+
+    def __init__(
+        self, gamma: float = 2.0, alpha: torch.Tensor = None, reduction: str = "mean"
+    ) -> None:
         super().__init__()
         self.gamma = gamma
         self.alpha = alpha
@@ -17,13 +20,13 @@ class FocalLoss(nn.Module):
         # inputs: [N, C] (logits)
         # targets: [N] (ground truth indices)
 
-        ce_loss = F.cross_entropy(inputs, targets, weight=self.alpha, reduction='none')
+        ce_loss = F.cross_entropy(inputs, targets, weight=self.alpha, reduction="none")
         pt = torch.exp(-ce_loss)
         focal_loss = ((1 - pt) ** self.gamma) * ce_loss
 
-        if self.reduction == 'mean':
+        if self.reduction == "mean":
             return focal_loss.mean()
-        elif self.reduction == 'sum':
+        elif self.reduction == "sum":
             return focal_loss.sum()
         return focal_loss
 
@@ -32,7 +35,8 @@ class MultiTaskUncertaintyLoss(nn.Module):
     """
     Combines Node and Edge Focal Losses using learnable Homoscedastic Task Uncertainty.
     """
-    def __init__(self, gamma: float = 2.0):
+
+    def __init__(self, gamma: float = 2.0) -> None:
         super().__init__()
         self.node_criterion = FocalLoss(gamma=gamma)
         self.edge_criterion = FocalLoss(gamma=gamma)
@@ -44,7 +48,7 @@ class MultiTaskUncertaintyLoss(nn.Module):
         node_logits: torch.Tensor,
         node_targets: torch.Tensor,
         edge_logits: torch.Tensor,
-        edge_targets: torch.Tensor
+        edge_targets: torch.Tensor,
     ):
         loss_node = self.node_criterion(node_logits, node_targets)
         loss_edge = self.edge_criterion(edge_logits, edge_targets)

@@ -11,10 +11,7 @@ class GraphRefiner:
     def refine(self, graph: PythonDataFlowGraph) -> None:
         G = graph.get_graph()
 
-        UPGRADABLE_NODE_TYPES = {
-            NODE_TYPES["VARIABLE"],
-            NODE_TYPES["INTERMEDIATE"]
-        }
+        UPGRADABLE_NODE_TYPES = {NODE_TYPES["VARIABLE"], NODE_TYPES["INTERMEDIATE"]}
 
         node_type_updates = {}
         edge_domain_updates = {}
@@ -52,14 +49,17 @@ class GraphRefiner:
         while changed:
             changed = False
             for u, v, key, data in G.edges(keys=True, data=True):
-
                 # STRUCTURAL INTERMEDIATE BYPASS
                 if G.nodes[v].get("node_type") == NODE_TYPES["INTERMEDIATE"]:
                     if u in known_datasets and v not in known_datasets:
                         known_datasets.add(v)
                         changed = True
                         continue
-                    elif u in known_models and v not in known_models and v not in known_datasets:
+                    elif (
+                        u in known_models
+                        and v not in known_models
+                        and v not in known_datasets
+                    ):
                         known_models.add(v)
                         changed = True
                         continue
@@ -86,12 +86,16 @@ class GraphRefiner:
             is_u_literal = G.nodes[u].get("node_type") == NODE_TYPES["LITERAL"]
 
             if is_u_literal:
-                edge_type_name = REVERSE_DOMAIN_EDGE_TYPES.get(data.get("predicted_label", ""), "")
+                edge_type_name = REVERSE_DOMAIN_EDGE_TYPES.get(
+                    data.get("predicted_label", ""), ""
+                )
 
                 # RULE 6: IMPORT PATH RESOLUTION
                 if v in known_datasets and edge_type_name != "DATA_IMPORT_EXTRACTION":
                     edge_domain_updates[(u, v, key)] = "DATA_IMPORT_EXTRACTION"
-                    edge_numeric_updates[(u, v, key)] = DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]
+                    edge_numeric_updates[(u, v, key)] = DOMAIN_EDGE_TYPES[
+                        "DATA_IMPORT_EXTRACTION"
+                    ]
 
                 # RULE 7: HYPERPARAMETER RESOLUTION
                 elif v in known_models or edge_type_name == "MODEL_OPERATION":
@@ -103,7 +107,10 @@ class GraphRefiner:
                 node_type_updates[n] = DOMAIN_NODE_TYPES["DATASET"]
 
         for n in known_models:
-            if n not in node_type_updates and G.nodes[n].get("node_type") in UPGRADABLE_NODE_TYPES:
+            if (
+                n not in node_type_updates
+                and G.nodes[n].get("node_type") in UPGRADABLE_NODE_TYPES
+            ):
                 node_type_updates[n] = DOMAIN_NODE_TYPES["MODEL"]
 
         for n, data in G.nodes(data=True):

@@ -18,7 +18,6 @@ configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 
-
 class Encoder:
     def __init__(
         self,
@@ -26,7 +25,7 @@ class Encoder:
         nude_num_types_pretrain: int = 8,
         edge_num_types_pretrain: int = 6,
         min_edges: int = 2,
-    ):
+    ) -> None:
         self._embedding = embedding_model or Embedding(EmbeddingType.FASTTEXT, logger)
         self.nude_num_types_pretrain = nude_num_types_pretrain
         self.edge_num_types_pretrain = edge_num_types_pretrain
@@ -39,7 +38,9 @@ class Encoder:
         negative_edges = self._sample_negative_edges(graph, node_to_id, len(edges))
 
         all_edges = edges + list(negative_edges)
-        source_nodes, target_nodes = zip(*all_edges) if all_edges else ([], [])
+        source_nodes, target_nodes = (
+            zip(*all_edges, strict=False) if all_edges else ([], [])
+        )
 
         source_nodes_tensor = torch.tensor(source_nodes, dtype=torch.long)
         target_nodes_tensor = torch.tensor(target_nodes, dtype=torch.long)
@@ -53,7 +54,8 @@ class Encoder:
             x=node_features,
             node_types=torch.tensor(node_types, dtype=torch.long),
             edge_index=torch.stack([source_nodes_tensor, target_nodes_tensor], dim=0)
-            if all_edges else torch.empty((2, 0), dtype=torch.long),
+            if all_edges
+            else torch.empty((2, 0), dtype=torch.long),
             edge_types=edge_types,
             edge_features=edge_features,
             edge_existence=edge_existence,
@@ -71,25 +73,50 @@ class Encoder:
             connected_edges_in = [(u, v) for (u, v) in graph.edges() if v == node]
 
             if len(connected_edges_out) == 1:
-                new_edges.append((node_to_id[connected_edges_out[0]], node_to_id[connected_edges_out[0]]))
+                new_edges.append(
+                    (
+                        node_to_id[connected_edges_out[0]],
+                        node_to_id[connected_edges_out[0]],
+                    )
+                )
                 new_edges_indices.append(node_idx)
 
             if len(connected_edges_in) == 1:
-                new_edges.append((node_to_id[connected_edges_in[0]], node_to_id[connected_edges_in[0]]))
+                new_edges.append(
+                    (
+                        node_to_id[connected_edges_in[0]],
+                        node_to_id[connected_edges_in[0]],
+                    )
+                )
                 new_edges_indices.append(node_idx)
 
             if len(connected_edges_in) == 1 and len(connected_edges_out) == 1:
-                new_edges.append((node_to_id[connected_edges_in[0]], node_to_id[connected_edges_out[0]]))
+                new_edges.append(
+                    (
+                        node_to_id[connected_edges_in[0]],
+                        node_to_id[connected_edges_out[0]],
+                    )
+                )
                 new_edges_indices.append(node_idx)
 
             for i in range(len(connected_edges_out)):
                 for j in range(i + 1, len(connected_edges_out)):
-                    new_edges.append((node_to_id[connected_edges_out[i]], node_to_id[connected_edges_out[j]]))
+                    new_edges.append(
+                        (
+                            node_to_id[connected_edges_out[i]],
+                            node_to_id[connected_edges_out[j]],
+                        )
+                    )
                     new_edges_indices.append(node_idx)
 
             for i in range(len(connected_edges_in)):
                 for j in range(i + 1, len(connected_edges_in)):
-                    new_edges.append((node_to_id[connected_edges_in[i]], node_to_id[connected_edges_in[j]]))
+                    new_edges.append(
+                        (
+                            node_to_id[connected_edges_in[i]],
+                            node_to_id[connected_edges_in[j]],
+                        )
+                    )
                     new_edges_indices.append(node_idx)
 
             for in_edge in connected_edges_in:
@@ -97,27 +124,34 @@ class Encoder:
                     new_edges.append((node_to_id[in_edge], node_to_id[out_edge]))
                     new_edges_indices.append(node_idx)
 
-        source_nodes, target_nodes = zip(*new_edges) if new_edges else ([], [])
+        source_nodes, target_nodes = (
+            zip(*new_edges, strict=False) if new_edges else ([], [])
+        )
         source_nodes_tensor = torch.tensor(source_nodes, dtype=torch.long)
         target_nodes_tensor = torch.tensor(target_nodes, dtype=torch.long)
 
-        node_features, node_types, _ = self._extract_edge_features(graph, [], feature_to_encode)
+        node_features, node_types, _ = self._extract_edge_features(
+            graph, [], feature_to_encode
+        )
         edge_features, edge_types = self._extract_node_features(graph)
 
         edge_features_tensor = (
             torch.stack([edge_features[i] for i in new_edges_indices])
-            if edge_features is not None else None
+            if edge_features is not None
+            else None
         )
         edge_types_tensor = (
             torch.tensor([edge_types[i] for i in new_edges_indices], dtype=torch.long)
-            if edge_types is not None else None
+            if edge_types is not None
+            else None
         )
 
         return Data(
             x=node_features,
             node_types=node_types,
             edge_index=torch.stack([source_nodes_tensor, target_nodes_tensor], dim=0)
-            if new_edges else torch.empty((2, 0), dtype=torch.long),
+            if new_edges
+            else torch.empty((2, 0), dtype=torch.long),
             edge_types=edge_types_tensor,
             edge_features=edge_features_tensor,
         )
@@ -125,7 +159,9 @@ class Encoder:
     def _sample_negative_edges(self, graph, node_to_id, num_neg_samples):
         nodes = list(graph.nodes())
         negative_edges = set()
-        existing_edges = set((u, v) for u, v in graph.edges()) | set((v, u) for u, v in graph.edges())
+        existing_edges = set((u, v) for u, v in graph.edges()) | set(
+            (v, u) for u, v in graph.edges()
+        )
 
         max_possible_edges = len(nodes) * (len(nodes) - 1)
         if len(existing_edges) >= max_possible_edges:
@@ -151,7 +187,9 @@ class Encoder:
             raw_code = attrs.get("code", "")
             label = attrs.get("label", "")
 
-            semantic_text = str(raw_code) if raw_code and raw_code != "None" else str(label)
+            semantic_text = (
+                str(raw_code) if raw_code and raw_code != "None" else str(label)
+            )
 
             if "\n" in semantic_text:
                 semantic_text = semantic_text.replace("\n", " ")
@@ -169,7 +207,7 @@ class Encoder:
     ) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         edge_features, edge_types, edge_existence = [], [], []
 
-        def process_edge(attrs, is_positive):
+        def process_edge(attrs, is_positive) -> None:
             def map_labels_to_int(label):
                 if isinstance(label, str):
                     return DOMAIN_EDGE_TYPES.get(label, -1)
@@ -185,7 +223,8 @@ class Encoder:
 
             edge_type_for_training = (
                 int(map_labels_to_int(attrs.get(feature_to_encode, -1)))
-                if is_positive else -1
+                if is_positive
+                else -1
             )
 
             edge_features.append(edge_emb)
@@ -195,7 +234,7 @@ class Encoder:
         for _, _, attrs in graph.edges(data=True):
             process_edge(attrs, is_positive=True)
 
-        for u, v in negative_edges:
+        for _u, _v in negative_edges:
             process_edge({}, is_positive=False)
 
         if len(edge_features) < self.min_edges:

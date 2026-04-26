@@ -9,7 +9,7 @@ class Draw:
         self.NODE_TYPES = node_types
         self.EDGE_TYPES = edge_types
 
-    def dfg_webrendering(self, G: nx.DiGraph, save_path: str = None):
+    def dfg_webrendering(self, G: nx.DiGraph, save_path: str | None = None) -> None:
         file_name = os.path.basename(save_path) if save_path else "data_flow_graph"
         directory_name = os.path.dirname(save_path) if save_path else "output"
         directory = os.path.join(os.getcwd(), directory_name)
@@ -59,14 +59,11 @@ class Draw:
         Dynamically unpacks all node and edge attributes to prevent data loss.
         """
         import json
+
         elements = []
 
         for node, data in G.nodes(data=True):
-            payload = {
-                "id": str(node),
-                "node_type": 0,
-                "label": str(node)
-            }
+            payload = {"id": str(node), "node_type": 0, "label": str(node)}
 
             payload.update(data)
 
@@ -78,7 +75,7 @@ class Draw:
                 "source": str(src),
                 "target": str(tgt),
                 "edge_type": 0,
-                "label": "edge"
+                "label": "edge",
             }
 
             safe_data = {k: v for k, v in data.items() if k != "id"}

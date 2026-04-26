@@ -15,7 +15,7 @@ class JetbrainsNotebookProcessor(NotebookProcessor):
     object_pattern_cache = {}
     attribute_pattern_cache = {}
 
-    def __init__(self, json_file, bucket_url, save_dir, log_file):
+    def __init__(self, json_file, bucket_url, save_dir, log_file) -> None:
         super().__init__(save_dir, log_file)
         self.json_file = json_file
         self.bucket_url = bucket_url
@@ -59,7 +59,7 @@ class JetbrainsNotebookProcessor(NotebookProcessor):
         start_limit=0,
         end_limit=None,
         delay=0,
-    ):
+    ) -> None:
         """
         Download and process Jupyter notebooks.
         """

@@ -37,7 +37,7 @@ def create_model(config):
     return model
 
 
-def check_inference_duration(trainer, logger, encoded_graphs):
+def check_inference_duration(trainer, logger, encoded_graphs) -> None:
     device = torch.device("cpu")
     trainer.trainer.model.to(device)
     trainer.trainer.model.eval()

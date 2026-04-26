@@ -4,6 +4,7 @@ from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
+
 class DatasetManager:
     _queue = []
     _iterator = None
@@ -21,7 +22,7 @@ class DatasetManager:
         while len(cls._queue) < 10:
             try:
                 entry = next(cls._iterator)
-                if not entry.is_file() or not entry.name.endswith('.ipynb'):
+                if not entry.is_file() or not entry.name.endswith(".ipynb"):
                     continue
 
                 if entry.name in cls._seen_in_session:

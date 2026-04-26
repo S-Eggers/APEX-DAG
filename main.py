@@ -6,7 +6,7 @@ from ApexDAG.argparser import argparser
 from ApexDAG.util.logging import setup_logging
 
 
-def main(argv=None):
+def main(argv=None) -> None:
     logger = setup_logging("main", True)
     args = argparser.parse_args(argv)
 

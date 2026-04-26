@@ -3,14 +3,19 @@ import logging
 import torch
 from transformers import AutoModel, AutoTokenizer
 
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
+
 
 class CodeBERTEmbedding:
     """
-    V2 Embedding Engine: Utilizes Microsoft's GraphCodeBERT 
+    V2 Embedding Engine: Utilizes Microsoft's GraphCodeBERT
     to extract dense semantic vectors from Python AST snippets.
     """
-    def __init__(self, model_name: str = "microsoft/graphcodebert-base"):
+
+    def __init__(self, model_name: str = "microsoft/graphcodebert-base") -> None:
         self.model_name = model_name
         self._max_output_dim = 768
 
@@ -46,7 +51,7 @@ class CodeBERTEmbedding:
             return_tensors="pt",
             padding=True,
             truncation=True,
-            max_length=512
+            max_length=512,
         ).to(self.device)
 
         outputs = self.model(**inputs)

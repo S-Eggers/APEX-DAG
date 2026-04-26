@@ -36,7 +36,8 @@ class OnlineGraphLabeler:
     2.  Each edge labeling is an independent, "one-shot" attempt.
     3.  Does not track token usage.
     """
-    def __init__(self, config: Config, graph: nx.MultiDiGraph, code: str):
+
+    def __init__(self, config: Config, graph: nx.MultiDiGraph, code: str) -> None:
         load_dotenv()
         self.config = config
         self.G = graph
@@ -57,6 +58,7 @@ class OnlineGraphLabeler:
         logging.info(f"Initializing client for provider: {self.llm_provider}")
         if self.llm_provider == "groq":
             from groq import Groq
+
             api_key = os.environ.get("GROQ_API_KEY")
             if not api_key:
                 raise ValueError("GROQ_API_KEY environment variable not set.")
@@ -86,7 +88,9 @@ class OnlineGraphLabeler:
                 response_model=response_model,
             )
         elif self.llm_provider == "google":
-            gemini_messages = [msg["content"] for msg in messages if msg["role"] == "user"]
+            gemini_messages = [
+                msg["content"] for msg in messages if msg["role"] == "user"
+            ]
             response = self.client.generate_content(
                 gemini_messages,
                 generation_config={"response_mime_type": "application/json"},
@@ -99,32 +103,42 @@ class OnlineGraphLabeler:
                 logging.error(f"Raw Gemini response: {response.text}")
                 raise
 
-    def get_input_subgraph(self, node_id_source: str, node_id_target: str, edge_key: str, max_depth: int):
+    def get_input_subgraph(
+        self, node_id_source: str, node_id_target: str, edge_key: str, max_depth: int
+    ):
         """Extracts a subgraph around an edge of interest."""
         subgraph_nodes, subgraph_edges = self.G_with_context.get_subgraph(
             node_id_source, node_id_target, max_depth=max_depth
         )
-        return str(MultiSubgraphContext(
-            edge_of_interest=(node_id_source, node_id_target, edge_key),
-            nodes=subgraph_nodes,
-            edges=subgraph_edges,
-        ))
+        return str(
+            MultiSubgraphContext(
+                edge_of_interest=(node_id_source, node_id_target, edge_key),
+                nodes=subgraph_nodes,
+                edges=subgraph_edges,
+            )
+        )
 
-    def get_input_code_context(self, node_id_source: str, node_id_target: str, max_depth: int):
+    def get_input_code_context(
+        self, node_id_source: str, node_id_target: str, max_depth: int
+    ):
         """Extracts relevant lines of code for the subgraph."""
         _, subgraph_edges = self.G_with_context.get_subgraph(
             node_id_source, node_id_target, max_depth=max_depth
         )
-        lines = sorted({line for edge in subgraph_edges for line in (edge.lineno or [])})
+        lines = sorted(
+            {line for edge in subgraph_edges for line in (edge.lineno or [])}
+        )
         if -1 in lines:
             return "\n".join(self.code_lines)
 
-        expanded_lines = sorted({
-            line_offset
-            for line in lines
-            for line_offset in (line - 1, line, line + 1)
-            if 0 <= line_offset < len(self.code_lines)
-        })
+        expanded_lines = sorted(
+            {
+                line_offset
+                for line in lines
+                for line_offset in (line - 1, line, line + 1)
+                if 0 <= line_offset < len(self.code_lines)
+            }
+        )
         return "\n".join(self.code_lines[line] for line in expanded_lines)
 
     def _label_edge_worker(self, edge, edge_index, max_depth):
@@ -132,7 +146,7 @@ class OnlineGraphLabeler:
         Worker function to label a single edge.
         It is designed to be thread-safe by returning results instead of modifying the graph directly.
         """
-        start_time = time.time()
+        time.time()
 
         for attempt in range(self.config.retry_attempts):
             try:
@@ -143,7 +157,12 @@ class OnlineGraphLabeler:
                     edge.source, edge.target, max_depth
                 )
                 messages = generate_message(
-                    edge.source, edge.target, edge.key, edge.code, graph_context, code_context
+                    edge.source,
+                    edge.target,
+                    edge.key,
+                    edge.code,
+                    graph_context,
+                    code_context,
                 )
 
                 response = self._create_chat_completion(
@@ -165,15 +184,18 @@ class OnlineGraphLabeler:
                 else:
                     raise e
 
-        raise RuntimeError(f"Failed to label edge {edge.source}->{edge.target} after all retries.")
-
+        raise RuntimeError(
+            f"Failed to label edge {edge.source}->{edge.target} after all retries."
+        )
 
     def label_graph(self):
         """Labels all edges in the graph concurrently using a thread pool."""
         self.G_with_context.populate_edge_dict()
         edges_to_process = list(enumerate(self.G_with_context.edges))
 
-        with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=self.config.max_workers
+        ) as executor:
             future_to_edge_info = {
                 executor.submit(
                     self._label_edge_worker, edge, edge_index, self.config.max_depth
@@ -194,8 +216,12 @@ class OnlineGraphLabeler:
                     result = future.result()
                     labeled_edge = result["labeled_edge"]
 
-                    self.G.edges[edge.source, edge.target, edge.key]["domain_label"] = labeled_edge.domain_label
-                    self.G.edges[edge.source, edge.target, edge.key]["reasoning"] = labeled_edge.reasoning
+                    self.G.edges[edge.source, edge.target, edge.key]["domain_label"] = (
+                        labeled_edge.domain_label
+                    )
+                    self.G.edges[edge.source, edge.target, edge.key]["reasoning"] = (
+                        labeled_edge.reasoning
+                    )
                     self.G_with_context.edges[edge_index] = labeled_edge
 
                 except Exception as e:
@@ -206,10 +232,12 @@ class OnlineGraphLabeler:
 
         return self.G, self.G_with_context
 
-    def insert_missing_value_for_edge(self, edge, edge_num_index):
+    def insert_missing_value_for_edge(self, edge, edge_num_index) -> None:
         """Helper to mark an edge with a 'MISSING' label."""
         self.G.edges[edge.source, edge.target, edge.key]["domain_label"] = "MISSING"
-        self.G_with_context.edges[edge_num_index] = MultiLabelledEdge.from_edge(edge, "MISSING", "Failed during processing.")
+        self.G_with_context.edges[edge_num_index] = MultiLabelledEdge.from_edge(
+            edge, "MISSING", "Failed during processing."
+        )
 
 
 if __name__ == "__main__":

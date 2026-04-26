@@ -31,10 +31,10 @@ def analyze_notebook(notebook_path: str) -> dict:
         dfg.parse_notebook(notebook)
         dfg.optimize()
 
-        G = dfg.get_graph()
+        nx_G = dfg.get_graph()
         result["success"] = True
-        result["node_count"] = G.number_of_nodes()
-        result["edge_count"] = G.number_of_edges()
+        result["node_count"] = nx_G.number_of_nodes()
+        result["edge_count"] = nx_G.number_of_edges()
 
     except Exception as e:
         result["error"] = str(e)[:200]  # keep error informative but bounded
@@ -53,14 +53,16 @@ def analyze_dataset(root_path: str, output_file: str = "analysis_report.txt") ->
         sys.exit(1)
 
     # Stats storage
-    library_stats = defaultdict(lambda: {
-        "total": 0,
-        "success": 0,
-        "errors": 0,
-        "node_counts": [],
-        "error_messages": defaultdict(int),
-        "error_notebooks": defaultdict(list),  # NEW
-    })
+    library_stats = defaultdict(
+        lambda: {
+            "total": 0,
+            "success": 0,
+            "errors": 0,
+            "node_counts": [],
+            "error_messages": defaultdict(int),
+            "error_notebooks": defaultdict(list),  # NEW
+        }
+    )
 
     # Find all notebooks
     notebooks = list(root.rglob("*.ipynb"))
@@ -76,7 +78,7 @@ def analyze_dataset(root_path: str, output_file: str = "analysis_report.txt") ->
         print(
             f"[{i}/{total_notebooks}] {library}/{nb_path.name[:40]}...",
             end=" ",
-            flush=True
+            flush=True,
         )
 
         result = analyze_notebook(str(nb_path))
@@ -134,15 +136,23 @@ def analyze_dataset(root_path: str, output_file: str = "analysis_report.txt") ->
         report_lines.append("-" * 40)
         report_lines.append(f"Min:     {min(all_node_counts)}")
         report_lines.append(f"Max:     {max(all_node_counts)}")
-        report_lines.append(f"Mean:    {sum(all_node_counts) / len(all_node_counts):.1f}")
+        report_lines.append(
+            f"Mean:    {sum(all_node_counts) / len(all_node_counts):.1f}"
+        )
         sorted_counts = sorted(all_node_counts)
         report_lines.append(f"Median:  {sorted_counts[len(sorted_counts) // 2]}")
         report_lines.append("")
 
         buckets = [0, 10, 25, 50, 100, 250, 500, 1000, float("inf")]
         bucket_labels = [
-            "0-9", "10-24", "25-49", "50-99",
-            "100-249", "250-499", "500-999", "1000+"
+            "0-9",
+            "10-24",
+            "25-49",
+            "50-99",
+            "100-249",
+            "250-499",
+            "500-999",
+            "1000+",
         ]
         bucket_counts = [0] * len(bucket_labels)
 
@@ -157,7 +167,7 @@ def analyze_dataset(root_path: str, output_file: str = "analysis_report.txt") ->
         max_bar = 40
         max_count = max(bucket_counts) if bucket_counts else 1
 
-        for label, count in zip(bucket_labels, bucket_counts):
+        for label, count in zip(bucket_labels, bucket_counts, strict=False):
             bar_len = int(max_bar * count / max_count) if max_count > 0 else 0
             bar = "█" * bar_len
             report_lines.append(f"{label:>10}: {count:4d} {bar}")
@@ -221,17 +231,18 @@ def analyze_dataset(root_path: str, output_file: str = "analysis_report.txt") ->
     print(f"\nReport saved to: {output_file}")
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Analyze notebook dataset and report errors/node distributions"
     )
     parser.add_argument(
         "--path",
         help="Path to the root of the notebook dataset",
-        default = "/home/nina/projects/APEX-DAG/data/notebook_data_larger"
+        default="/home/nina/projects/APEX-DAG/data/notebook_data_larger",
     )
     parser.add_argument(
-        "-o", "--output",
+        "-o",
+        "--output",
         default="analysis_report.txt",
         help="Output report file (default: analysis_report.txt)",
     )

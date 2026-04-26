@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 class GATLabeler(EdgeLabeler):
-    def __init__(self, model_dict: dict):
+    def __init__(self, model_dict: dict) -> None:
         """
         Expects a dictionary containing the 'model' (MultiTaskGATv1) and 'encoder'.
         """
@@ -49,5 +49,5 @@ class GATLabeler(EdgeLabeler):
             predicted_labels = labels.tolist()
 
         edge_keys = [(u, v, key) for u, v, key, data in graph_edges_list]
-        attrs_to_set = dict(zip(edge_keys, predicted_labels))
+        attrs_to_set = dict(zip(edge_keys, predicted_labels, strict=False))
         graph.set_domain_label(attrs_to_set, name="predicted_label")

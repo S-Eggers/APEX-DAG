@@ -9,19 +9,23 @@ from ..core.types import PRType
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
-def add_to_stack(stack: list, item):
+
+def add_to_stack(stack: list, item) -> None:
     if item not in stack:
         stack.append(item)
 
-def extend_stack(stack: list, items):
+
+def extend_stack(stack: list, items) -> None:
     for item in items:
         add_to_stack(stack, item)
+
 
 class AnnotationWIR:
     """
     Annotates the WIR using the Vamsa Annotation algorithm via the provided Knowledge Base.
     """
-    def __init__(self, wir: nx.DiGraph, prs: list[PRType], knowledge_base):
+
+    def __init__(self, wir: nx.DiGraph, prs: list[PRType], knowledge_base) -> None:
         self.wir = wir
         self.prs = prs
         self.knowledge_base = knowledge_base
@@ -51,43 +55,70 @@ class AnnotationWIR:
                 context = self._get_annotation(caller)
                 if isinstance(context, list):
                     for subcontext in context:
-                        input_annotations, annotations_output = self.knowledge_base(library, module, subcontext, process)
-                        if input_annotations or annotations_output: break
+                        input_annotations, annotations_output = self.knowledge_base(
+                            library, module, subcontext, process
+                        )
+                        if input_annotations or annotations_output:
+                            break
                 else:
-                    input_annotations, annotations_output = self.knowledge_base(library, module, context, process)
+                    input_annotations, annotations_output = self.knowledge_base(
+                        library, module, context, process
+                    )
 
-                for vo, annotation_output in zip(outputs, annotations_output):
+                for vo, annotation_output in zip(
+                    outputs, annotations_output, strict=False
+                ):
                     self._annotate_node(vo, annotation_output)
 
                 annotated_inputs = []
                 min_len = min(len(inputs), len(input_annotations))
 
-                for input_node, input_annotation in zip(inputs[:min_len], input_annotations[:min_len]):
-                    annotated_inputs.append(self._annotate_node(input_node, input_annotation))
+                for input_node, input_annotation in zip(
+                    inputs[:min_len], input_annotations[:min_len], strict=False
+                ):
+                    annotated_inputs.append(
+                        self._annotate_node(input_node, input_annotation)
+                    )
 
                 backward_stack = annotated_inputs
 
                 while backward_stack:
-                    previous_input, annotation = backward_stack.pop()
-                    b_inputs, b_caller, b_process, b_outputs = self._extract_pr_elements(previous_input, node_type="output")
+                    previous_input, _annotation = backward_stack.pop()
+                    b_inputs, _b_caller, b_process, b_outputs = (
+                        self._extract_pr_elements(previous_input, node_type="output")
+                    )
 
-                    if self.check_if_visited(b_process): continue
+                    if self.check_if_visited(b_process):
+                        continue
                     self.visit_node(b_process)
 
                     outputs_annotations = [self._get_annotation(vo) for vo in b_outputs]
-                    b_input_annotations = self.knowledge_base.back_query(outputs_annotations, b_process)
+                    b_input_annotations = self.knowledge_base.back_query(
+                        outputs_annotations, b_process
+                    )
 
                     min_len_b = min(len(b_inputs), len(b_input_annotations))
-                    for b_input_node, b_input_annotation in zip(b_inputs[:min_len_b], b_input_annotations[:min_len_b]):
+                    for b_input_node, b_input_annotation in zip(
+                        b_inputs[:min_len_b],
+                        b_input_annotations[:min_len_b],
+                        strict=False,
+                    ):
                         self._annotate_node(b_input_node, b_input_annotation)
                         backward_stack.append((b_input_node, b_input_annotation))
 
-                extend_stack(forward_stack, self.find_forward_prs((inputs, caller, process, outputs)))
+                extend_stack(
+                    forward_stack,
+                    self.find_forward_prs((inputs, caller, process, outputs)),
+                )
 
         return self.annotated_wir
 
     def find_import_nodes(self):
-        return [node for node in self.wir.nodes if "importas" in str(node).lower() or "importfrom" in str(node).lower()]
+        return [
+            node
+            for node in self.wir.nodes
+            if "importas" in str(node).lower() or "importfrom" in str(node).lower()
+        ]
 
     def extract_library_and_module(self, node):
         library = None
@@ -106,12 +137,15 @@ class AnnotationWIR:
         if node_type == "operation":
             for pred in self.wir.predecessors(node):
                 edge_data = self.wir.get_edge_data(pred, node)
-                if edge_data.get("label") == "input": inputs.append(pred)
-                elif edge_data.get("label") == "caller": context = pred
+                if edge_data.get("label") == "input":
+                    inputs.append(pred)
+                elif edge_data.get("label") == "caller":
+                    context = pred
 
             for succ in self.wir.successors(node):
                 edge_data = self.wir.get_edge_data(node, succ)
-                if edge_data.get("label") == "output": outputs.append(succ)
+                if edge_data.get("label") == "output":
+                    outputs.append(succ)
 
             return inputs, context, node, outputs
 
@@ -131,16 +165,19 @@ class AnnotationWIR:
         return (node, annotation)
 
     def check_if_visited(self, node) -> bool:
-        if node is None: return True
+        if node is None:
+            return True
         return self.annotated_wir.nodes[node].get("visited", False)
 
-    def visit_node(self, node):
+    def visit_node(self, node) -> None:
         self.annotated_wir.nodes[node]["visited"] = True
 
     def find_forward_prs(self, pr):
         outputs = pr[3]
         operation = pr[2]
+
         def is_connected(next_pr):
             next_pr_ids = (next_pr[0], next_pr[1], next_pr[2])
             return any(o in next_pr_ids for o in outputs) and next_pr[2] != operation
+
         return set([next_pr[2] for next_pr in self.prs if is_connected(next_pr)])

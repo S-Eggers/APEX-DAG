@@ -15,8 +15,8 @@ class LineagePipeline:
         labeler: EdgeLabeler,
         refiner: GraphRefiner,
         serializer: LineageSerializer,
-        highlight_relevant: bool
-    ):
+        highlight_relevant: bool,
+    ) -> None:
         self.parser = parser
         self.labeler = labeler
         self.refiner = refiner

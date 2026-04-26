@@ -11,16 +11,20 @@ from ApexDAG.sca.constants import REVERSE_EDGE_TYPES, REVERSE_NODE_TYPES
 
 class MultiNode(BaseModel):
     """Represents a node in a MultiDiGraph."""
+
     node_id: str
     node_type: str
     label: str
 
     def __str__(self) -> str:
-        return f"Node(id={self.node_id}, node_type={self.node_type}, label={self.label})"
+        return (
+            f"Node(id={self.node_id}, node_type={self.node_type}, label={self.label})"
+        )
 
 
 class MultiEdge(BaseModel):
     """Represents an edge in a MultiDiGraph."""
+
     source: str
     target: str
     key: str
@@ -34,6 +38,7 @@ class MultiEdge(BaseModel):
 
 class MultiLabelledEdge(BaseModel):
     """Represents a labelled edge in a MultiDiGraph, including a domain label."""
+
     source: str = Field(
         ..., description="Unique identifier for the source of the edge."
     )
@@ -97,6 +102,7 @@ class MultiLabelledEdge(BaseModel):
 
 class MultiGraphContext(BaseModel):
     """Represents the context of a full MultiDiGraph."""
+
     nodes: list[MultiNode]
     edges: list[MultiEdge | MultiLabelledEdge]
 
@@ -108,13 +114,13 @@ class MultiGraphContext(BaseModel):
         parents_edges = [edge for edge in self.edges if edge.target == node_id]
         return children_edges, parents_edges
 
-    def populate_edge_dict(self):
+    def populate_edge_dict(self) -> None:
         """Populates the edge_dict: source -> target -> key -> edge_index."""
         self.edge_dict.clear()
         for index, edge in enumerate(self.edges):
-            self.edge_dict.setdefault(edge.source, {}).setdefault(
-                edge.target, {}
-            )[edge.key] = index
+            self.edge_dict.setdefault(edge.source, {}).setdefault(edge.target, {})[
+                edge.key
+            ] = index
 
 
 class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
@@ -133,7 +139,7 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
         visited = set()
         subgraph_node_ids = set()
 
-        def dfs(current_node_id, current_depth):
+        def dfs(current_node_id, current_depth) -> None:
             if current_depth > max_depth or current_node_id in visited:
                 return
 
@@ -163,10 +169,7 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
         return subgraph_nodes, subgraph_edges
 
     @classmethod
-    def from_graph(
-        cls,
-        G: nx.MultiDiGraph
-    ) -> "MultiGraphContextWithSubgraphSearch":
+    def from_graph(cls, G: nx.MultiDiGraph) -> "MultiGraphContextWithSubgraphSearch":
         """Builds the context from a networkx.MultiDiGraph."""
         for node_name in G.nodes:
             G.nodes[node_name]["label"] = re.sub(r"_\d+", "", node_name)
@@ -175,9 +178,7 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
             return MultiNode(
                 node_id=node_name,
                 label=node_data.get("label", ""),
-                node_type=REVERSE_NODE_TYPES.get(
-                    node_data.get("node_type"), "UNKNOWN"
-                ),
+                node_type=REVERSE_NODE_TYPES.get(node_data.get("node_type"), "UNKNOWN"),
             )
 
         def build_edge(
@@ -196,9 +197,7 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
                 target=target,
                 key=str(key),
                 code=edge_data.get("code", ""),
-                edge_type=REVERSE_EDGE_TYPES.get(
-                    edge_data.get("edge_type"), "UNKNOWN"
-                ),
+                edge_type=REVERSE_EDGE_TYPES.get(edge_data.get("edge_type"), "UNKNOWN"),
                 lineno=lineno_range,
             )
 
@@ -215,6 +214,7 @@ class MultiGraphContextWithSubgraphSearch(MultiGraphContext):
 
 class MultiSubgraphContext(MultiGraphContext):
     """Represents the context of a specific subgraph for analysis."""
+
     edge_of_interest: tuple[str, str, str]
 
     def get_input_dict(self) -> dict:

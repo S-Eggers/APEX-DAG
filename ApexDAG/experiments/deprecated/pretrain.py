@@ -29,7 +29,7 @@ def create_model(config, reversed, tasks):
     )
 
 
-def signal_handler(signum, frame):
+def signal_handler(signum, frame) -> None:
     """Handles interrupt signals (Ctrl+C)."""
     global interrupted
     interrupted = True
@@ -38,7 +38,7 @@ def signal_handler(signum, frame):
 signal.signal(signal.SIGINT, signal_handler)
 
 
-def log_config(config_file):
+def log_config(config_file) -> None:
     artifact = wandb.Artifact("config_file", type="config")
     artifact.add_file(config_file)
     wandb.log_artifact(artifact)

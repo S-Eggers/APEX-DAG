@@ -10,7 +10,7 @@ load_dotenv()
 
 
 class GithubRepositoryNotebookIterator(GitHubCrawler):
-    def __init__(self, max_results, notebook_paths, log_file="log.txt"):
+    def __init__(self, max_results, notebook_paths, log_file="log.txt") -> None:
         """
         Initialize the iterator with GitHub API details.
 
@@ -82,7 +82,7 @@ class GithubRepositoryNotebookIterator(GitHubCrawler):
             self.progress_bar.close()
             raise StopIteration
 
-    def print(self, filename="", message=""):
+    def print(self, filename="", message="") -> None:
         message = str(message)
         self.logger.info(f"{filename}: {message}")
 

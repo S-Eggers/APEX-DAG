@@ -6,6 +6,7 @@ class ComplexityVisitor(ast.NodeVisitor):
     AST Visitor to extract advanced code complexity metrics.
     Tracks structural frequencies and maximum control-flow nesting depth.
     """
+
     def __init__(self) -> None:
         self.metrics: dict[str, int] = {
             "loops": 0,
@@ -19,7 +20,7 @@ class ComplexityVisitor(ast.NodeVisitor):
             "gen_expr": 0,
             "try_except": 0,
             "with_blocks": 0,
-            "max_nesting_depth": 0
+            "max_nesting_depth": 0,
         }
         self._current_depth: int = 0
 

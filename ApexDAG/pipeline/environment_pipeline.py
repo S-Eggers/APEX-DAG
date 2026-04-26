@@ -9,8 +9,8 @@ class EnvironmentPipeline:
         self,
         serializer: EnvironmentSerializer,
         import_visitor_cls: type,
-        complexity_visitor_cls: type
-    ):
+        complexity_visitor_cls: type,
+    ) -> None:
         self.serializer = serializer
         self.import_visitor_cls = import_visitor_cls
         self.complexity_visitor_cls = complexity_visitor_cls

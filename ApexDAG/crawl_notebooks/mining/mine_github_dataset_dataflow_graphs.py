@@ -18,7 +18,7 @@ GITHUB_API_URL = "https://api.github.com/search/code"
 OUTPUT_DIR = "/home/eggers/data/apexdag_results/github_dfg_100k_new/"
 
 
-def mine_dataflows_on_github_dataset(args):
+def mine_dataflows_on_github_dataset(args) -> None:
     stats = {}
 
     github_iterator = GithubRepositoryNotebookIterator(

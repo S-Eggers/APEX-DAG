@@ -7,7 +7,7 @@ from jupyter_server.base.handlers import APIHandler
 
 class LabelingSaveHandler(APIHandler):
     @tornado.web.authenticated
-    def post(self):
+    def post(self) -> None:
         try:
             input_data = self.get_json_body()
             requested_filename = input_data.get("filename", "annotated_graph.json")
@@ -20,12 +20,14 @@ class LabelingSaveHandler(APIHandler):
 
             if not target_path.is_relative_to(safe_base_dir):
                 self.set_status(403)
-                self.finish(json.dumps({"success": False, "message": "Forbidden path."}))
+                self.finish(
+                    json.dumps({"success": False, "message": "Forbidden path."})
+                )
                 return
 
             # Force JSON extension
-            if target_path.suffix != '.json':
-                target_path = target_path.with_suffix('.json')
+            if target_path.suffix != ".json":
+                target_path = target_path.with_suffix(".json")
 
             raw_elements = input_data.get("graph", [])
             code_data = input_data.get("code", "")
@@ -40,14 +42,15 @@ class LabelingSaveHandler(APIHandler):
             with open(target_path, "w", encoding="utf-8") as f:
                 json.dump(elements, f, indent=2)
 
-            code_path = target_path.with_suffix('.py')
+            code_path = target_path.with_suffix(".py")
             with open(code_path, "w", encoding="utf-8") as f:
                 f.write(code_data)
 
-            self.finish(json.dumps({
-                "success": True,
-                "message": f"Saved JSON to {target_path.name}"
-            }))
+            self.finish(
+                json.dumps(
+                    {"success": True, "message": f"Saved JSON to {target_path.name}"}
+                )
+            )
 
         except Exception as e:
             self.log.error(f"Save error: {e}", exc_info=True)

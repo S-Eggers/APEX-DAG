@@ -62,7 +62,7 @@ class State:
             case _:
                 raise ValueError(f"Attribute {name} not a valid attribute")
 
-    def __setitem__(self, name, value):
+    def __setitem__(self, name, value) -> None:
         match name:
             case "current_variable":
                 self.current_variable = value
@@ -95,13 +95,13 @@ class State:
             case _:
                 raise ValueError(f"Attribute {name} not a valid attribute")
 
-    def set_current_variable(self, value: str):
+    def set_current_variable(self, value: str) -> None:
         self.current_variable = value
 
-    def set_current_target(self, value: str):
+    def set_current_target(self, value: str) -> None:
         self.current_target = value
 
-    def set_last_variable(self, value: str):
+    def set_last_variable(self, value: str) -> None:
         self.last_variable = value
 
     def merge(self, branches: list[tuple], cell_id: str = "unknown_cell") -> None:
@@ -123,8 +123,8 @@ class State:
                         target=new_var,
                         label=var_edge,
                         edge_type=edge_type,
-                        raw_code=var_edge, # Fallback source for control flows
-                        cell_id=cell_id
+                        raw_code=var_edge,  # Fallback source for control flows
+                        cell_id=cell_id,
                     )
                     new_variable_versions[key] += value
                 else:
@@ -155,7 +155,7 @@ class State:
                 label="end_loop",
                 edge_type=EDGE_TYPES["LOOP"],
                 raw_code="end_loop",
-                cell_id=cell_id
+                cell_id=cell_id,
             )
 
         for variable, branches in branched_variables.items():
@@ -170,7 +170,7 @@ class State:
                         label="end_if",
                         edge_type=EDGE_TYPES["BRANCH"],
                         raw_code="end_if",
-                        cell_id=cell_id
+                        cell_id=cell_id,
                     )
 
         self.variable_versions = new_variable_versions
@@ -191,12 +191,10 @@ class State:
         self._G.remove_node(node_identifier)
 
     def node_iterator(self):
-        for node in self._G.nodes:
-            yield node
+        yield from self._G.nodes
 
     def adjacent_node_iterator(self, node_identifier: str):
-        for node in self._G[node_identifier]:
-            yield node
+        yield from self._G[node_identifier]
 
     def add_node(
         self,
@@ -204,7 +202,7 @@ class State:
         node_type: int,
         code: str = "",
         cell_id: str = "unknown_cell",
-        label: str = None
+        label: str | None = None,
     ) -> None:
         if not self._G.has_node(node_name):
             if not label:
@@ -219,20 +217,22 @@ class State:
                 elif node_name.startswith("branch_"):
                     label = "branch"
                 else:
-                    label = re.sub(r'_[a-zA-Z0-9\-]{3,8}_\d+(?:_\d+)?$', '', node_name)
+                    label = re.sub(r"_[a-zA-Z0-9\-]{3,8}_\d+(?:_\d+)?$", "", node_name)
 
             node_model = GraphNode(
                 id=node_name,
                 label=label,
                 node_type=node_type,
                 cell_id=cell_id,
-                code=code
+                code=code,
             )
             self._G.add_node(node_name, **node_model.to_networkx_attrs())
         else:
             if code and not self._G.nodes[node_name].get("code"):
                 self._G.nodes[node_name]["code"] = code
-            if cell_id != "unknown_cell" and self._G.nodes[node_name].get("cell_id") in [None, "unknown_cell"]:
+            if cell_id != "unknown_cell" and self._G.nodes[node_name].get(
+                "cell_id"
+            ) in [None, "unknown_cell"]:
                 self._G.nodes[node_name]["cell_id"] = cell_id
 
     def node_degree(self, node_identifier: str):
@@ -242,12 +242,10 @@ class State:
         }
 
     def predecessor_node_iterator(self, node_identifier: str):
-        for node in self._G.predecessors(node_identifier):
-            yield node
+        yield from self._G.predecessors(node_identifier)
 
     def successor_node_iterator(self, node_identifier: str):
-        for node in self._G.successors(node_identifier):
-            yield node
+        yield from self._G.successors(node_identifier)
 
     def has_edge(self, source: str, target: str, key: str | None = None) -> bool:
         if key:
@@ -257,8 +255,7 @@ class State:
 
     def get_edge_iterator(self, source: str, target: str):
         edges = self._G.get_edge_data(source, target)
-        for key, attributes in edges.items():
-            yield key, attributes
+        yield from edges.items()
 
     def set_edge_data(self, source: str, target: str, edge_key: str, **kwargs) -> None:
         for key, value in kwargs.items():
@@ -281,8 +278,8 @@ class State:
         col_offset: int = -1,
         end_lineno: int = -1,
         end_col_offset: int = -1,
-        cell_id: str = "unknown_cell"
-    ):
+        cell_id: str = "unknown_cell",
+    ) -> None:
         if source and target and source != target and len(label) > 0:
             key = f"{source}_{target}_{label}"
 
@@ -295,7 +292,7 @@ class State:
                     target=target,
                     edge_type=edge_type,
                     cell_id=cell_id,
-                    label=label
+                    label=label,
                 )
 
                 position_and_meta = {
@@ -304,7 +301,7 @@ class State:
                     "end_lineno": end_lineno,
                     "end_col_offset": end_col_offset,
                     "count": 1,
-                    "raw_code": raw_code
+                    "raw_code": raw_code,
                 }
 
                 attrs = edge_model.to_networkx_attrs()
@@ -349,7 +346,8 @@ class State:
 
     def _rewire_eda_nodes(self) -> tuple[set, list]:
         nodes_to_remove_eda = {
-            v for _, v, data in self._G.edges(data=True)
+            v
+            for _, v, data in self._G.edges(data=True)
             if data.get("predicted_label") == DOMAIN_EDGE_TYPES["EDA"]
         }
 
@@ -359,7 +357,8 @@ class State:
         edges_to_add = []
 
         boundary_predecessors = {
-            p for h in nodes_to_remove_eda
+            p
+            for h in nodes_to_remove_eda
             for p in self._G.predecessors(h)
             if p not in nodes_to_remove_eda
         }
@@ -389,10 +388,12 @@ class State:
     def _update_node_types(self) -> None:
         q = []
         for _, v, data in self._G.edges(data=True):
-            if data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]:
-                if self._G.nodes[v].get("node_type") != NODE_TYPES["DATASET"]:
-                    self._G.nodes[v]["node_type"] = NODE_TYPES["DATASET"]
-                    q.append(v)
+            if (
+                data.get("predicted_label")
+                == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]
+            ) and self._G.nodes[v].get("node_type") != NODE_TYPES["DATASET"]:
+                self._G.nodes[v]["node_type"] = NODE_TYPES["DATASET"]
+                q.append(v)
 
         visited = set(q)
         while q:
@@ -402,7 +403,10 @@ class State:
                     is_dataset_transform = False
                     # Check all edges between curr and succ
                     for _, edge_data in self._G.get_edge_data(curr, succ).items():
-                        if edge_data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_TRANSFORM"]:
+                        if (
+                            edge_data.get("predicted_label")
+                            == DOMAIN_EDGE_TYPES["DATA_TRANSFORM"]
+                        ):
                             is_dataset_transform = True
                             break
 
@@ -455,14 +459,21 @@ class State:
                             ]:
                                 should_optimize = False
 
-                            temp_new_edges.append({
-                                "source": prev_node,
-                                "target": next_node,
-                                "label": attributes.get("label") or attributes.get("code", "reassign"),
-                                "edge_type": attributes["edge_type"],
-                                "raw_code": attributes.get("raw_code") or attributes.get("code", ""),
-                                "cell_id": attributes.get("cell_id", node_data_x.get("cell_id", "unknown_cell"))
-                            })
+                            temp_new_edges.append(
+                                {
+                                    "source": prev_node,
+                                    "target": next_node,
+                                    "label": attributes.get("label")
+                                    or attributes.get("code", "reassign"),
+                                    "edge_type": attributes["edge_type"],
+                                    "raw_code": attributes.get("raw_code")
+                                    or attributes.get("code", ""),
+                                    "cell_id": attributes.get(
+                                        "cell_id",
+                                        node_data_x.get("cell_id", "unknown_cell"),
+                                    ),
+                                }
+                            )
 
                 if should_optimize:
                     nodes_to_remove.append(node_x)
@@ -478,7 +489,9 @@ class State:
                             edge_label in node_x.lower()
                             or edge_label.replace(" ", "_") in node_x.lower()
                         ) and edge_data["edge_type"] == EDGE_TYPES["INPUT"]:
-                            logger.debug("Removing redundant input edge: %s", edge_label)
+                            logger.debug(
+                                "Removing redundant input edge: %s", edge_label
+                            )
                             edges_to_remove.append((node_x, node_y, key))
 
         for node in nodes_to_remove:
@@ -494,5 +507,5 @@ class State:
                 label=edge_payload["label"],
                 edge_type=edge_payload["edge_type"],
                 raw_code=edge_payload["raw_code"],
-                cell_id=edge_payload["cell_id"]
+                cell_id=edge_payload["cell_id"],
             )

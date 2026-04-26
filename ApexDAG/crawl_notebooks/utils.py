@@ -10,5 +10,5 @@ class RepositoryData:
 
 
 class InvalidNotebookException(Exception):
-    def __init__(self, message):
+    def __init__(self, message) -> None:
         super().__init__(message)

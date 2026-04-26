@@ -85,13 +85,13 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                     self._add_node(
                         self._current_state.current_variable,
                         NODE_TYPES["INTERMEDIATE"],
-                        code=assignment_code
+                        code=assignment_code,
                     )
                 else:
                     self._add_node(
                         self._current_state.current_variable,
                         NODE_TYPES["VARIABLE"],
-                        code=assignment_code
+                        code=assignment_code,
                     )
 
                 value.parent = node
@@ -101,7 +101,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                     self._current_state.variable_versions[target_name] = []
                     previous_version = None
                 else:
-                    previous_version = self._state_stack.get_last_variable_version(target_name)
+                    previous_version = self._state_stack.get_last_variable_version(
+                        target_name
+                    )
 
                 self._current_state.variable_versions[target_name].append(
                     self._current_state.current_variable
@@ -139,7 +141,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         new_target_version = self._get_versioned_name(target_base_name, node.lineno)
         self._add_node(new_target_version, NODE_TYPES["VARIABLE"], code=aug_code)
 
-        old_target_version = self._state_stack.get_last_variable_version(target_base_name)
+        old_target_version = self._state_stack.get_last_variable_version(
+            target_base_name
+        )
         if old_target_version:
             self._add_edge(
                 source=old_target_version,
@@ -222,11 +226,7 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         if base_name and (not is_first_order or is_self_defined or is_imported):
             new_version = self._get_versioned_name(base_name, node.lineno)
 
-            self._add_node(
-                new_version,
-                NODE_TYPES["VARIABLE"],
-                code=expr_code
-            )
+            self._add_node(new_version, NODE_TYPES["VARIABLE"], code=expr_code)
 
             self._current_state.set_current_variable(new_version)
             self._current_state.set_current_target(base_name)
@@ -244,11 +244,7 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
             sink_node_name = f"sink_{short_cell}_{node.lineno}_{node.col_offset}"
 
-            self._add_node(
-                sink_node_name,
-                NODE_TYPES["INTERMEDIATE"],
-                code=expr_code
-            )
+            self._add_node(sink_node_name, NODE_TYPES["INTERMEDIATE"], code=expr_code)
 
             self._current_state.set_current_variable(sink_node_name)
             node.value.parent = node
@@ -275,14 +271,18 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                 return node
 
             self._state_stack.functions[parent_name]["context"] = context_name
-            self._state_stack.functions[parent_name]["args"] = process_arguments(node.args)
+            self._state_stack.functions[parent_name]["args"] = process_arguments(
+                node.args
+            )
             self._state_stack.functions[parent_name]["is_recursive"] = False
             parent_context = self._current_state.context
 
             with self._state_stack.scope(context_name, parent_context) as scoped_state:
                 self._current_state = scoped_state
                 cell_context = getattr(self, "current_cell_id", "unknown")
-                short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
+                short_cell = (
+                    str(cell_context)[:8] if cell_context != "unknown" else "unk"
+                )
 
                 for arg in self._state_stack.functions[parent_name]["args"]["args"]:
                     argument_node = f"{arg}_{short_cell}_{node.lineno}"
@@ -312,9 +312,13 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             "kwargs": bool(node.args.kwarg),
             "vararg": bool(node.args.vararg),
             "return_nodes": [],
-            "parent_class": node.parent.name if isinstance(node.parent, ast.ClassDef) else None,
+            "parent_class": node.parent.name
+            if isinstance(node.parent, ast.ClassDef)
+            else None,
         }
-        self._state_stack.functions[function_name]["args"] = process_arguments(node.args)
+        self._state_stack.functions[function_name]["args"] = process_arguments(
+            node.args
+        )
         self._add_node(context_name, NODE_TYPES["FUNCTION"])
 
         parent_context = self._current_state.context
@@ -334,7 +338,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         self._current_state = self._state_stack.get_current_state()
         return node
 
-    def visit_AsyncFunctionDef(self, node: ast.AsyncFunctionDef) -> ast.AsyncFunctionDef:
+    def visit_AsyncFunctionDef(
+        self, node: ast.AsyncFunctionDef
+    ) -> ast.AsyncFunctionDef:
         self.visit_FunctionDef(node)
         return node
 
@@ -353,8 +359,12 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                 node.func.value.parent = node.func
 
                 cell_context = getattr(self, "current_cell_id", "unknown")
-                short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
-                intermediate_node = f"chain_{short_cell}_{node.lineno}_{node.func.value.col_offset}"
+                short_cell = (
+                    str(cell_context)[:8] if cell_context != "unknown" else "unk"
+                )
+                intermediate_node = (
+                    f"chain_{short_cell}_{node.lineno}_{node.func.value.col_offset}"
+                )
 
                 self._add_node(intermediate_node, NODE_TYPES["INTERMEDIATE"])
 
@@ -397,7 +407,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             or function_name in self._state_stack.classes
         ):
             is_instance = caller_object_name in self._state_stack.instances
-            self._process_class_call(node, caller_object_name, function_name, is_instance)
+            self._process_class_call(
+                node, caller_object_name, function_name, is_instance
+            )
         elif (
             not caller_object_name or caller_object_name == function_name
         ) and function_name in self._state_stack.functions:
@@ -407,14 +419,24 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                 self.visit(keyword.value)
             self._process_function_call(node, function_name)
         elif function_name in [
-            "enumerate", "zip", "next", "iter", "range", "sorted", "map", "filter"
+            "enumerate",
+            "zip",
+            "next",
+            "iter",
+            "range",
+            "sorted",
+            "map",
+            "filter",
         ]:
             for arg in node.args:
                 self.visit(arg)
             for keyword in node.keywords:
                 self.visit(keyword.value)
             self._process_builtin_call(node, function_name)
-        elif self._current_state.current_target and caller_object_name not in self._state_stack.instances:
+        elif (
+            self._current_state.current_target
+            and caller_object_name not in self._state_stack.instances
+        ):
             for arg in node.args:
                 self.visit(arg)
             for keyword in node.keywords:
@@ -443,7 +465,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             operator = None
 
         if self._current_state.current_variable and operator:
-            raw_code = ast.get_source_segment(self.current_cell_source, node) or operator
+            raw_code = (
+                ast.get_source_segment(self.current_cell_source, node) or operator
+            )
             if left_var:
                 left_version = self._state_stack.get_last_variable_version(left_var)
                 self._add_edge(
@@ -502,7 +526,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                         end_col_offset=node.end_col_offset,
                     )
                 if right_var:
-                    right_version = self._state_stack.get_last_variable_version(right_var)
+                    right_version = self._state_stack.get_last_variable_version(
+                        right_var
+                    )
                     self._add_edge(
                         source=right_version,
                         target=self._current_state.current_variable,
@@ -545,7 +571,11 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             else:
                 code_segment = var_name
 
-            label = tokenize_method(code_segment, self._state_stack.imported_names, self._state_stack.import_from_modules)
+            label = tokenize_method(
+                code_segment,
+                self._state_stack.imported_names,
+                self._state_stack.import_from_modules,
+            )
 
             if self._current_state.current_variable:
                 self._add_edge(
@@ -572,7 +602,11 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         if self._current_state.last_variable:
             var_name = self._current_state.last_variable
 
-        label = tokenize_method(node.attr, self._state_stack.imported_names, self._state_stack.import_from_modules)
+        label = tokenize_method(
+            node.attr,
+            self._state_stack.imported_names,
+            self._state_stack.import_from_modules,
+        )
 
         self._add_edge(
             source=var_name,
@@ -590,9 +624,7 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             node.parent, ast.Attribute
         )
         if is_part_of_chain:
-            self._current_state.set_last_variable(
-                self._current_state.current_variable
-            )
+            self._current_state.set_last_variable(self._current_state.current_variable)
         else:
             self._current_state.set_last_variable(None)
 
@@ -630,7 +662,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
 
     def visit_IfExp(self, node: ast.IfExp) -> ast.IfExp:
         self._add_edge(
-            source=self._state_stack.get_last_variable_version(self._current_state.current_target),
+            source=self._state_stack.get_last_variable_version(
+                self._current_state.current_target
+            ),
             target=self._current_state.current_variable,
             label="if",
             edge_type=EDGE_TYPES["CALLER"],
@@ -666,7 +700,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                     stmt.parent_context = if_context
                     self.visit(stmt)
                 branch_state = self._current_state
-            self._state_stack.branches.append((branch_state, "else if", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append(
+                (branch_state, "else if", EDGE_TYPES["BRANCH"])
+            )
             if_branch = False
             previous_target = None
         else:
@@ -683,7 +719,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                     stmt.parent_context = if_context
                     self.visit(stmt)
                 branch_state = self._current_state
-            self._state_stack.branches.append((branch_state, "if", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append(
+                (branch_state, "if", EDGE_TYPES["BRANCH"])
+            )
 
         self._current_state = self._state_stack.get_current_state()
 
@@ -701,12 +739,16 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                     stmt.parent_context = else_context
                     self.visit(stmt)
                 branch_state = self._current_state
-            self._state_stack.branches.append((branch_state, "else", EDGE_TYPES["BRANCH"]))
+            self._state_stack.branches.append(
+                (branch_state, "else", EDGE_TYPES["BRANCH"])
+            )
             self._current_state = self._state_stack.get_current_state()
 
         if if_branch:
             cell_context = getattr(self, "current_cell_id", "unknown_cell")
-            self._state_stack.merge_states(node.parent_context, self._state_stack.branches, cell_id=cell_context)
+            self._state_stack.merge_states(
+                node.parent_context, self._state_stack.branches, cell_id=cell_context
+            )
             self._current_state = self._state_stack.get_current_state()
             self._state_stack.branches = []
             self._current_state.current_target = previous_target
@@ -760,7 +802,11 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                 base_name = components[0]
                 target_version = self._get_versioned_name(base_name, node.lineno)
                 attribute_path = "." + ".".join(components[1:])
-                edge_label = f"iterate into {attribute_path}" if len(components) > 1 else "iterate"
+                edge_label = (
+                    f"iterate into {attribute_path}"
+                    if len(components) > 1
+                    else "iterate"
+                )
 
                 self._add_node(target_version, NODE_TYPES["VARIABLE"])
                 self._current_state.variable_versions[base_name] = [target_version]
@@ -821,7 +867,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
 
         parent_context = self._current_state.context
         if self._state_stack.nested:
-            list_comp_context = f"{parent_context}_nested_list_comp_{short_cell}_{node.lineno}"
+            list_comp_context = (
+                f"{parent_context}_nested_list_comp_{short_cell}_{node.lineno}"
+            )
         else:
             list_comp_context = f"list_comp_{short_cell}_{node.lineno}"
 
@@ -912,9 +960,7 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
 
             for generator in node.generators:
                 raw_targets = get_names(generator.target)
-                all_targets = (
-                    get_target_components(raw_targets) if raw_targets else []
-                )
+                all_targets = get_target_components(raw_targets) if raw_targets else []
                 for components in all_targets:
                     base_name = components[0]
                     if base_name in self._current_state.variable_versions:
@@ -925,8 +971,14 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         cell_context_full = getattr(self, "current_cell_id", "unknown_cell")
         self._state_stack.merge_states(
             parent_context,
-            [(self._state_stack._state[list_comp_context], "list_comp", EDGE_TYPES["CALLER"])],
-            cell_id=cell_context_full
+            [
+                (
+                    self._state_stack._state[list_comp_context],
+                    "list_comp",
+                    EDGE_TYPES["CALLER"],
+                )
+            ],
+            cell_id=cell_context_full,
         )
         self._current_state = self._state_stack.get_current_state()
         del self._state_stack._state[list_comp_context]
@@ -967,11 +1019,17 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
     def _process_method_call(
         self, node: ast.Call, caller_object_name: str, tokens: str | None
     ) -> None:
-        previous_version = self._state_stack.get_last_variable_version(caller_object_name)
+        previous_version = self._state_stack.get_last_variable_version(
+            caller_object_name
+        )
         previous_version = (
             previous_version if previous_version else self._current_state.last_variable
         )
-        label = tokenize_method(tokens, self._state_stack.imported_names, self._state_stack.import_from_modules)
+        label = tokenize_method(
+            tokens,
+            self._state_stack.imported_names,
+            self._state_stack.import_from_modules,
+        )
         raw_code = ast.get_source_segment(self.current_cell_source, node) or tokens
 
         self._add_edge(
@@ -1002,8 +1060,14 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
 
                 for arg_name in processed_arg_names:
                     if arg_name:
-                        arg_version = self._state_stack.get_last_variable_version(arg_name)
-                        code_segment = tokenize_method(arg_name, self._state_stack.imported_names, self._state_stack.import_from_modules)
+                        arg_version = self._state_stack.get_last_variable_version(
+                            arg_name
+                        )
+                        code_segment = tokenize_method(
+                            arg_name,
+                            self._state_stack.imported_names,
+                            self._state_stack.import_from_modules,
+                        )
                         self._add_edge(
                             source=arg_version,
                             target=self._current_state.current_variable,
@@ -1017,13 +1081,21 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
                         )
 
     def _process_library_call(
-        self, node: ast.Call, caller_object_name: str, tokens: str = None
+        self, node: ast.Call, caller_object_name: str, tokens: str | None = None
     ) -> None:
         import_node = self._state_stack.imported_names[caller_object_name]
         self._add_node(import_node, NODE_TYPES["IMPORT"])
 
-        label_raw = tokens if tokens else ast.get_source_segment(self.current_cell_source, node.func)
-        label = tokenize_method(label_raw, self._state_stack.imported_names, self._state_stack.import_from_modules)
+        label_raw = (
+            tokens
+            if tokens
+            else ast.get_source_segment(self.current_cell_source, node.func)
+        )
+        label = tokenize_method(
+            label_raw,
+            self._state_stack.imported_names,
+            self._state_stack.import_from_modules,
+        )
         raw_code = ast.get_source_segment(self.current_cell_source, node) or label_raw
 
         self._add_edge(
@@ -1052,7 +1124,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         self._add_node(builtin_node, NODE_TYPES["IMPORT"])
 
         # FIX: Extract the actual source snippet for the Edge Sidebar
-        raw_code = ast.get_source_segment(self.current_cell_source, node) or function_name
+        raw_code = (
+            ast.get_source_segment(self.current_cell_source, node) or function_name
+        )
 
         self._add_edge(
             source=builtin_node,
@@ -1095,20 +1169,29 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             if arg_name in self._state_stack.functions:
                 inliner = CallInliner(self)
                 mock_call = ast.Call(
-                    func=ast.Name(id=arg_name, ctx=ast.Load(), lineno=arg.lineno, col_offset=arg.col_offset),
+                    func=ast.Name(
+                        id=arg_name,
+                        ctx=ast.Load(),
+                        lineno=arg.lineno,
+                        col_offset=arg.col_offset,
+                    ),
                     args=[],
                     keywords=[],
                     lineno=arg.lineno,
                     col_offset=arg.col_offset,
                     end_lineno=arg.end_lineno,
-                    end_col_offset=arg.end_col_offset
+                    end_col_offset=arg.end_col_offset,
                 )
                 mock_call.parent = node
                 inliner.process_function(mock_call, arg_name)
                 return
 
             arg_version = self._state_stack.get_last_variable_version(arg_name)
-            code_segment = tokenize_method(arg_name, self._state_stack.imported_names, self._state_stack.import_from_modules)
+            code_segment = tokenize_method(
+                arg_name,
+                self._state_stack.imported_names,
+                self._state_stack.import_from_modules,
+            )
             self._add_edge(
                 source=arg_version,
                 target=self._current_state.current_variable,
@@ -1122,12 +1205,16 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             )
 
     def _process_class_call(
-        self, node: ast.Call, caller_object_name: str, tokens: str = None, is_instance: bool = False
+        self,
+        node: ast.Call,
+        caller_object_name: str,
+        tokens: str | None = None,
+        is_instance: bool = False,
     ) -> None:
         inliner = CallInliner(self)
         inliner.process_class(node, caller_object_name, tokens, is_instance)
 
-    def _process_function_call(self, node: ast.Call, tokens: str = None) -> None:
+    def _process_function_call(self, node: ast.Call, tokens: str | None = None) -> None:
         inliner = CallInliner(self)
         inliner.process_function(node, tokens)
 
@@ -1138,7 +1225,11 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         self._add_node(import_node, NODE_TYPES["IMPORT"])
 
         raw_code = ast.get_source_segment(self.current_cell_source, node) or ""
-        label = tokenize_method(raw_code, self._state_stack.imported_names, self._state_stack.import_from_modules)
+        label = tokenize_method(
+            raw_code,
+            self._state_stack.imported_names,
+            self._state_stack.import_from_modules,
+        )
 
         self._add_edge(
             source=import_node,
@@ -1167,7 +1258,7 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             code_segment = "select"
             edge_type = EDGE_TYPES["CALLER"]
         else:
-            code = ast.get_source_segment(self.current_cell_source, node)
+            ast.get_source_segment(self.current_cell_source, node)
             code_segment = ast.get_source_segment(self.current_cell_source, node.parent)
             edge_type = EDGE_TYPES["INPUT"]
 
@@ -1195,7 +1286,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         cell_context = getattr(self, "current_cell_id", "unknown")
         short_cell = str(cell_context)[:8] if cell_context != "unknown" else "unk"
 
-        temp_iterable_node = f"iterable_{short_cell}_{iterable_node.lineno}_{iterable_node.col_offset}"
+        temp_iterable_node = (
+            f"iterable_{short_cell}_{iterable_node.lineno}_{iterable_node.col_offset}"
+        )
         self._add_node(temp_iterable_node, NODE_TYPES["INTERMEDIATE"])
 
         original_variable = self._current_state.current_variable
@@ -1207,7 +1300,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
 
     def _add_node(self, node_name: str, node_type: int, code: str = "") -> None:
         cell_context = getattr(self, "current_cell_id", "unknown_cell")
-        self._current_state.add_node(node_name, node_type, code=code, cell_id=cell_context)
+        self._current_state.add_node(
+            node_name, node_type, code=code, cell_id=cell_context
+        )
 
     def _add_edge(
         self,
@@ -1219,7 +1314,7 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         lineno: int = -1,
         col_offset: int = -1,
         end_lineno: int = -1,
-        end_col_offset: int = -1
+        end_col_offset: int = -1,
     ) -> None:
         cell_context = getattr(self, "current_cell_id", "unknown_cell")
         actual_raw_code = raw_code if raw_code is not None else label
@@ -1234,5 +1329,5 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             col_offset=col_offset,
             end_lineno=end_lineno,
             end_col_offset=end_col_offset,
-            cell_id=cell_context
+            cell_id=cell_context,
         )

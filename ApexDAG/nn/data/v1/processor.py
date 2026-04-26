@@ -11,24 +11,28 @@ from ApexDAG.util.logger import configure_apexdag_logger
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
+
 class GraphProcessor:
     """Handles loading and preprocessing of graphs from disk."""
-    def __init__(self, checkpoint_path: Path):
+
+    def __init__(self, checkpoint_path: Path) -> None:
         self.checkpoint_path = checkpoint_path
         self.graphs = []
 
-    def check_graph(self, G: nx.DiGraph):
-        for node, data in G.nodes(data=True):
+    def check_graph(self, G: nx.DiGraph) -> None:
+        for _node, data in G.nodes(data=True):
             for key in data:
                 data[key] = "None" if data[key] is None else str(data[key])
 
-        for u, v, data in G.edges(data=True):
+        for _u, _v, data in G.edges(data=True):
             for key in data:
                 data[key] = "None" if data[key] is None else str(data[key])
 
-    def load_preprocessed_graphs(self):
+    def load_preprocessed_graphs(self) -> None:
         if not self.checkpoint_path.exists():
-            raise FileNotFoundError(f"Checkpoint path {self.checkpoint_path} does not exist")
+            raise FileNotFoundError(
+                f"Checkpoint path {self.checkpoint_path} does not exist"
+            )
 
         logger.info("Loading preprocessed graphs...")
         errors = 0

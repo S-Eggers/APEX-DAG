@@ -31,7 +31,9 @@ class GraphLabeler:
     Labels graph edges using an LLM, with support for multiple providers and token counting.
     """
 
-    def __init__(self, config: Config, graph_path: str, code_path: str, logger=None):
+    def __init__(
+        self, config: Config, graph_path: str, code_path: str, logger=None
+    ) -> None:
         load_dotenv()
         self.config = config
         self.graph_path = graph_path
@@ -198,7 +200,7 @@ class GraphLabeler:
             return minutes * 60 + seconds
         return None
 
-    def label_edge(self, edge, edge_num_index, max_depth=2):
+    def label_edge(self, edge, edge_num_index, max_depth=2) -> None:
         if self.total_tokens_used >= self.config.max_tokens:
             raise TokenLimitExceededError(
                 f"Token limit of {self.config.max_tokens} reached. "
@@ -293,9 +295,7 @@ class GraphLabeler:
         self.G.edges._adjdict[edge.source][edge.target]["domain_label"] = (
             resp.domain_label
         )
-        self.G.edges._adjdict[edge.source][edge.target]["reasoning"] = (
-            resp.reasoning
-        )
+        self.G.edges._adjdict[edge.source][edge.target]["reasoning"] = resp.reasoning
         self.G_with_context.edges[edge_num_index] = LabelledEdge.from_edge(
             edge, resp.domain_label, resp.reasoning
         )
@@ -304,7 +304,7 @@ class GraphLabeler:
         if sleep_time > 0:
             time.sleep(sleep_time)
 
-    def insert_missing_value_for_edge(self, edge, edge_num_index):
+    def insert_missing_value_for_edge(self, edge, edge_num_index) -> None:
         self.G.edges._adjdict[edge.source][edge.target]["domain_label"] = "MISSING"
         self.G_with_context.edges[edge_num_index] = LabelledEdge.from_edge(
             edge, "MISSING"
@@ -376,7 +376,15 @@ X_train, X_test, y_train, y_test = train_test_split(df.drop('target', axis=1), d
     with open(demo_code_path, "w") as f:
         f.write(code)
 
-    config = Config("gemini-2.5-flash", 0, 4, llm_provider="google", retry_attempts=2, retry_delay=0, success_delay=0)
+    config = Config(
+        "gemini-2.5-flash",
+        0,
+        4,
+        llm_provider="google",
+        retry_attempts=2,
+        retry_delay=0,
+        success_delay=0,
+    )
     labeler = GraphLabeler(config, demo_graph_path, demo_code_path)
     G, G_with_context = labeler.label_graph()
 

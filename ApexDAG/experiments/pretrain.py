@@ -1,3 +1,4 @@
+import torch
 from torch_geometric.loader import DataLoader
 
 from ApexDAG.nn.models.v2.gat import MultiTaskGATv2
@@ -30,7 +31,7 @@ self.graph_buffer.append(new_annotated_data)
 
 if len(self.graph_buffer) >= self.update_threshold:
     batch = next(iter(DataLoader(self.graph_buffer, batch_size=self.update_threshold)))
-    self.trainer.train_step(batch) 
+    self.trainer.train_step(batch)
     self.graph_buffer.clear()
     self.trainer.save_cpu_checkpoint("apexdag_v2_cpu_latest.pt")
 """

@@ -53,7 +53,7 @@ def objective(trial):
     return best_val_loss
 
 
-def save_best_config(best_trial):
+def save_best_config(best_trial) -> None:
     """Save the best configuration and its losses."""
     best_config = best_trial.params
     best_losses = best_trial.user_attrs["best_val_loss"]

@@ -30,6 +30,7 @@ dependencies = [
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.6.0",
     "ruff>=0.15.12",
 ]
 
@@ -47,7 +48,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "ANN"]
-ignore = []
+ignore = ["ANN", "E501", "N", "B", "RUF", "E741", "F401", "UP", "SIM"]
 
 [tool.ruff.format]
 quote-style = "double"

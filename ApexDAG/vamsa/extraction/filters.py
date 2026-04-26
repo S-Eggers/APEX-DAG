@@ -22,16 +22,21 @@ def remove_assignments(PRs_filtered: list[PRType]) -> list[PRType]:
                 indices_to_delete.append(pr_id)
             if pr2[0] == assign["input"]:
                 for rel_input_id in revelant_input_prs:
-                    added_prs.append((
-                        PRs_filtered[rel_input_id][0],
-                        PRs_filtered[rel_input_id][1],
-                        PRs_filtered[rel_input_id][2],
-                        pr2[3],
-                    ))
+                    added_prs.append(
+                        (
+                            PRs_filtered[rel_input_id][0],
+                            PRs_filtered[rel_input_id][1],
+                            PRs_filtered[rel_input_id][2],
+                            pr2[3],
+                        )
+                    )
         indices_to_delete.append(assign_pr_id)
 
-    PRs_filtered_new = [pr for i, pr in enumerate(PRs_filtered) if i not in indices_to_delete]
+    PRs_filtered_new = [
+        pr for i, pr in enumerate(PRs_filtered) if i not in indices_to_delete
+    ]
     return PRs_filtered_new + added_prs
+
 
 def filter_PRs(PRs: list[PRType]) -> list[PRType]:
     """
@@ -42,9 +47,13 @@ def filter_PRs(PRs: list[PRType]) -> list[PRType]:
     operations = set([o for (_, _, o, _) in PRs])
 
     for I, c, p, O in PRs:
-        if c is not None and p in operations and O in operations and remove_id(p) == remove_id(O):
-            if O not in problematic_operations:
-                problematic_operations[O] = c
+        if (
+            c is not None
+            and p in operations
+            and O in operations
+            and remove_id(p) == remove_id(O)
+        ) and O not in problematic_operations:
+            problematic_operations[O] = c
 
     for I, c, p, O in PRs:
         if p in problematic_operations and c is None:
@@ -56,6 +65,7 @@ def filter_PRs(PRs: list[PRType]) -> list[PRType]:
             filtered_PRs.append((I, c, p, O))
 
     return filtered_PRs
+
 
 def fix_bibartie_issue_import_from(PRs: list[PRType]) -> list[PRType]:
     """

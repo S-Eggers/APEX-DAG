@@ -11,8 +11,10 @@ from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 
 logger = logging.getLogger(__name__)
 
+
 class InsufficientPositiveEdgesException(Exception):
     pass
+
 
 class EncoderV2:
     def __init__(
@@ -20,8 +22,8 @@ class EncoderV2:
         embedding_model: CodeBERTEmbedding,
         pruner: GraphPruner,
         min_edges: int = 2,
-        negative_sample_ratio: float = 1.0
-    ):
+        negative_sample_ratio: float = 1.0,
+    ) -> None:
         self._embedding = embedding_model
         self._pruner = pruner
         self.min_edges = min_edges
@@ -46,7 +48,9 @@ class EncoderV2:
         for _, attrs in nodes:
             raw_code = attrs.get("code", "")
             label = attrs.get("label", "")
-            semantic_text = str(raw_code) if raw_code and raw_code != "None" else str(label)
+            semantic_text = (
+                str(raw_code) if raw_code and raw_code != "None" else str(label)
+            )
             x_features.append(self._embedding.embed(semantic_text))
             node_types.append(int(attrs.get("node_type", -1)))
 
@@ -76,7 +80,9 @@ class EncoderV2:
         for u_idx, v_idx in neg_edges:
             edge_sources.append(u_idx)
             edge_targets.append(v_idx)
-            edge_features.append(torch.zeros(self._embedding.dimension, dtype=torch.float32))
+            edge_features.append(
+                torch.zeros(self._embedding.dimension, dtype=torch.float32)
+            )
             edge_labels.append(DOMAIN_EDGE_TYPES["NOT_RELEVANT"])
             edge_existence.append(0.0)
 
@@ -91,7 +97,7 @@ class EncoderV2:
             edge_attr=edge_attr,
             y_node=Y_node,
             y_edge=Y_edge,
-            y_exist=Y_exist
+            y_exist=Y_exist,
         )
 
     def _sample_negative_edges(self, graph, node_to_idx, num_neg_samples) -> set:

@@ -10,11 +10,13 @@ from .traversal_rules import KBC, is_constant
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
+
 class ProvenanceTracker:
     """
     Executes the PTracker algorithm to identify included/excluded columns based on the WIR.
     """
-    def __init__(self, wir: AnnotationWIR, prs: list[PRType], kbc=KBC):
+
+    def __init__(self, wir: AnnotationWIR, prs: list[PRType], kbc=KBC) -> None:
         self.wir = wir
         self.prs = prs
         self.kbc = kbc
@@ -24,14 +26,20 @@ class ProvenanceTracker:
 
         for pr in prs:
             _, caller, _, output_nodes = pr
-            if caller in self.cal_to_pr: self.cal_to_pr[caller].append(pr)
-            else: self.cal_to_pr[caller] = [pr]
+            if caller in self.cal_to_pr:
+                self.cal_to_pr[caller].append(pr)
+            else:
+                self.cal_to_pr[caller] = [pr]
 
             if output_nodes is not None:
-                out_list = output_nodes if isinstance(output_nodes, list) else [output_nodes]
+                out_list = (
+                    output_nodes if isinstance(output_nodes, list) else [output_nodes]
+                )
                 for out_node in out_list:
-                    if out_node in self.var_to_pr: self.var_to_pr[out_node].append(pr)
-                    else: self.var_to_pr[out_node] = [pr]
+                    if out_node in self.var_to_pr:
+                        self.var_to_pr[out_node].append(pr)
+                    else:
+                        self.var_to_pr[out_node] = [pr]
 
         self.C_plus = set()
         self.C_minus = set()
@@ -47,9 +55,13 @@ class ProvenanceTracker:
 
         for pr in self.prs:
             input_nodes, _, operation_node, output_nodes = pr
-            vars_to_check = input_nodes if isinstance(input_nodes, list) else [input_nodes]
+            vars_to_check = (
+                input_nodes if isinstance(input_nodes, list) else [input_nodes]
+            )
             if output_nodes:
-                out_list = output_nodes if isinstance(output_nodes, list) else [output_nodes]
+                out_list = (
+                    output_nodes if isinstance(output_nodes, list) else [output_nodes]
+                )
                 vars_to_check.extend(out_list)
 
             annotated = False
@@ -71,7 +83,7 @@ class ProvenanceTracker:
 
         return self.C_plus, self.C_minus
 
-    def _guide_eval(self, pr: PRType, col_excl=None):
+    def _guide_eval(self, pr: PRType, col_excl=None) -> None:
         input_nodes, _, operation_node, out_nodes = pr
         input_nodes = input_nodes if isinstance(input_nodes, list) else [input_nodes]
 
@@ -82,9 +94,11 @@ class ProvenanceTracker:
 
         op_name = remove_id(operation_node)
         entry = self.kbc.get(op_name)
-        if not entry: return
+        if not entry:
+            return
 
-        if col_excl is None: col_excl = entry["column_exclusion"]
+        if col_excl is None:
+            col_excl = entry["column_exclusion"]
         traversal_rule = entry["traversal_rule"]
 
         constant_inputs = [var for var in input_nodes if is_constant(var, self.prs)]
@@ -92,11 +106,16 @@ class ProvenanceTracker:
             constant_inputs = []
 
         for cnst in constant_inputs:
-            cols = cnst if isinstance(cnst, (list, tuple)) else [(cnst.start, cnst.stop) if isinstance(cnst, slice) else cnst]
+            cols = (
+                cnst
+                if isinstance(cnst, (list, tuple))
+                else [(cnst.start, cnst.stop) if isinstance(cnst, slice) else cnst]
+            )
             for col in cols:
                 if col_excl:
                     self.C_minus.add(col)
-                    if col in self.C_plus: self.C_plus.remove(col)
+                    if col in self.C_plus:
+                        self.C_plus.remove(col)
                 else:
                     self.C_plus.add(col)
 
@@ -108,7 +127,9 @@ class ProvenanceTracker:
             self._guide_eval(next_pr, col_excl=col_excl)
 
 
-def track_provenance(annotated_wir: AnnotationWIR, prs: list[PRType], what_track: set) -> tuple[set, set]:
+def track_provenance(
+    annotated_wir: AnnotationWIR, prs: list[PRType], what_track: set
+) -> tuple[set, set]:
     """
     Public entry point for lineage tracking.
     """

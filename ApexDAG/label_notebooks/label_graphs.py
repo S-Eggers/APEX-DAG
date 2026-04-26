@@ -87,7 +87,9 @@ if __name__ == "__main__":
 
     try:
         while True:
-            files = [f for f in os.listdir(source_path) if f.endswith(".execution_graph")]
+            files = [
+                f for f in os.listdir(source_path) if f.endswith(".execution_graph")
+            ]
 
             new_files = [f for f in files if f not in processed_files]
 
@@ -112,7 +114,9 @@ if __name__ == "__main__":
                     G = load_graph(graph_file_path)
                     code_file_path = get_code_file_path(graph_file_path)
 
-                    labeler = GraphLabeler(config, graph_file_path, code_file_path, logger)
+                    labeler = GraphLabeler(
+                        config, graph_file_path, code_file_path, logger
+                    )
                     G, G_with_context = labeler.label_graph()
                     total_tokens_used = labeler.get_total_tokens_used()
                     logger.info(f"Total tokens used: {total_tokens_used}")

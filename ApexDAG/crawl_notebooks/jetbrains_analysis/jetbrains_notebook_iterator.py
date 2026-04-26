@@ -11,9 +11,9 @@ from ApexDAG.crawl_notebooks.utils import InvalidNotebookException
 
 class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
     def __init__(
-        self, JSON_FILE, BUCKET_URL, SAVE_DIR, log_file, start_index=0, stop_index=None
-    ):
-        super().__init__(JSON_FILE, BUCKET_URL, SAVE_DIR, log_file)
+        self, json_file, BUCKET_URL, SAVE_DIR, log_file, start_index=0, stop_index=None
+    ) -> None:
+        super().__init__(json_file, BUCKET_URL, SAVE_DIR, log_file)
         self.filenames = self.load_filenames(self.json_file)
 
         self.stop_index = stop_index if stop_index else len(self.filenames)
@@ -41,16 +41,20 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
 
     def _fetch_notebook(self, filename):
         """Process a single notebook, with a retry mechanism."""
-        local_notebook_path = os.path.join(self.save_dir, "downloaded_notebooks", filename)
+        local_notebook_path = os.path.join(
+            self.save_dir, "downloaded_notebooks", filename
+        )
 
         # Check if the notebook is already cached locally
         if os.path.exists(local_notebook_path):
             self.logger.info(f"Loading notebook {filename} from cache.")
             try:
-                with open(local_notebook_path, encoding='utf-8') as f:
+                with open(local_notebook_path, encoding="utf-8") as f:
                     return nbformat.read(f, as_version=4)
             except Exception as e:
-                self.logger.warning(f"Could not read cached notebook {filename}. Refetching. Error: {e}")
+                self.logger.warning(
+                    f"Could not read cached notebook {filename}. Refetching. Error: {e}"
+                )
 
         # If not cached, download it
         self.logger.info(f"Fetching notebook {filename} from remote.")
@@ -65,7 +69,7 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
             if not os.path.exists(local_notebook_dir):
                 os.makedirs(local_notebook_dir)
 
-            with open(local_notebook_path, 'w', encoding='utf-8') as f:
+            with open(local_notebook_path, "w", encoding="utf-8") as f:
                 nbformat.write(notebook, f)
 
             return notebook
@@ -73,6 +77,6 @@ class JetbrainsNotebookIterator(JetbrainsNotebookProcessor):
             self.logger.warning(f"Attempt failed for {filename}: {e}")
             return None
 
-    def print(self, filename="", message=""):
+    def print(self, filename="", message="") -> None:
         message = str(message)
         self.logger.info(f"{filename}: {message}")

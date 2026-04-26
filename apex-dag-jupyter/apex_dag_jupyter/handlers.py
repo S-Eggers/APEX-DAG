@@ -12,7 +12,7 @@ from .handler.LineageHandler import LineageHandler
 from .handler.VamsaHandler import VamsaHandler
 
 
-def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
+def setup_handlers(web_app, model_instance, jupyter_server_app_config=None) -> None:
     host_pattern = ".*$"
     base_url = web_app.settings["base_url"]
 
@@ -25,7 +25,10 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
         (
             url_path_join(base_url, "apex-dag", "lineage"),
             LineageHandler,
-            dict(model=model_instance, jupyter_server_app_config=jupyter_server_app_config),
+            dict(
+                model=model_instance,
+                jupyter_server_app_config=jupyter_server_app_config,
+            ),
         ),
         (
             url_path_join(base_url, "apex-dag", "ast"),
@@ -37,10 +40,7 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
             EnvironmentHandler,
             dict(jupyter_server_app_config=jupyter_server_app_config),
         ),
-        (
-            url_path_join(base_url, "apex-dag", "labeling", "save"),
-            LabelingSaveHandler
-        ),
+        (url_path_join(base_url, "apex-dag", "labeling", "save"), LabelingSaveHandler),
         (
             url_path_join(base_url, "apex-dag", "labeling", "predict"),
             LabelingPredictHandler,
@@ -49,23 +49,15 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None):
         (
             url_path_join(base_url, "apex-dag", "labeling", "generate"),
             LabelingGenerateHandler,
-            {}
+            {},
         ),
         (
             url_path_join(base_url, "apex-dag", "labeling", "next"),
             LabelingNextHandler,
-            {}
+            {},
         ),
-        (
-            url_path_join(base_url, "apex-dag", "constants"),
-            ConstantsHandler,
-            {}
-        ),
-        (
-            url_path_join(base_url, "apex-dag", "vamsa"),
-            VamsaHandler,
-            {}
-        )
+        (url_path_join(base_url, "apex-dag", "constants"), ConstantsHandler, {}),
+        (url_path_join(base_url, "apex-dag", "vamsa"), VamsaHandler, {}),
     ]
 
     web_app.add_handlers(host_pattern, handlers)

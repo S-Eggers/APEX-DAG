@@ -11,6 +11,4 @@ class VamsaSerializer:
         cyto_data = nx.cytoscape_data(G)
         elements = cyto_data.get("elements", {"nodes": [], "edges": []})
 
-        return {
-            "elements": elements
-        }
+        return {"elements": elements}

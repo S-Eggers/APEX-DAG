@@ -13,7 +13,7 @@ class NotebookProcessor:
     object_pattern_cache = {}
     attribute_pattern_cache = {}
 
-    def __init__(self, save_dir, log_file):
+    def __init__(self, save_dir, log_file) -> None:
         self.save_dir = save_dir
         self.logs_dir = os.path.join(save_dir, "logs")
 
@@ -36,7 +36,9 @@ class NotebookProcessor:
         try:
             with open(json_file, "rb") as f:  # Open in binary mode for ijson
                 filenames = []
-                for item in ijson.items(f, "item"):  # Assuming the JSON is a list of items
+                for item in ijson.items(
+                    f, "item"
+                ):  # Assuming the JSON is a list of items
                     filenames.append(item)
                 return filenames
         except FileNotFoundError:
@@ -46,7 +48,9 @@ class NotebookProcessor:
             self.logger.warning(f"Error decoding JSON file with ijson: {e}")
             return []
         except Exception as e:
-            self.logger.warning(f"An unexpected error occurred while loading filenames: {e}")
+            self.logger.warning(
+                f"An unexpected error occurred while loading filenames: {e}"
+            )
             return []
 
     @classmethod
@@ -144,13 +148,13 @@ class NotebookProcessor:
         import_table["is_in_code"] = import_table["alias"].apply(check_alias_in_line)
         return import_table
 
-    @classmethod
-    def get_object_pattern(cls, alias_pattern):
-        return rf"({alias_pattern})\.\w+\("
+    # @classmethod
+    # def get_object_pattern(cls, alias_pattern) -> str:
+    #    return rf"({alias_pattern})\.\w+\("
 
-    @classmethod
-    def get_attribute_pattern(cls, alias_pattern):
-        return rf"({alias_pattern})\.\w+"
+    # @classmethod
+    # def get_attribute_pattern(cls, alias_pattern) -> str:
+    #    return rf"({alias_pattern})\.\w+"
 
     @classmethod
     def methods_used_in_code(cls, code, import_table):

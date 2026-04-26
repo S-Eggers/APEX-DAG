@@ -14,7 +14,7 @@ def create_slices(start, end, step):
     return [(i, min(i + step, end)) for i in range(start, end, step)]
 
 
-def process_slice(start_limit, end_limit, json_file, bucket_url, save_dir):
+def process_slice(start_limit, end_limit, json_file, bucket_url, save_dir) -> None:
     processor = JetbrainsNotebookProcessor(
         json_file,
         bucket_url,

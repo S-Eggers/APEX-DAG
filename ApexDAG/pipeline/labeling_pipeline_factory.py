@@ -19,8 +19,5 @@ class LabelingPipelineFactory:
         serializer = LabelingSerializer()
 
         return LabelingPipeline(
-            parser=parser,
-            labeler=labeler,
-            refiner=refiner,
-            serializer=serializer
+            parser=parser, labeler=labeler, refiner=refiner, serializer=serializer
         )

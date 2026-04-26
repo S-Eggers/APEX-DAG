@@ -14,7 +14,7 @@
     "license": "BSD-3-Clause",
     "author": {
         "name": "Sebastian Eggers",
-        "email": "sebastian.eggers@campus.tu-berlin.de"
+        "email": "sebastianeggers@acm.org"
     },
     "files": [
         "lib/**/*.{d.ts,eot,gif,html,jpg,js,js.map,json,png,svg,woff2,ttf}",

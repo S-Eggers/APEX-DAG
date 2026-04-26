@@ -11,7 +11,9 @@ class LineagePipelineFactory:
     def create(request_payload: dict, model: dict) -> LineagePipeline:
         use_llm = request_payload.get("llmClassification", False)
 
-        parser = GraphParser(replace_dataflow=request_payload.get("replaceDataflowInUDFs", False))
+        parser = GraphParser(
+            replace_dataflow=request_payload.get("replaceDataflowInUDFs", False)
+        )
         labeler = LLMLabeler() if use_llm else GATLabeler(model)
         refiner = GraphRefiner()
         serializer = LineageSerializer()
@@ -21,5 +23,5 @@ class LineagePipelineFactory:
             labeler=labeler,
             refiner=refiner,
             serializer=serializer,
-            highlight_relevant=request_payload.get("highlightRelevantSubgraphs", True)
+            highlight_relevant=request_payload.get("highlightRelevantSubgraphs", True),
         )

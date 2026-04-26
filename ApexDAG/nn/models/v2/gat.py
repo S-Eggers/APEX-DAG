@@ -13,8 +13,8 @@ class MultiTaskGATv2(torch.nn.Module):
         out_edge_classes: int = 6,
         num_heads: int = 4,
         num_layers: int = 3,
-        dropout: float = 0.2
-    ):
+        dropout: float = 0.2,
+    ) -> None:
         super().__init__()
         self.dropout = dropout
 
@@ -22,7 +22,7 @@ class MultiTaskGATv2(torch.nn.Module):
         self.edge_proj = nn.Linear(in_channels, hidden_channels)
 
         self.convs = torch.nn.ModuleList()
-        for i in range(num_layers):
+        for _i in range(num_layers):
             self.convs.append(
                 GATv2Conv(
                     in_channels=hidden_channels,
@@ -30,7 +30,7 @@ class MultiTaskGATv2(torch.nn.Module):
                     heads=num_heads,
                     edge_dim=hidden_channels,
                     concat=True,
-                    dropout=dropout
+                    dropout=dropout,
                 )
             )
 
@@ -38,14 +38,14 @@ class MultiTaskGATv2(torch.nn.Module):
             nn.Linear(hidden_channels, hidden_channels),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_channels, out_node_classes)
+            nn.Linear(hidden_channels, out_node_classes),
         )
 
         self.edge_classifier = nn.Sequential(
             nn.Linear(hidden_channels * 3, hidden_channels),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden_channels, out_edge_classes)
+            nn.Linear(hidden_channels, out_edge_classes),
         )
 
     def forward(self, x, edge_index, edge_attr):
@@ -63,7 +63,9 @@ class MultiTaskGATv2(torch.nn.Module):
         source_nodes = x[row]
         target_nodes = x[col]
 
-        edge_representations = torch.cat([source_nodes, target_nodes, edge_attr_proj], dim=-1)
+        edge_representations = torch.cat(
+            [source_nodes, target_nodes, edge_attr_proj], dim=-1
+        )
         edge_logits = self.edge_classifier(edge_representations)
 
         return node_logits, edge_logits

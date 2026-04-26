@@ -1,8 +1,8 @@
 import json
-from enum import Enum
+from enum import StrEnum
 
 
-class DomainLabel(str, Enum):
+class DomainLabel(StrEnum):
     """Enumeration for domain-specific labels in the ML dataflow graph."""
 
     MODEL_TRAIN = "Training machine learning models."
@@ -16,7 +16,7 @@ class DomainLabel(str, Enum):
     NOT_INTERESTING = "Not relevant to the core ML workflow (e.g., logging, printing status, comments)."
     MORE_CONTEXT_NEEDED = "Insufficient information to make a confident decision."
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.name
 
     @classmethod
@@ -113,7 +113,7 @@ X_train, X_test, y_train, y_test = train_test_split(df.drop('target', axis=1), d
         "pandas.read_csv.return" [label="<return>"];
         "df.train_test_split" [label="df.train_test_split(...)"];
         "df.train_test_split.df" [label="df"];
-        
+
         "pandas.read_csv" -> "pandas.read_csv.return" [label=""];
         "pandas.read_csv.return" -> "df.train_test_split.df" [label="df"];
     }

@@ -9,7 +9,7 @@ from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
 class DataflowSerializer:
     def to_dict(self, graph: PythonDataFlowGraph) -> dict[str, Any]:
         """
-        Converts the stateful MultiDiGraph into a flattened DiGraph, 
+        Converts the stateful MultiDiGraph into a flattened DiGraph,
         then serializes it directly to a Cytoscape-compliant dictionary.
         """
         G = convert_multidigraph_to_digraph(graph.get_graph(), NODE_TYPES)
@@ -24,7 +24,7 @@ class DataflowSerializer:
             payload = {
                 "id": str(node),
                 "label": str(node),
-                "node_type": NODE_TYPES.get("DEFAULT", 0) # Fallback
+                "node_type": NODE_TYPES.get("DEFAULT", 0),  # Fallback
             }
             payload.update(data)
             elements.append({"data": payload})
@@ -34,7 +34,7 @@ class DataflowSerializer:
                 "source": str(src),
                 "target": str(tgt),
                 "edge_type": 0,
-                "label": data.get("code", "")
+                "label": data.get("code", ""),
             }
             safe_data = {k: v for k, v in data.items() if k != "id"}
             payload.update(safe_data)

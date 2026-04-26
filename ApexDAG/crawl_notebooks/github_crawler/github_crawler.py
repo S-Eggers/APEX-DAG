@@ -12,7 +12,7 @@ load_dotenv()
 
 
 class GitHubCrawler:
-    def __init__(self, logging_file_path="app.log"):
+    def __init__(self, logging_file_path="app.log") -> None:
         logging.basicConfig(
             level=logging.INFO,
             format="%(asctime)s - %(levelname)s - %(message)s",

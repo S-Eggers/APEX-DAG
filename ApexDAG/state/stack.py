@@ -17,7 +17,7 @@ class Stack:
         self.import_from_modules = {}
         self.classes = {}
         self.functions = {}
-        self.instances = {} # Maps instance names to class names
+        self.instances = {}  # Maps instance names to class names
         self.branches = []
         self._nested = False
 
@@ -36,7 +36,7 @@ class Stack:
         self._nested = nested
 
     def create_child_state(
-        self, context: str = None, parent_context: str | None = None
+        self, context: str | None = None, parent_context: str | None = None
     ) -> None:
         if context in self._state:
             raise ValueError(f"State {context} already exists")
@@ -51,8 +51,8 @@ class Stack:
     @contextmanager
     def scope(self, context: str, parent_context: str | None = None):
         """
-        Guarantees safe state transitions. Automatically builds the child state, 
-        yields it to the AST visitor, and securely restores the parent context on exit, 
+        Guarantees safe state transitions. Automatically builds the child state,
+        yields it to the AST visitor, and securely restores the parent context on exit,
         even if an exception occurs during traversal.
         """
         self.create_child_state(context, parent_context)
@@ -61,7 +61,7 @@ class Stack:
         finally:
             self.restore_state(parent_context)
 
-    def add_class_instance(self, instance: str, class_name: str):
+    def add_class_instance(self, instance: str, class_name: str) -> None:
         self.instances[instance] = class_name
 
     def restore_state(self, context: str) -> None:
@@ -77,7 +77,9 @@ class Stack:
 
         self.restore_state(parent_context)
 
-    def merge_states(self, base_context: str, args: list[tuple], cell_id: str = "unknown_cell") -> None:
+    def merge_states(
+        self, base_context: str, args: list[tuple], cell_id: str = "unknown_cell"
+    ) -> None:
         if base_context not in self._state:
             raise ValueError(f"No state {base_context} to merge")
 
@@ -92,13 +94,14 @@ class Stack:
         method_state: "State",
         method_name: str,
         edge_type: str,
-        instance_name: str = None,
-        base_name: str = None,
+        instance_name: str | None = None,
+        base_name: str | None = None,
+        cell_id: str = "unknown_cell",
     ) -> None:
         """
         Merge a class method's state back into the caller context.
         Handles instance variable updates and filters out method-local variables.
-        
+
         Args:
             base_context: The caller's context to merge back into
             method_state: The method's state to merge from
@@ -117,16 +120,23 @@ class Stack:
         # Build node mapping for self.* to instance_name.*
         node_mapping = {}
         if instance_name:
-            for node, node_data in method_graph.nodes(data=True):
+            for node, _node_data in method_graph.nodes(data=True):
                 if node.startswith("self"):
                     # Map self.attribute to instance_name.attribute in caller context
                     attr_name = node.replace("self", "")
                     instance_attr = f"{instance_name}{attr_name}"
                     node_mapping[node] = instance_attr
 
-                    if self._state['module'].current_target not in self._state['module'].variable_versions:
-                        self._state['module'].variable_versions[self._state['module'].current_target] = []
-                    self._state['module'].variable_versions[self._state['module'].current_target].append(instance_attr)
+                    if (
+                        self._state["module"].current_target
+                        not in self._state["module"].variable_versions
+                    ):
+                        self._state["module"].variable_versions[
+                            self._state["module"].current_target
+                        ] = []
+                    self._state["module"].variable_versions[
+                        self._state["module"].current_target
+                    ].append(instance_attr)
 
         # Create a new graph with renamed nodes for merging
         renamed_graph = nx.MultiDiGraph()
@@ -163,10 +173,10 @@ class Stack:
             if any(v in node_mapping for v in versions):
                 # This is an instance attribute
                 attr_name = var_name.replace("self", "").split(":")[0]
-                base_var_name = f"{instance_name}{attr_name}" if instance_name else var_name
-                method_state.variable_versions[base_name].append(
-                    base_var_name
+                base_var_name = (
+                    f"{instance_name}{attr_name}" if instance_name else var_name
                 )
+                method_state.variable_versions[base_name].append(base_var_name)
             else:
                 base_var_name = var_name
 
@@ -183,7 +193,7 @@ class Stack:
                     label=method_name,
                     edge_type=edge_type,
                     raw_code=method_name,
-                    cell_id=cell_id
+                    cell_id=cell_id,
                 )
             else:
                 base_state.variable_versions[var_name] = versions
@@ -196,7 +206,9 @@ class Stack:
     def get_current_state(self) -> State:
         return self._state[self._current_state]
 
-    def get_last_variable_version(self, variable: str, max_depth: int = 99) -> str | None:
+    def get_last_variable_version(
+        self, variable: str, max_depth: int = 99
+    ) -> str | None:
         current_state = self.get_current_state()
         if variable in current_state.variable_versions:
             return current_state.variable_versions.get(variable)[-1]
@@ -204,7 +216,9 @@ class Stack:
         if current_state.parent_context and max_depth > 0:
             active_context = current_state.context
             self.restore_parent_state()
-            variable_version = self.get_last_variable_version(variable, max_depth=max_depth - 1)
+            variable_version = self.get_last_variable_version(
+                variable, max_depth=max_depth - 1
+            )
             self.restore_state(active_context)
             return variable_version
         return None

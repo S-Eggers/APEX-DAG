@@ -49,7 +49,7 @@ class Notebook:
         url: str,
         cell_window_size: int = 1,
         nb: nbformat.NotebookNode = None,
-    ):
+    ) -> None:
         """
         Initializes the object, loading a Jupyter Notebook from a specified URL or using an already loaded notebook object,
         and setting up a directed graph.
@@ -135,7 +135,7 @@ class Notebook:
         """
         return self.url
 
-    def create_execution_graph(self, greedy: bool = False):
+    def create_execution_graph(self, greedy: bool = False) -> None:
         """
         Constructs an execution graph for a Jupyter Notebook's cells based on their execution order.
 
@@ -234,11 +234,13 @@ class Notebook:
         """
         return "\n".join([self._G.nodes[i]["code"] for i in indicies])
 
-    def print_code(self):
+    def print_code(self) -> None:
         formatted_code = self.format_code()
         print(formatted_code)
 
-    def save_code(self, file_path: str, mode: str = "w+", encoding: str = "utf-8"):
+    def save_code(
+        self, file_path: str, mode: str = "w+", encoding: str = "utf-8"
+    ) -> None:
         formatted_code = self.format_code()
 
         with open(file_path, mode, encoding=encoding) as file:
@@ -306,7 +308,7 @@ class Notebook:
                     for j in node_indicies[i : i + self._cell_window_size]
                 ]
 
-    def __str__(self):
+    def __str__(self) -> str:
         """
         Returns a string representation of the Notebook object.
 
@@ -316,7 +318,7 @@ class Notebook:
         """
         return f"Notebook: {self._nb.metadata.language_info.name}-{id(self)}\nNumber of cells: {len(self._nb.cells)}\nCell window size: {self._cell_window_size}"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """
         Returns a string representation of the Notebook object.
 
@@ -326,7 +328,7 @@ class Notebook:
         """
         return str(self)
 
-    def __len__(self):
+    def __len__(self) -> int:
         """
         Returns the number of cells in the notebook.
 

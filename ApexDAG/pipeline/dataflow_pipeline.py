@@ -9,8 +9,8 @@ class DataflowPipeline:
         self,
         parser: GraphParser,
         serializer: DataflowSerializer,
-        highlight_relevant: bool
-    ):
+        highlight_relevant: bool,
+    ) -> None:
         self.parser = parser
         self.serializer = serializer
         self.highlight_relevant = highlight_relevant

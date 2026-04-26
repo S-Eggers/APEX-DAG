@@ -5,7 +5,7 @@ from torch_geometric.nn.models import Node2Vec
 from torch_geometric.utils import from_networkx
 
 
-def write_dict_to_file(file_path, dictionary):
+def write_dict_to_file(file_path, dictionary) -> None:
     with open(file_path, "w") as f:
         for key, value in dictionary.items():
             f.write(f"{key}: {value}\n")
@@ -29,7 +29,7 @@ def networkx_to_pyc(g: nx.Graph):
     for node in g.nodes:
         label = g.nodes[node]["label"]
         code = code = g.nodes[node]["code"]
-        content = [label] + split_code(code)
+        content = [label, *split_code(code)]
         for word in content:
             if word not in word2idx:
                 word2idx[word] = len(word2idx)
@@ -67,7 +67,7 @@ def node2vec_embedding(data):
     loader = model.loader(batch_size=128, shuffle=True, num_workers=4)
     optimizer = torch.optim.SparseAdam(model.parameters(), lr=0.01)
     model.train()
-    for epoch in range(1, 10):
+    for _epoch in range(1, 10):
         total_loss = 0
         for pos_rw, neg_rw in loader:
             optimizer.zero_grad()
@@ -78,7 +78,7 @@ def node2vec_embedding(data):
         print(total_loss / len(loader))
     model.eval()
     z = model()
-    acc = model.test(
+    model.test(
         z[data.train_mask],
         data.y[data.train_mask],
         z[data.test_mask],

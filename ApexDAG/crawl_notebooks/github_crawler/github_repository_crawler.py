@@ -38,7 +38,7 @@ class GitHubRepositoryCrawler:
         filter_date_start="2024-10-01",
         filter_date_end="2025-01-15",
         save_folder="",
-    ):
+    ) -> None:
         self.token = os.getenv("GITHUB_TOKEN")
         self.headers = {
             "Authorization": f"token {self.token}",
@@ -122,7 +122,7 @@ class GitHubRepositoryCrawler:
     def createUrl(self, subquery):
         return self.url + self.query + subquery  # subqueries already have the params...
 
-    def _get_all_pages(self, current_url, number_of_pages):
+    def _get_all_pages(self, current_url, number_of_pages) -> None:
         """Given a URL it returns all the pages of the response"""
         for currentPage in tqdm(
             range(1, number_of_pages + 1), desc="Processing pages", leave=False
@@ -184,7 +184,7 @@ class GitHubRepositoryCrawler:
 
         return self.hash_dict
 
-    def check_for_notebook_files(self, user, repository):
+    def check_for_notebook_files(self, user, repository) -> None:
         """
         Check for Jupyter notebook and data files in the given repository, including all subdirectories.
 

@@ -9,7 +9,7 @@ from ApexDAG.notebook import Notebook
 
 
 class ASTGraph(ABC):
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initializes a new instance of the class.
 
@@ -44,7 +44,7 @@ class ASTGraph(ABC):
         """
         pass
 
-    def parse_code(self, code):
+    def parse_code(self, code) -> None:
         """
         Parses the given source code string into an abstract syntax tree (AST) and visits the nodes.
 
@@ -100,7 +100,7 @@ class ASTGraph(ABC):
         self._build = True
         self.current_cell_id = None
 
-    def parse_notebook(self, notebook: Notebook):
+    def parse_notebook(self, notebook: Notebook) -> None:
         """
         Parses the source code contained in a given Notebook object.
 
@@ -148,7 +148,6 @@ class ASTGraph(ABC):
         self._check_graph_status()
         return self.code
 
-
     def get_code_from_node(self, node) -> str:
         """
         Retrieves the source code corresponding to a given AST (Abstract Syntax Tree) node.
@@ -176,7 +175,7 @@ class ASTGraph(ABC):
 
         return lines[node.lineno - 1][node.col_offset : node.end_col_offset]
 
-    def draw(self):
+    def draw(self) -> None:
         """
         Renders and saves a visual representation of the graph.
 
@@ -310,7 +309,7 @@ class ASTGraph(ABC):
         self._t2t_paths = leaf_to_leaf_paths
         return self._t2t_paths
 
-    def _check_graph_status(self):
+    def _check_graph_status(self) -> None:
         """
         Checks whether the graph has been built.
 
