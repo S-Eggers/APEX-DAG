@@ -1,4 +1,4 @@
-model_name: "gemini-2.0-flash"
+model_name: "gemini-3.1-flash-lite-preview"
 max_tokens: 100000000
 max_depth: 2
 llm_provider: "google"
