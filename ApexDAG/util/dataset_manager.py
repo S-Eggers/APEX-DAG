@@ -1,43 +1,57 @@
+import json
 import logging
-import os
 from pathlib import Path
 
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 
 class DatasetManager:
-    _queue = []
-    _iterator = None
-    _seen_in_session = set()
+    """
+    Stateless manager leveraging set operations and positional
+    offsets.
+    """
 
     @classmethod
-    def get_next_unannotated(cls, raw_dir: Path, annotations_dir: Path) -> str:
+    def get_next_unannotated(
+        cls, raw_dir: Path, annotations_dir: Path, current_filename: str | None = None
+    ) -> str | None:
+
         if not raw_dir.exists():
             logger.error(f"Dataset directory not found: {raw_dir}")
             return None
 
-        if cls._iterator is None:
-            cls._iterator = os.scandir(raw_dir)
+        raw_files = {f.name for f in raw_dir.glob("*.ipynb")}
 
-        while len(cls._queue) < 10:
+        annotated_files = {
+            f.name.replace(".json", ".ipynb") for f in annotations_dir.glob("*.json")
+        }
+
+        flagged_files = set()
+        flags_registry = annotations_dir.parent / "notebook_flags.json"
+
+        if flags_registry.exists():
             try:
-                entry = next(cls._iterator)
-                if not entry.is_file() or not entry.name.endswith(".ipynb"):
-                    continue
+                with open(flags_registry, encoding="utf-8") as f:
+                    flags_data = json.load(f)
+                    flagged_files = {name for name in flags_data}
+            except Exception as e:
+                logger.error(f"Failed to read flags registry: {e}")
 
-                if entry.name in cls._seen_in_session:
-                    continue
+        unannotated = list(raw_files - annotated_files - flagged_files)
 
-                expected_gml = annotations_dir / f"{entry.name}.gml"
-                if not expected_gml.exists():
-                    cls._queue.append(entry.name)
-
-            except StopIteration:
-                break
-
-        if not cls._queue:
+        if not unannotated:
             return None
 
-        next_file = cls._queue.pop(0)
-        cls._seen_in_session.add(next_file)
-        return next_file
+        unannotated.sort()
+
+        if current_filename and current_filename in unannotated:
+            current_idx = unannotated.index(current_filename)
+            if current_idx + 1 < len(unannotated):
+                return unannotated[current_idx + 1]
+            else:
+                return unannotated[0]
+
+        return unannotated[0]

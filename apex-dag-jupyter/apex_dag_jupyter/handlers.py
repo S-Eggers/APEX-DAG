@@ -1,18 +1,24 @@
+import tornado
 from jupyter_server.utils import url_path_join
 
 from .handler.ASTHandler import ASTHandler
 from .handler.ConstantsHandler import ConstantsHandler
 from .handler.DataflowHandler import DataflowHandler
 from .handler.EnvironmentHandler import EnvironmentHandler
+from .handler.LabelingFlagHandler import LabelingFlagHandler
 from .handler.LabelingGenerateHandler import LabelingGenerateHandler
 from .handler.LabelingNextHandler import LabelingNextHandler
 from .handler.LabelingPredictHandler import LabelingPredictHandler
-from .handler.LabelingSaveHandler import LabelingSaveHandler  #
+from .handler.LabelingSaveHandler import LabelingSaveHandler
 from .handler.LineageHandler import LineageHandler
 from .handler.VamsaHandler import VamsaHandler
 
 
-def setup_handlers(web_app, model_instance, jupyter_server_app_config=None) -> None:
+def setup_handlers(
+    web_app: tornado.web.Application,
+    model_instance: dict,
+    jupyter_server_app_config: dict | None = None,
+) -> None:
     host_pattern = ".*$"
     base_url = web_app.settings["base_url"]
 
@@ -54,6 +60,11 @@ def setup_handlers(web_app, model_instance, jupyter_server_app_config=None) -> N
         (
             url_path_join(base_url, "apex-dag", "labeling", "next"),
             LabelingNextHandler,
+            {},
+        ),
+        (
+            url_path_join(base_url, "apex-dag", "labeling", "flag"),
+            LabelingFlagHandler,
             {},
         ),
         (url_path_join(base_url, "apex-dag", "constants"), ConstantsHandler, {}),

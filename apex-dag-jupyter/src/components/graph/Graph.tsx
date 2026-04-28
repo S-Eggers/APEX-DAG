@@ -29,8 +29,11 @@ export default function Graph({
 
   const [selectedNode, setSelectedNode] = useState<any | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<any | null>(null);
+
   const [saveState, setSaveState] = useState<ActionState>('idle');
   const [nextState, setNextState] = useState<ActionState>('idle');
+  const [flagState, setFlagState] = useState<ActionState>('idle');
+  const [showFlagMenu, setShowFlagMenu] = useState(false);
 
   const [groupedLegendItems, setGroupedLegendItems] = useState<
     Record<string, LegendItemType[]>
@@ -122,11 +125,9 @@ export default function Graph({
       if (result.success) {
         setSaveState('success');
       } else {
-        console.error('Save failed: ', result.message);
         setSaveState('error');
       }
     } catch (e) {
-      console.error('Network or Auth error during save: ', e);
       setSaveState('error');
     } finally {
       setTimeout(() => setSaveState('idle'), 2000);
@@ -135,9 +136,13 @@ export default function Graph({
 
   const handleNextNotebook = async () => {
     setNextState('loading');
+
+    const currentNbFile = notebookName ? `${notebookName}.ipynb` : undefined;
+
     try {
       const result = await callBackend('labeling/next', {
-        datasetPath: rawDatasetPath || 'raw_dataset'
+        datasetPath: rawDatasetPath || 'raw_dataset',
+        current_filename: currentNbFile
       });
 
       if (result.success && result.path) {
@@ -154,6 +159,31 @@ export default function Graph({
       setNextState('error');
     } finally {
       setTimeout(() => setNextState('idle'), 2000);
+    }
+  };
+
+  const handleFlagNotebook = async (reason: string) => {
+    setFlagState('loading');
+    setShowFlagMenu(false);
+
+    const nbFilename = `${notebookName}.ipynb`;
+
+    try {
+      const result = await callBackend('labeling/flag', {
+        filename: nbFilename,
+        reason: reason
+      });
+
+      if (result.success) {
+        setFlagState('success');
+        await handleNextNotebook();
+      } else {
+        setFlagState('error');
+      }
+    } catch (e) {
+      setFlagState('error');
+    } finally {
+      setTimeout(() => setFlagState('idle'), 2000);
     }
   };
 
@@ -183,23 +213,70 @@ export default function Graph({
             {saveState === 'error' && 'Error ✗'}
           </a>
 
-          <a
-            onClick={handleNextNotebook}
-            className={`px-4 py-2 rounded shadow cursor-pointer block font-medium !text-white transition-colors duration-200 ${
-              nextState === 'success'
-                ? 'bg-green-600'
-                : nextState === 'error'
-                  ? 'bg-red-600'
-                  : nextState === 'loading'
-                    ? 'bg-gray-600 !cursor-wait'
-                    : 'bg-gray-800 hover:bg-gray-900'
-            }`}
-          >
-            {nextState === 'idle' && 'Next'}
-            {nextState === 'loading' && 'Loading...'}
-            {nextState === 'success' && 'Opening ✓'}
-            {nextState === 'error' && 'Empty ✗'}
-          </a>
+          <div className="flex relative items-stretch rounded shadow-md">
+            <a
+              onClick={handleNextNotebook}
+              className={`flex items-center justify-center px-5 py-2 rounded-l cursor-pointer font-medium !text-white no-underline transition-colors duration-200 ${
+                nextState === 'success'
+                  ? 'bg-green-600'
+                  : nextState === 'error'
+                    ? 'bg-red-600'
+                    : nextState === 'loading'
+                      ? 'bg-gray-600 !cursor-wait'
+                      : 'bg-gray-800 hover:bg-gray-700'
+              }`}
+            >
+              {nextState === 'idle' && 'Next'}
+              {nextState === 'loading' && 'Loading...'}
+              {nextState === 'success' && 'Opening ✓'}
+              {nextState === 'error' && 'Empty ✗'}
+            </a>
+
+            <a
+              onClick={() => setShowFlagMenu(!showFlagMenu)}
+              className={`flex items-center justify-center px-3 py-2 rounded-r cursor-pointer font-medium !text-white no-underline transition-colors duration-200 border-l border-gray-600 ${
+                flagState === 'loading'
+                  ? 'bg-orange-400 !cursor-wait'
+                  : flagState === 'error'
+                    ? 'bg-red-600'
+                    : 'bg-gray-800 hover:bg-gray-700'
+              }`}
+              title="Flag & Skip"
+            >
+              Flag
+            </a>
+
+            {showFlagMenu && (
+              <div className="absolute top-full right-0 mt-2 w-56 bg-white border border-gray-200 rounded shadow-xl z-50 overflow-hidden">
+                <ul className="m-0 p-0 list-none text-sm text-gray-700 py-1">
+                  <li className="m-0 p-0">
+                    <a
+                      onClick={() => handleFlagNotebook('Bug in Dataflow')}
+                      className="flex items-center w-full px-4 py-2 hover:bg-gray-100 cursor-pointer no-underline !text-gray-800 transition-colors"
+                    >
+                      <span className="mr-3">🚩</span> Bug in Dataflow
+                    </a>
+                  </li>
+                  <li className="m-0 p-0">
+                    <a
+                      onClick={() => handleFlagNotebook('Not Relevant')}
+                      className="flex items-center w-full px-4 py-2 hover:bg-gray-100 cursor-pointer no-underline !text-gray-800 transition-colors"
+                    >
+                      <span className="mr-3">🗑️</span> Not Relevant
+                    </a>
+                  </li>
+                  <li className="m-0 p-0 border-t border-gray-100">
+                    <a
+                      onClick={() => handleFlagNotebook('Must Revisit')}
+                      className="flex items-center w-full px-4 py-2 hover:bg-gray-100 cursor-pointer no-underline !text-gray-800 transition-colors"
+                    >
+                      <span className="mr-3">⏳</span> Must Revisit
+                    </a>
+                  </li>
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       )}
 

@@ -13,6 +13,7 @@ class LabelingNextHandler(APIHandler):
             input_data = self.get_json_body()
 
             requested_raw_path = input_data.get("datasetPath", "raw_dataset")
+            current_filename = input_data.get("current_filename")
 
             workspace_dir = Path.cwd()
             raw_dir = (workspace_dir / requested_raw_path).resolve()
@@ -28,15 +29,16 @@ class LabelingNextHandler(APIHandler):
             annotations_dir.mkdir(parents=True, exist_ok=True)
 
             next_filename = DatasetManager.get_next_unannotated(
-                raw_dir, annotations_dir
+                raw_dir, annotations_dir, current_filename
             )
 
             if not next_filename:
+                message = f"No more unannotated notebooks found in {raw_dir.name}."
                 self.finish(
                     json.dumps(
                         {
                             "success": False,
-                            "message": f"No more unannotated notebooks found in {raw_dir.name}.",
+                            "message": message,
                         }
                     )
                 )

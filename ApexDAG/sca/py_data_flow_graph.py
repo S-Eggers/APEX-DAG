@@ -223,7 +223,7 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             or base_name in self._state_stack.imported_names
         )
 
-        if base_name and (not is_first_order or is_self_defined or is_imported):
+        if base_name and not is_imported and (not is_first_order or is_self_defined):
             new_version = self._get_versioned_name(base_name, node.lineno)
 
             self._add_node(new_version, NODE_TYPES["VARIABLE"], code=expr_code)
@@ -389,7 +389,9 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
             self.visit(node.func)
         else:
             raise NotImplementedError(
-                f"Unsupported function call {ast.get_source_segment(self.current_cell_source, node)} with node {ast.dump(node)}"
+                f"""Unsupported function call {
+                    ast.get_source_segment(self.current_cell_source, node)
+                } with node {ast.dump(node)}"""
             )
 
         if (
@@ -1011,9 +1013,12 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
     def _check_resursion(self, node: ast.FunctionDef) -> bool:
         function_name = node.name
         for sub_node in ast.walk(node):
-            if isinstance(sub_node, ast.Call) and isinstance(sub_node.func, ast.Name):
-                if sub_node.func.id == function_name:
-                    return True
+            if (
+                isinstance(sub_node, ast.Call)
+                and isinstance(sub_node.func, ast.Name)
+                and sub_node.func.id == function_name
+            ):
+                return True
         return False
 
     def _process_method_call(
