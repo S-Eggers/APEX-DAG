@@ -1,3 +1,4 @@
+import ast
 import logging
 
 import pandas as pd
@@ -16,18 +17,40 @@ class KB:
     Gracefully falls back to an empty dictionary if the CSV is missing.
     """
 
-    def __init__(self, knowledge_base=None, kb_csv_path=None) -> None:
+    def __init__(
+        self, knowledge_base: pd.DataFrame | None = None, kb_csv_path: str | None = None
+    ) -> None:
         if knowledge_base is not None:
             self.knowledge_base = knowledge_base.knowledge_base
         else:
             try:
-                self.knowledge_base = (
-                    pd.read_csv(kb_csv_path) if kb_csv_path else pd.DataFrame()
-                )
+                if kb_csv_path:
+                    df = pd.read_csv(kb_csv_path)
+
+                    def parse_list(val: str | list) -> list:
+                        if isinstance(val, list):
+                            return val
+                        if isinstance(val, str) and val.strip().startswith("["):
+                            try:
+                                return ast.literal_eval(val)
+                            except (SyntaxError, ValueError):
+                                return []
+                        return [] if pd.isna(val) else [val]
+
+                    if "Inputs" in df.columns:
+                        df["Inputs"] = df["Inputs"].apply(parse_list)
+                    if "Outputs" in df.columns:
+                        df["Outputs"] = df["Outputs"].apply(parse_list)
+
+                    self.knowledge_base = df
+                else:
+                    self.knowledge_base = pd.DataFrame()
             except Exception as e:
-                logger.warning(
-                    f"Vamsa KB not found or failed to load. Operating with empty KB. Error: {e}"
-                )
+                message = f"""
+                Vamsa KB not found or failed to load.
+                Operating with empty KB. Error: {e}
+                """
+                logger.warning(message)
                 self.knowledge_base = pd.DataFrame(
                     columns=[
                         "Library",
@@ -39,7 +62,7 @@ class KB:
                     ]
                 )
 
-        # Fallback built-in rules
+        # Fallback built-in rules (Ensuring they are native lists, not strings)
         fallback_df = pd.DataFrame(
             [
                 {
@@ -48,6 +71,7 @@ class KB:
                     "Caller": "data",
                     "API Name": "Subscript",
                     "Inputs": ["selected columns"],
+                    "Outputs": [],
                 },
                 {
                     "Library": None,
@@ -55,28 +79,40 @@ class KB:
                     "Caller": "data",
                     "API Name": "drop",
                     "Inputs": ["dropped columns"],
+                    "Outputs": [],
                 },
             ]
         )
         self.knowledge_base = pd.concat(
             [self.knowledge_base, fallback_df], ignore_index=True
         )
+        logger.info(f"Initialized Vamsa KB with {len(self.knowledge_base)} entries.")
+        logger.info(self.knowledge_base.head())
 
-    def __call__(self, L, L_prime, c, p):
+    def __call__(
+        self, l_str: str | None, l_prime: str | None, c: str | None, p: str | None
+    ) -> tuple[list, list]:
         filtered_kb = self.knowledge_base
 
-        if L is not None:
+        if l_str is not None:
             filtered_kb = filtered_kb[
-                (filtered_kb["Library"].fillna("") == remove_id(L))
+                (filtered_kb["Library"].fillna("") == remove_id(l_str))
             ]
-        if (not filtered_kb.empty) and L_prime is not None:
+        if (not filtered_kb.empty) and l_prime is not None:
             filtered_kb = filtered_kb[
-                (filtered_kb["Module"].fillna("") == remove_id(L_prime))
+                (filtered_kb["Module"].fillna("") == remove_id(l_prime))
             ]
-        if (not filtered_kb.empty) and c is not None:
-            filtered_kb = filtered_kb[(filtered_kb["Caller"] == remove_id(c))]
-        elif not filtered_kb.empty:
-            filtered_kb = filtered_kb[(filtered_kb["Caller"].isna())]
+
+        if not filtered_kb.empty:
+            if c is not None:
+                strict_kb = filtered_kb[(filtered_kb["Caller"] == remove_id(c))]
+                if not strict_kb.empty:
+                    filtered_kb = strict_kb
+                else:
+                    filtered_kb = filtered_kb[(filtered_kb["Caller"].isna())]
+            else:
+                filtered_kb = filtered_kb[(filtered_kb["Caller"].isna())]
+
         if (not filtered_kb.empty) and p is not None:
             filtered_kb = filtered_kb[
                 (filtered_kb["API Name"].fillna("") == remove_id(p))
@@ -102,8 +138,8 @@ class KB:
         )
         return inputs, outputs
 
-    def back_query(self, O, p):
-        def has_similar_elements(row_list, provided_list):
+    def back_query(self, o_list: list, p: str | None) -> list:
+        def has_similar_elements(row_list: list, provided_list: list) -> bool:
             min_len = min(len(row_list), len(provided_list))
             return all(
                 p == r or p is None
@@ -117,9 +153,13 @@ class KB:
             filtered_kb = filtered_kb[
                 (filtered_kb["API Name"].fillna("") == remove_id(p))
             ]
-        if (not filtered_kb.empty) and O is not None:
+        if (not filtered_kb.empty) and o_list is not None:
             filtered_kb = filtered_kb[
-                (filtered_kb["Outputs"].apply(lambda x: has_similar_elements(x, O)))
+                (
+                    filtered_kb["Outputs"].apply(
+                        lambda x: has_similar_elements(x, o_list)
+                    )
+                )
             ]
 
         if filtered_kb.empty:

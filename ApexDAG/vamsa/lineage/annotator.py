@@ -10,28 +10,29 @@ configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 
-def add_to_stack(stack: list, item) -> None:
+def add_to_stack(stack: list, item: str) -> None:
     if item not in stack:
         stack.append(item)
 
 
-def extend_stack(stack: list, items) -> None:
+def extend_stack(stack: list, items: set[str]) -> None:
     for item in items:
         add_to_stack(stack, item)
 
 
 class AnnotationWIR:
     """
-    Annotates the WIR using the Vamsa Annotation algorithm via the provided Knowledge Base.
+    Annotates the WIR using the Vamsa Annotation algorithm via the
+    provided Knowledge Base.
     """
 
-    def __init__(self, wir: nx.DiGraph, prs: list[PRType], knowledge_base) -> None:
+    def __init__(self, wir: nx.DiGraph, prs: list[PRType], knowledge_base: str) -> None:
         self.wir = wir
         self.prs = prs
         self.knowledge_base = knowledge_base
         self.annotated_wir = wir.copy()
 
-    def _get_annotation(self, node):
+    def _get_annotation(self, node: str | None) -> list[str] | None:
         if node is None:
             return None
         annotations = self.annotated_wir.nodes[node].get("annotations", [])
@@ -52,7 +53,15 @@ class AnnotationWIR:
                     continue
                 self.visit_node(process)
 
+                if (
+                    "importas" in str(process).lower()
+                    or "importfrom" in str(process).lower()
+                ):
+                    for vo in outputs:
+                        self._annotate_node(vo, library)
+
                 context = self._get_annotation(caller)
+
                 if isinstance(context, list):
                     for subcontext in context:
                         input_annotations, annotations_output = self.knowledge_base(
@@ -113,14 +122,14 @@ class AnnotationWIR:
 
         return self.annotated_wir
 
-    def find_import_nodes(self):
+    def find_import_nodes(self) -> list[str]:
         return [
             node
             for node in self.wir.nodes
             if "importas" in str(node).lower() or "importfrom" in str(node).lower()
         ]
 
-    def extract_library_and_module(self, node):
+    def extract_library_and_module(self, node: str) -> tuple[str | None, str | None]:
         library = None
         module = None
         for pred, _, edge_data in self.wir.in_edges(node, data=True):
@@ -131,7 +140,9 @@ class AnnotationWIR:
             library, module = library.rsplit(".", 1)
         return library, module
 
-    def _extract_pr_elements(self, node, node_type="operation"):
+    def _extract_pr_elements(
+        self, node: str, node_type: str = "operation"
+    ) -> tuple[list, str, str, list]:
         inputs, context, outputs = [], None, []
 
         if node_type == "operation":
@@ -157,26 +168,26 @@ class AnnotationWIR:
             self.visit_node(node)
             return [], None, None, [node]
 
-    def _annotate_node(self, node, annotation):
+    def _annotate_node(self, node: str, annotation: str) -> tuple[str, str]:
         if "annotations" not in self.annotated_wir.nodes[node]:
             self.annotated_wir.nodes[node]["annotations"] = []
         if annotation not in self.annotated_wir.nodes[node]["annotations"]:
             self.annotated_wir.nodes[node]["annotations"].append(annotation)
         return (node, annotation)
 
-    def check_if_visited(self, node) -> bool:
+    def check_if_visited(self, node: str) -> bool:
         if node is None:
             return True
         return self.annotated_wir.nodes[node].get("visited", False)
 
-    def visit_node(self, node) -> None:
+    def visit_node(self, node: str) -> None:
         self.annotated_wir.nodes[node]["visited"] = True
 
-    def find_forward_prs(self, pr):
+    def find_forward_prs(self, pr: tuple[list, str, str, list]) -> set[str]:
         outputs = pr[3]
         operation = pr[2]
 
-        def is_connected(next_pr):
+        def is_connected(next_pr: list) -> bool:
             next_pr_ids = (next_pr[0], next_pr[1], next_pr[2])
             return any(o in next_pr_ids for o in outputs) and next_pr[2] != operation
 

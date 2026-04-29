@@ -1270,14 +1270,10 @@ class PythonDataFlowGraph(ASTGraph, LegacyIOMixin, ast.NodeVisitor):
         return code_segment, edge_type
 
     def _get_caller_object(self, value: ast.AST) -> str:
-        names = get_names(value)
-        if names and (
-            self._state_stack.import_accessible(names[0])
-            or self._state_stack.class_accessible(names[0])
-            or self._state_stack.function_accessible(names[0])
-            or names[0] in self._current_state.variable_versions
-        ):
-            return names[0]
+        base_name = get_base_name(value)
+
+        if base_name:
+            return base_name
 
         return self._current_state.current_target
 

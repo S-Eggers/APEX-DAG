@@ -1172,18 +1172,18 @@ export const MODE_CONFIG: Record<
     legends: [
       {
         type: 'node',
-        color: nColors.VARIABLE,
+        color: nColors.DATASET,
         label: 'Data Node',
         borderStyle: 'solid',
-        numericType: 0,
+        numericType: 2,
         category: 'Vamsa Entities'
       },
       {
         type: 'node',
-        color: nColors.FUNCTION,
-        label: 'Operation',
+        color: nColors.MODEL,
+        label: 'Model Node',
         borderStyle: 'solid',
-        numericType: 3,
+        numericType: 4,
         category: 'Vamsa Entities'
       },
       {
@@ -1213,8 +1213,8 @@ export const MODE_CONFIG: Record<
     ],
     getNodeColor: type => {
       const map: Record<number, string> = {
-        0: nColors.VARIABLE,
-        3: nColors.FUNCTION
+        2: nColors.DATASET,
+        4: nColors.MODEL
       };
       return map[type] || nColors.VARIABLE;
     },
