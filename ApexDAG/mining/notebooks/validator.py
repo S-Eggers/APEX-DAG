@@ -23,9 +23,7 @@ class PipelineValidator:
     """Tests the notebook against the Dataflow Pipeline without saving the graph."""
 
     def __init__(self) -> None:
-        self.pipeline = DataflowPipelineFactory.create(
-            {"replaceDataflowInUDFs": False, "highlightRelevantSubgraphs": False}
-        )
+        self.pipeline = DataflowPipelineFactory.create({"replaceDataflowInUDFs": False, "highlightRelevantSubgraphs": False})
 
         self.ml_pattern = re.compile(
             r"\b(sklearn|torch|tensorflow|keras|xgboost|lightgbm|catboost|tensor|polars|pyspark)\b|"
@@ -50,9 +48,7 @@ class PipelineValidator:
                     source = ""
 
                 if source.strip():
-                    api_cells.append(
-                        {"cell_id": cell.get("id", f"cell_{i}"), "source": source}
-                    )
+                    api_cells.append({"cell_id": cell.get("id", f"cell_{i}"), "source": source})
                     loc += len(source.splitlines())
 
                     if not has_ml_semantics and self.ml_pattern.search(source):
@@ -63,11 +59,7 @@ class PipelineValidator:
 
         try:
             analysis_results = self.pipeline.execute(api_cells)
-            elements = (
-                analysis_results.get("elements", [])
-                if isinstance(analysis_results, dict)
-                else analysis_results
-            )
+            elements = analysis_results.get("elements", []) if isinstance(analysis_results, dict) else analysis_results
 
             if not isinstance(elements, list):
                 message = f"""
@@ -77,11 +69,7 @@ class PipelineValidator:
                 raise ValueError(message)
 
             edges = sum(1 for el in elements if "source" in el.get("data", {}))
-            nodes = sum(
-                1
-                for el in elements
-                if "source" not in el.get("data", {}) and "id" in el.get("data", {})
-            )
+            nodes = sum(1 for el in elements if "source" not in el.get("data", {}) and "id" in el.get("data", {}))
 
             return ValidationMetrics(
                 success=True,

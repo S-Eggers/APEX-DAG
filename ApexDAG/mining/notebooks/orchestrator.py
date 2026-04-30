@@ -24,9 +24,7 @@ class DatasetManager:
         raw_files = {f.name for f in raw_dir.glob("*.ipynb")}
 
         # 2. Gather completed annotations
-        annotated_files = {
-            f.name.replace(".json", ".ipynb") for f in annotations_dir.glob("*.json")
-        }
+        annotated_files = {f.name.replace(".json", ".ipynb") for f in annotations_dir.glob("*.json")}
 
         # 3. Gather flagged notebooks from the registry
         flagged_files = set()

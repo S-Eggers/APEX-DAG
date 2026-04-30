@@ -6,4 +6,4 @@ retry_attempts: 3
 retry_delay: 30
 success_delay: 0
 sleep_interval: 0
-max_workers: 4
+max_workers: 2

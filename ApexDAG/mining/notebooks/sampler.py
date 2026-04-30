@@ -1,6 +1,6 @@
 import hashlib
 
-from ApexDAG.mining.validator import ValidationMetrics
+from ApexDAG.mining.notebooks.validator import ValidationMetrics
 
 
 class GraphSamplingPolicy:

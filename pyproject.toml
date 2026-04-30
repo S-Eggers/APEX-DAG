@@ -43,12 +43,12 @@ include = ["ApexDAG", "ApexDAG.*"]
 
 [tool.ruff]
 src = ["ApexDAG", "apex-dag-jupyter"]
-line-length = 88
+line-length = 200
 indent-width = 4
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "ANN"]
-ignore = ["N999"]
+ignore = ["N999", "N806"]
 
 [tool.ruff.format]
 quote-style = "double"
