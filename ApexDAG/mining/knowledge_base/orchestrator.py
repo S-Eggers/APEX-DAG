@@ -60,7 +60,7 @@ class KBMinerOrchestrator:
 
             # 2. Strict Deduplication by API signature. We keep 'last' to let newer LLM generations override older ones.
             signature_cols = ["Library", "Module", "Caller", "API Name"]
-            clean_df = clean_df.drop_duplicates(subset=signature_cols, keep="last").sort_by(signature_cols)
+            clean_df = clean_df.drop_duplicates(subset=signature_cols, keep="last").sort_values(signature_cols)
 
             clean_df.to_csv(self.output_csv_path, index=False)
             logger.info(f"Saved {len(clean_df)} deduplicated KB entries to {self.output_csv_path}")
