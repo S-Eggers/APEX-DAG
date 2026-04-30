@@ -83,7 +83,25 @@ def main() -> int:
             output_csv_path=args.output_kb,
         )
 
-        orchestrator.run(limit=args.limit)
+        logger.info("Initializing Continuous Mining Engine...")
+        orchestrator.initialize()
+
+        iteration = 1
+        while True:
+            logger.info(f"\n{'=' * 60}\nStarting Mining Iteration {iteration}\n{'=' * 60}")
+
+            orchestrator.run_iteration(limit=args.limit)
+
+            try:
+                user_input = input("\n[?] Do you want to run another synthesis round? (y/n): ").strip().lower()
+                if user_input != "y":
+                    logger.info("Terminating mining engine. Memory cleared.")
+                    break
+            except KeyboardInterrupt:
+                logger.info("\nProcess aborted by user. Terminating mining engine.")
+                break
+
+            iteration += 1
 
         return 0
 

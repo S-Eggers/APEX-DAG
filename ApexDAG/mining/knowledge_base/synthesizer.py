@@ -13,8 +13,6 @@ logger = logging.getLogger(__name__)
 
 
 class BatchSynthesizer:
-    """Uses native Gemini Structured Outputs to generate KB entries in bulk."""
-
     def __init__(self, api_key: str | None = None) -> None:
         key = api_key or os.getenv("GEMINI_API_KEY")
         if not key:

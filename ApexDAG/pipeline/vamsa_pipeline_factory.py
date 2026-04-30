@@ -12,9 +12,7 @@ class VamsaPipelineFactory:
         Instantiates the VamsaPipeline with necessary serializers and file paths.
         """
         current_dir = os.path.dirname(os.path.abspath(__file__))
-        kb_path = os.path.join(
-            current_dir, "..", "vamsa", "data", "final_annotation_kb.csv"
-        )
+        kb_path = os.path.join(current_dir, "..", "vamsa", "data", "enhanced_annotation_kb.csv")
         serializer = VamsaSerializer()
 
         return VamsaPipeline(
