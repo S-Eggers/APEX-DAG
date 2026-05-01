@@ -1,5 +1,6 @@
 model_name: "gemini-3.1-flash-lite-preview"
 max_tokens: 100000000
+max_rpm: 15
 max_depth: 2
 llm_provider: "google"
 retry_attempts: 3

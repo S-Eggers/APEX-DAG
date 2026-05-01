@@ -10,7 +10,7 @@ except ImportError:
 
 from ApexDAG.label_notebooks.__main__ import get_provider
 from ApexDAG.label_notebooks.labeler import ApexGraphLabeler
-from ApexDAG.label_notebooks.token_policy import TokenBudgetPolicy
+from ApexDAG.label_notebooks.llm_policy import ExecutionPolicy
 from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.labeler.edge_labeler import EdgeLabeler
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
@@ -26,6 +26,7 @@ class LLMLabeler(EdgeLabeler):
         config = Config(
             model_name="gemini-3.1-flash-lite-preview",
             max_tokens=float("inf"),
+            max_rpm=10,
             max_depth=4,
             llm_provider="google",
             retry_attempts=2,
@@ -35,7 +36,7 @@ class LLMLabeler(EdgeLabeler):
             max_workers=1,
         )
         provider = get_provider(config)
-        global_budget = TokenBudgetPolicy(max_tokens=config.max_tokens)
+        global_budget = ExecutionPolicy(max_tokens=config.max_tokens, max_rpm=config.max_rpm)
 
         labeler = ApexGraphLabeler(config=config, graph=graph.get_graph(), raw_code=graph.get_code(), provider=provider, token_budget=global_budget)
 

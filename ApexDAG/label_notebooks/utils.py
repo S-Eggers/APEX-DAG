@@ -15,6 +15,7 @@ class Config:
     retry_delay: int = 30
     success_delay: int = 10
     max_workers: int = 10
+    max_rpm: int = 1
 
 
 def load_config(config_path: str) -> Config:

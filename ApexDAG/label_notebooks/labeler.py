@@ -5,12 +5,12 @@ import time
 import networkx as nx
 
 from ApexDAG.label_notebooks.graph_service import SubgraphExtractor
+from ApexDAG.label_notebooks.llm_policy import ExecutionPolicy
 from ApexDAG.label_notebooks.message_template import (
     generate_system_prompt,
     generate_user_message,
 )
 from ApexDAG.label_notebooks.schema import BatchLabelResponse, MultiLabelledEdge
-from ApexDAG.label_notebooks.token_policy import TokenBudgetPolicy
 from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.llm.llm_provider import StructuredLLMProvider
 
@@ -23,14 +23,14 @@ class ApexGraphLabeler:
     Delegates LLM execution to a Provider and budget tracking to a Policy.
     """
 
-    def __init__(self, config: Config, graph: nx.MultiDiGraph, raw_code: str, provider: StructuredLLMProvider, token_budget: TokenBudgetPolicy) -> None:
+    def __init__(self, config: Config, graph: nx.MultiDiGraph, raw_code: str, provider: StructuredLLMProvider, policy: ExecutionPolicy) -> None:
         self.config = config
         self.G = graph
         self.code_lines = raw_code.splitlines()
         self.provider = provider
-        self.budget = token_budget
+        self.policy = policy
 
-        logger.info(f"Initialized ApexGraphLabeler. Budget: {self.budget.max_tokens} tokens.")
+        logger.info(f"Initialized ApexGraphLabeler. Budget: {self.policy.max_tokens} tokens.")
 
     def _get_code_context(self, subgraph_edges: list) -> str:
         """Extracts relevant code snippets for the LLM to analyze."""
@@ -46,6 +46,7 @@ class ApexGraphLabeler:
         if self.budget.stop_event.is_set():
             return None
 
+        self.policy.wait_for_slot()
         for attempt in range(self.config.retry_attempts):
             try:
                 subgraph = SubgraphExtractor.extract(self.G, src, tgt, key, max_depth=max_depth)
@@ -63,7 +64,7 @@ class ApexGraphLabeler:
                     response_schema=MultiLabelledEdge,
                 )
 
-                self.budget.record_usage(response.token_usage)
+                self.policy.record_usage(response.token_usage)
                 return response.data
 
             except Exception as e:

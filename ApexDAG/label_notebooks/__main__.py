@@ -16,7 +16,7 @@ import networkx as nx
 from tqdm import tqdm
 
 from ApexDAG.label_notebooks.labeler import ApexGraphLabeler
-from ApexDAG.label_notebooks.token_policy import TokenBudgetPolicy
+from ApexDAG.label_notebooks.llm_policy import ExecutionPolicy
 from ApexDAG.label_notebooks.utils import Config, load_config
 from ApexDAG.llm.gemini_provider import GeminiProvider
 from ApexDAG.llm.llm_provider import StructuredLLMProvider
@@ -96,7 +96,7 @@ def main() -> None:
     output_path.mkdir(parents=True, exist_ok=True)
 
     provider = get_provider(config)
-    global_budget = TokenBudgetPolicy(max_tokens=config.max_tokens)
+    global_budget = ExecutionPolicy(max_tokens=config.max_tokens, max_rpm=getattr(config, "max_rpm", 15))
 
     json_files = list(Path(args.input_dir).glob("*.json"))
     processed = {f.name for f in output_path.glob("*.json")}
