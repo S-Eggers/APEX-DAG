@@ -1,6 +1,12 @@
 import { ExtractedCell } from './NotebookTypes';
 
-export type GraphMode = 'dataflow' | 'lineage' | 'ast' | 'vamsa' | 'labeling';
+export type GraphMode =
+  | 'dataflow'
+  | 'lineage'
+  | 'ast'
+  | 'vamsa_wir'
+  | 'vamsa_lineage'
+  | 'labeling';
 export type TableMode = 'environment';
 
 export type BorderStyle = 'solid' | 'dashed' | 'dotted';

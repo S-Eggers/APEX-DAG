@@ -44,7 +44,7 @@ export function useCytoscape(
       const rawEdgeType = String(edgeType || '').toLowerCase();
       const semanticString = label + rawEdgeType;
 
-      if (mode === 'vamsa') {
+      if (mode === 'vamsa_wir' || mode === 'vamsa_lineage') {
         if (semanticString.includes('caller')) return getEdgeColor(0);
         if (semanticString.includes('input')) return getEdgeColor(1);
         if (
@@ -130,7 +130,7 @@ export function useCytoscape(
           'background-color': (ele: any) => nodeTypeColor(ele),
           label: (ele: any) => {
             const baseLabel = ele.data('label') || '';
-            if (mode === 'vamsa') {
+            if (mode === 'vamsa_wir' || mode === 'vamsa_lineage') {
               const annotations = ele.data('annotations');
               if (Array.isArray(annotations) && annotations.length > 0) {
                 return `${baseLabel}\n[${annotations.join(', ')}]`;

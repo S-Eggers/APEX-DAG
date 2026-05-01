@@ -24,7 +24,8 @@ export type WidgetType =
   | 'lineage'
   | 'environment'
   | 'ast'
-  | 'vamsa'
+  | 'vamsa_wir'
+  | 'vamsa_lineage'
   | 'labeling';
 
 export interface WidgetConfig {
@@ -84,23 +85,10 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     }
   },
   {
-    type: 'vamsa',
-    commandId: CommandIDs.vamsa,
-    label: 'Vamsa',
-    rank: 4,
-    group: 3,
-    icon: vamsaIcon,
-    debouncedUpdate: false,
-    factory: () => new GraphWidget('vamsa'),
-    update: (content, nbPanel, settings) => {
-      updateGraphWidget(content as GraphWidget, nbPanel, 'vamsa', settings);
-    }
-  },
-  {
     type: 'labeling',
     commandId: CommandIDs.labeling,
     label: 'Annotate',
-    rank: 5,
+    rank: 4,
     group: 3,
     icon: labelingIcon,
     debouncedUpdate: true,
@@ -110,11 +98,42 @@ export const WIDGET_REGISTRY: WidgetConfig[] = [
     }
   },
   {
+    type: 'vamsa_wir',
+    commandId: CommandIDs.vamsa_wir,
+    label: 'Vamsa (WIR)',
+    rank: 5,
+    group: 4,
+    icon: vamsaIcon,
+    debouncedUpdate: false,
+    factory: () => new GraphWidget('vamsa_wir'),
+    update: (content, nbPanel, settings) => {
+      updateGraphWidget(content as GraphWidget, nbPanel, 'vamsa_wir', settings);
+    }
+  },
+  {
+    type: 'vamsa_lineage',
+    commandId: CommandIDs.vamsa_lineage,
+    label: 'Vamsa (Lineage)',
+    rank: 6,
+    group: 4,
+    icon: vamsaIcon,
+    debouncedUpdate: false,
+    factory: () => new GraphWidget('vamsa_lineage'),
+    update: (content, nbPanel, settings) => {
+      updateGraphWidget(
+        content as GraphWidget,
+        nbPanel,
+        'vamsa_lineage',
+        settings
+      );
+    }
+  },
+  {
     type: 'environment',
     commandId: CommandIDs.environment,
     label: 'Environment',
-    rank: 6,
-    group: 4,
+    rank: 7,
+    group: 5,
     icon: environmentIcon,
     debouncedUpdate: false,
     factory: () => new EnvironmentWidget(),

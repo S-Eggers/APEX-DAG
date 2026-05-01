@@ -39,12 +39,16 @@ export const updateGraphWidget = (
     highlightRelevantSubgraphs: settings.highlightRelevantSubgraphs
   };
 
-  if (mode === 'lineage' || mode === 'vamsa' || mode === 'labeling') {
+  if (mode === 'lineage' || mode === 'labeling') {
     payload.llmClassification = settings.llmClassification;
   }
   if (mode === 'labeling') {
     payload.filename = notebookPanel.context.path;
     payload.useGraphRefiner = settings.useGraphRefiner;
+  }
+
+  if (mode === 'vamsa_wir' || mode === 'vamsa_lineage') {
+    payload.mode = mode === 'vamsa_wir' ? 0 : 1;
   }
 
   callBackend(mode, payload)
@@ -68,7 +72,8 @@ export const updateGraphWidget = (
         case 'lineage':
           graphDataString = response.lineage_predictions;
           break;
-        case 'vamsa':
+        case 'vamsa_wir':
+        case 'vamsa_lineage':
           graphDataString = response.vamsa;
           break;
         case 'ast':

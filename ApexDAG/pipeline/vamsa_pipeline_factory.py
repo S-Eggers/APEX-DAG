@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 from ApexDAG.pipeline.vamsa_pipeline import VamsaPipeline
-from ApexDAG.serializer.vamsa_serializer import VamsaSerializer
+from ApexDAG.serializer.vamsa_serializer import VamsaMode, VamsaSerializer
 
 
 class VamsaPipelineFactory:
@@ -13,7 +13,8 @@ class VamsaPipelineFactory:
         """
         current_dir = os.path.dirname(os.path.abspath(__file__))
         kb_path = os.path.join(current_dir, "..", "vamsa", "data", "enhanced_annotation_kb.csv")
-        serializer = VamsaSerializer()
+        mode = VamsaMode.WIR if request_payload.get("mode", 0) == 0 else VamsaMode.LINEAGE
+        serializer = VamsaSerializer(mode)
 
         return VamsaPipeline(
             serializer=serializer,

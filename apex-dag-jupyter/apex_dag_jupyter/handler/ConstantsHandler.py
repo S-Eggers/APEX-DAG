@@ -27,7 +27,11 @@ class ConstantsHandler(APIHandler):
                     "nodes": DOMAIN_NODES,
                     "edges": DOMAIN_EDGES,
                 },
-                "vamsa": {
+                "vamsa_wir": {
+                    "nodes": DOMAIN_NODES,
+                    "edges": DOMAIN_EDGES,
+                },
+                "vamsa_lineage": {
                     "nodes": DOMAIN_NODES,
                     "edges": DOMAIN_EDGES,
                 },

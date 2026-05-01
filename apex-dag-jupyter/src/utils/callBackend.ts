@@ -11,6 +11,12 @@ export async function callBackend(
   if (endpoint === 'labeling') {
     route = 'labeling/predict';
   }
+  if (endpoint === 'vamsa_wir') {
+    route = 'vamsa/wir';
+  }
+  if (endpoint === 'vamsa_lineage') {
+    route = 'vamsa/lineage';
+  }
 
   const url = `${settings.baseUrl}apex-dag/${route}`;
 

@@ -68,7 +68,8 @@ def setup_handlers(
             {},
         ),
         (url_path_join(base_url, "apex-dag", "constants"), ConstantsHandler, {}),
-        (url_path_join(base_url, "apex-dag", "vamsa"), VamsaHandler, {}),
+        (url_path_join(base_url, "apex-dag", "vamsa/wir"), VamsaHandler, {}),
+        (url_path_join(base_url, "apex-dag", "vamsa/lineage"), VamsaHandler, {}),
     ]
 
     web_app.add_handlers(host_pattern, handlers)
