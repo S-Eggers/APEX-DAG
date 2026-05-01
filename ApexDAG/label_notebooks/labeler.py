@@ -43,7 +43,7 @@ class ApexGraphLabeler:
         return "\n".join(self.code_lines[i] for i in expanded_lines)
 
     def _label_edge_worker(self, src: str, tgt: str, key: str, edge_data: dict, max_depth: int) -> MultiLabelledEdge | None:
-        if self.budget.stop_event.is_set():
+        if self.policy.stop_event.is_set():
             return None
 
         self.policy.wait_for_slot()
@@ -80,7 +80,7 @@ class ApexGraphLabeler:
 
     def _label_batch_worker(self, batch_tasks: list[tuple[str, str, str, dict]]) -> list[tuple[str, str, str, MultiLabelledEdge | None]]:
         """Processes a chunk of edges in a single LLM call."""
-        if self.budget.stop_event.is_set():
+        if self.policy.stop_event.is_set():
             return []
 
         # Prepare combined context
@@ -96,7 +96,7 @@ class ApexGraphLabeler:
 
         try:
             response = self.provider.generate(prompt=aggregated_prompt, system_instruction=system_instr, response_schema=BatchLabelResponse)
-            self.budget.record_usage(response.token_usage)
+            self.policy.record_usage(response.token_usage)
 
             # Map results back to IDs
             label_map = {item.edge_id: item.label for item in response.data.labels}
@@ -127,7 +127,7 @@ class ApexGraphLabeler:
                 for u, v, key, labeled_edge in results:
                     self._apply_label(u, v, key, labeled_edge)
 
-        return self.G, self.budget.total_used
+        return self.G, self.policy.total_used
 
     def _apply_label(self, u: str, v: str, key: str, labeled_edge: MultiLabelledEdge | None) -> None:
         if labeled_edge:
