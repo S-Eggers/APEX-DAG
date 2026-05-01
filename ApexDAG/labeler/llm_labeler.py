@@ -4,9 +4,11 @@ from ApexDAG.label_notebooks.labeler import ApexGraphLabeler
 from ApexDAG.label_notebooks.llm_policy import ExecutionPolicy
 from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.labeler.edge_labeler import EdgeLabeler
+from ApexDAG.llm.gemini_provider import GeminiProvider
 from ApexDAG.llm.llm_provider import StructuredLLMProvider
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
+from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,23 @@ class LLMLabeler(EdgeLabeler):
 
     def apply_labels(self, graph: PythonDataFlowGraph) -> None:
         if not self.config or not self.provider or not self.policy:
-            raise RuntimeError("LLMLabeler must be configured with a Config, Provider, and Policy before use.")
+            load_dotenv()
+            config = Config(
+                model_name="gemini-3.1-flash-lite-preview",
+                max_tokens=float("inf"),
+                max_rpm=10,
+                max_depth=4,
+                llm_provider="google",
+                retry_attempts=2,
+                retry_delay=1,
+                success_delay=0,
+                sleep_interval=0,
+                max_workers=1,
+            )
+            provider = GeminiProvider(model_name=config.model_name)
+            policy = ExecutionPolicy(max_tokens=config.max_tokens, max_rpm=config.max_rpm)
+            self.configure(config, provider, policy)
+            logger.warning("Setting a new config. The token limits and max RPM are resetted.")
 
         logger.info(f"Starting LLM labeling for graph with {len(graph.get_graph().edges)} edges.")
 
