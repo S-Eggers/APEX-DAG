@@ -1,10 +1,16 @@
 import React, { useRef, useState } from 'react';
-import { GraphProps, LegendItemType } from '../../types/GraphTypes';
+import {
+  GraphProps,
+  LegendItemType,
+  GraphNodeData,
+  CyElement,
+  GraphEdgeData,
+  GraphElementPayload
+} from '../../types/GraphTypes';
 import {
   groupLegendItems,
-  filterLegendItems,
-  MODE_CONFIG
-} from '../../config/GraphConfig';
+  filterLegendItems
+} from '../../hooks/useGraphTaxonomy';
 import { callBackend } from '../../utils/callBackend';
 import { useCytoscape } from '../../hooks/useCytoscape';
 
@@ -27,8 +33,9 @@ export default function Graph({
 }: GraphProps) {
   const graphRef = useRef<HTMLDivElement>(null);
 
-  const [selectedNode, setSelectedNode] = useState<any | null>(null);
-  const [selectedEdge, setSelectedEdge] = useState<any | null>(null);
+  const [selectedNode, setSelectedNode] = useState<GraphNodeData | null>(null);
+  const [selectedEdge, setSelectedEdge] =
+    useState<CyElement<GraphEdgeData> | null>(null);
 
   const [saveState, setSaveState] = useState<ActionState>('idle');
   const [nextState, setNextState] = useState<ActionState>('idle');
@@ -40,28 +47,30 @@ export default function Graph({
   >({});
 
   const updateLegend = () => {
-    if (!cyRef.current) return;
-    const liveElements = cyRef.current
-      .elements()
-      .map(ele => ({ data: ele.data() }));
-    const authoritativeLegends = MODE_CONFIG[mode].legends;
+    if (!cyRef.current || !taxonomy.isLoaded) return;
 
+    const liveElements: GraphElementPayload[] = cyRef.current
+      .elements()
+      .map((ele: CyElement<GraphNodeData & GraphEdgeData>) => ({
+        data: ele.data() as GraphElementPayload['data']
+      }));
+
+    const authoritativeLegends = taxonomy.legends;
     const filtered = filterLegendItems(liveElements, authoritativeLegends);
     setGroupedLegendItems(groupLegendItems(filtered));
   };
-
   const cyRef = useCytoscape(
     graphRef,
     graphData,
     mode,
     resetTrigger,
-    nodeData => {
+    (nodeData: GraphNodeData) => {
       setSelectedNode(nodeData);
       if (nodeData && nodeData.cell_id && onLocateCell) {
         onLocateCell(nodeData.cell_id);
       }
     },
-    edgeData => {
+    (edgeData: CyElement<GraphEdgeData> | null) => {
       if (!edgeData || typeof edgeData.data !== 'function') {
         setSelectedEdge(null);
         return;
@@ -75,8 +84,8 @@ export default function Graph({
     () => {
       updateLegend();
     },
-    MODE_CONFIG[mode].getNodeColor,
-    MODE_CONFIG[mode].getEdgeColor
+    taxonomy.getNodeColor,
+    taxonomy.getEdgeColor
   );
 
   const handleEdgeLabelChange = (newLabelValue: number) => {
@@ -84,8 +93,9 @@ export default function Graph({
 
     selectedEdge.data('predicted_label', newLabelValue);
     const labelStr = taxonomy.edgeLabelOptions.find(
-      (opt: any) => opt.value === newLabelValue
+      opt => opt.value === newLabelValue
     )?.label;
+
     if (labelStr) selectedEdge.data('domain_label', labelStr);
 
     setSelectedEdge(cyRef.current.getElementById(selectedEdge.id()));
@@ -100,11 +110,12 @@ export default function Graph({
 
     cyNode.data('node_type', newLabelValue);
     const labelStr = taxonomy.nodeLabelOptions.find(
-      (opt: any) => opt.value === newLabelValue
+      opt => opt.value === newLabelValue
     )?.label;
+
     if (labelStr) cyNode.data('domain_label', labelStr);
 
-    setSelectedNode({ ...cyNode.data() });
+    setSelectedNode({ ...(cyNode.data() as GraphNodeData) });
     updateLegend();
   };
 
@@ -112,8 +123,11 @@ export default function Graph({
     if (!cyRef.current) return;
     setSaveState('loading');
 
-    const currentGraphJson = (cyRef.current.json() as any).elements;
-    const rawPythonCode = notebookCode.map((c: any) => c.source).join('\n');
+    const currentGraphJson = (cyRef.current.json() as { elements: unknown })
+      .elements;
+    const rawPythonCode = notebookCode
+      .map((c: { source: string }) => c.source)
+      .join('\n');
 
     try {
       const result = await callBackend('labeling/save', {
@@ -136,7 +150,6 @@ export default function Graph({
 
   const handleNextNotebook = async () => {
     setNextState('loading');
-
     const currentNbFile = notebookName ? `${notebookName}.ipynb` : undefined;
 
     try {

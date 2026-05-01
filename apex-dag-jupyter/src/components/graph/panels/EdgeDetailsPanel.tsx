@@ -1,5 +1,10 @@
 import React from 'react';
-import { LabelOption } from '../../../types/GraphTypes';
+import {
+  GraphMode,
+  LabelOption,
+  CyElement,
+  GraphEdgeData
+} from '../../../types/GraphTypes';
 import {
   PanelContainer,
   PanelHeader,
@@ -11,8 +16,8 @@ import {
 } from './PanelComponents';
 
 interface EdgeDetailsPanelProps {
-  edge: any;
-  mode: string;
+  edge: CyElement<GraphEdgeData>;
+  mode: GraphMode;
   options: LabelOption[];
   onChange: (newLabelValue: number) => void;
   onClose: () => void;
@@ -25,8 +30,16 @@ export default function EdgeDetailsPanel({
   onChange,
   onClose
 }: EdgeDetailsPanelProps) {
-  const data = typeof edge.data === 'function' ? edge.data() : edge;
-  const getTaxonomyLabel = (typeNum: number) => `TYPE_${typeNum}`;
+  const data = edge.data();
+
+  const getTaxonomyLabel = (typeNum: number | undefined) => {
+    if (typeNum === undefined) return 'UNKNOWN_TYPE';
+    return `TYPE_${typeNum}`;
+  };
+
+  // Cytoscape's source() and target() return CyElements. Call .data() on them.
+  const sourceData = edge.source?.()?.data();
+  const targetData = edge.target?.()?.data();
 
   return (
     <PanelContainer>
@@ -47,7 +60,7 @@ export default function EdgeDetailsPanel({
           <PanelCodeBlock code={data.raw_code || data.label} />
         </PanelSection>
 
-        {mode === 'labeling' && (
+        {mode === 'labeling' && data.predicted_label !== undefined && (
           <PanelLabelSelect
             label="Domain Label"
             value={data.predicted_label}
@@ -58,10 +71,10 @@ export default function EdgeDetailsPanel({
 
         <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-100">
           <PanelSection title="From">
-            <PanelBadge text={edge.source().data('label')} isMono />
+            <PanelBadge text={sourceData?.label || 'Unknown'} isMono />
           </PanelSection>
           <PanelSection title="To">
-            <PanelBadge text={edge.target().data('label')} isMono />
+            <PanelBadge text={targetData?.label || 'Unknown'} isMono />
           </PanelSection>
         </div>
       </PanelBody>

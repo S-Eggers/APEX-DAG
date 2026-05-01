@@ -1,100 +1,94 @@
-// hooks/useGraphTaxonomy.ts
 import { useState, useEffect, useMemo } from 'react';
 import { getBackend } from '../utils/callBackend';
-import { GraphMode, LegendItemType, LabelOption } from '../types/GraphTypes';
 import {
-  SEMANTIC_COLORS,
-  DEFAULT_NODE_COLOR,
-  DEFAULT_EDGE_COLOR
-} from '../config/GraphTheme';
+  GraphMode,
+  LegendItemType,
+  LabelOption,
+  TaxonomyAPIResponse,
+  TaxonomyModeData,
+  GraphElementPayload
+} from '../types/GraphTypes';
 
-interface TaxonomyResponse {
-  nodes: Record<string, string>;
-  edges: Record<string, string>;
-}
+const DEFAULT_COLOR = '#B0E0E6';
 
 export function useGraphTaxonomy(mode: GraphMode) {
-  const [taxonomy, setTaxonomy] = useState<TaxonomyResponse | null>(null);
+  const [taxonomy, setTaxonomy] = useState<TaxonomyModeData | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     getBackend('constants')
-      .then(data => {
-        if (data.success && data.taxonomy) {
+      .then((data: TaxonomyAPIResponse) => {
+        if (isMounted && data.success && data.taxonomy) {
           setTaxonomy(data.taxonomy[mode]);
         }
       })
-      .catch(err => console.error('Failed to fetch taxonomy', err));
+      .catch((err: unknown) => {
+        console.error(`Failed to fetch taxonomy for mode: ${mode}`, err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
   }, [mode]);
 
   return useMemo(() => {
     if (!taxonomy) {
       return {
         isLoaded: false,
-        legends: [],
-        getNodeColor: () => DEFAULT_NODE_COLOR,
-        getEdgeColor: () => DEFAULT_EDGE_COLOR,
-        nodeLabelOptions: [],
-        edgeLabelOptions: []
+        legends: [] as LegendItemType[],
+        getNodeColor: (_type: number | null | undefined) => DEFAULT_COLOR,
+        getEdgeColor: (_type: number | null | undefined) => DEFAULT_COLOR,
+        nodeLabelOptions: [] as LabelOption[],
+        edgeLabelOptions: [] as LabelOption[]
       };
     }
 
-    const getNodeColor = (numericType: number | undefined | null) => {
-      if (numericType === undefined || numericType === null) {
-        return DEFAULT_NODE_COLOR;
-      }
-
-      const stringKey = taxonomy.nodes[numericType.toString()];
-      return stringKey
-        ? SEMANTIC_COLORS.nodes[stringKey] || DEFAULT_NODE_COLOR
-        : DEFAULT_NODE_COLOR;
-    };
-
-    const getEdgeColor = (numericType: number | undefined | null) => {
-      if (numericType === undefined || numericType === null) {
-        return DEFAULT_EDGE_COLOR;
-      }
-
-      const stringKey = taxonomy.edges[numericType.toString()];
-      return stringKey
-        ? SEMANTIC_COLORS.edges[stringKey] || DEFAULT_EDGE_COLOR
-        : DEFAULT_EDGE_COLOR;
-    };
-
     const legends: LegendItemType[] = [];
+    const nodeLabelOptions: LabelOption[] = [];
+    const edgeLabelOptions: LabelOption[] = [];
 
-    Object.entries(taxonomy.nodes).forEach(([idStr, stringKey]) => {
+    // Process Nodes
+    Object.entries(taxonomy.nodes).forEach(([idStr, meta]) => {
+      const numericType = parseInt(idStr, 10);
       legends.push({
         type: 'node',
-        numericType: parseInt(idStr, 10),
-        label: stringKey.replace(/_/g, ' '),
-        color: SEMANTIC_COLORS.nodes[stringKey] || DEFAULT_NODE_COLOR,
-        borderStyle: 'solid'
+        numericType,
+        name: meta.name,
+        label: meta.label,
+        color: meta.color,
+        borderStyle: meta.border_style,
+        category: meta.category
       });
+      nodeLabelOptions.push({ value: numericType, label: meta.label });
     });
 
-    Object.entries(taxonomy.edges).forEach(([idStr, stringKey]) => {
+    // Process Edges
+    Object.entries(taxonomy.edges).forEach(([idStr, meta]) => {
+      const numericType = parseInt(idStr, 10);
       legends.push({
         type: 'edge',
-        numericType: parseInt(idStr, 10),
-        label: stringKey.replace(/_/g, ' '),
-        color: SEMANTIC_COLORS.edges[stringKey] || DEFAULT_EDGE_COLOR,
-        borderStyle: stringKey === 'REASSIGN' ? 'dashed' : 'solid'
+        numericType,
+        name: meta.name,
+        label: meta.label,
+        color: meta.color,
+        borderStyle: meta.border_style,
+        category: meta.category
       });
+      edgeLabelOptions.push({ value: numericType, label: meta.label });
     });
 
-    const nodeLabelOptions: LabelOption[] = Object.entries(taxonomy.nodes).map(
-      ([id, key]) => ({
-        value: parseInt(id, 10),
-        label: key.replace(/_/g, ' ')
-      })
-    );
+    const getNodeColor = (numericType: number | undefined | null): string => {
+      if (numericType == null) return DEFAULT_COLOR;
+      const meta = taxonomy.nodes[numericType.toString()];
+      return meta ? meta.color : DEFAULT_COLOR;
+    };
 
-    const edgeLabelOptions: LabelOption[] = Object.entries(taxonomy.edges).map(
-      ([id, key]) => ({
-        value: parseInt(id, 10),
-        label: key.replace(/_/g, ' ')
-      })
-    );
+    const getEdgeColor = (numericType: number | undefined | null): string => {
+      if (numericType == null) return DEFAULT_COLOR;
+      const meta = taxonomy.edges[numericType.toString()];
+      return meta ? meta.color : DEFAULT_COLOR;
+    };
 
     return {
       isLoaded: true,
@@ -106,3 +100,42 @@ export function useGraphTaxonomy(mode: GraphMode) {
     };
   }, [taxonomy]);
 }
+
+// Data Utility functions
+export const groupLegendItems = (
+  allLegendItems: LegendItemType[]
+): Record<string, LegendItemType[]> => {
+  return allLegendItems.reduce(
+    (acc, item) => {
+      const cat = item.category || 'Uncategorized';
+      acc[cat] = acc[cat] || [];
+      acc[cat].push(item);
+      return acc;
+    },
+    {} as Record<string, LegendItemType[]>
+  );
+};
+
+export const filterLegendItems = (
+  elements: GraphElementPayload[],
+  allLegendItems: LegendItemType[]
+): LegendItemType[] => {
+  if (!elements || elements.length === 0) return [];
+
+  const presentNodeTypes = new Set<number>();
+  const presentEdgeTypes = new Set<number>();
+
+  elements.forEach(({ data }) => {
+    if (data.node_type != null) presentNodeTypes.add(Number(data.node_type));
+    if (data.predicted_label != null)
+      presentEdgeTypes.add(Number(data.predicted_label));
+    if (data.edge_type != null) presentEdgeTypes.add(Number(data.edge_type));
+  });
+
+  return allLegendItems.filter(item => {
+    const target = Number(item.numericType);
+    return item.type === 'node'
+      ? presentNodeTypes.has(target)
+      : presentEdgeTypes.has(target);
+  });
+};

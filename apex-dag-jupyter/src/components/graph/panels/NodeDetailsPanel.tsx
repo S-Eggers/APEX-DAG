@@ -1,5 +1,9 @@
 import React from 'react';
-import { GraphMode, LabelOption } from '../../../types/GraphTypes';
+import {
+  GraphMode,
+  LabelOption,
+  GraphNodeData
+} from '../../../types/GraphTypes';
 import {
   PanelContainer,
   PanelHeader,
@@ -10,7 +14,7 @@ import {
 } from './PanelComponents';
 
 interface NodeDetailsPanelProps {
-  node: any;
+  node: GraphNodeData;
   mode: GraphMode;
   options: LabelOption[];
   onChange: (newLabelValue: number) => void;
@@ -33,7 +37,7 @@ export default function NodeDetailsPanel({
       <PanelHeader title={node.label || 'Node Details'} onClose={onClose} />
 
       <PanelBody>
-        {mode === 'labeling' && (
+        {mode === 'labeling' && node.node_type !== undefined && (
           <PanelLabelSelect
             label="Node Domain Label"
             value={node.node_type}
@@ -61,7 +65,7 @@ export default function NodeDetailsPanel({
           <PanelSection title="Transformation History">
             {node.transform_history && node.transform_history.length > 0 ? (
               <div className="space-y-3">
-                {node.transform_history.map((step: any, idx: number) => (
+                {node.transform_history.map((step, idx) => (
                   <div
                     key={idx}
                     className="bg-blue-50 p-3 rounded border border-blue-100 flex flex-col gap-2"
