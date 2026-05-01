@@ -12,9 +12,7 @@ from ApexDAG.sca.constants import REVERSE_EDGE_TYPES, REVERSE_NODE_TYPES
 class DomainLabel(StrEnum):
     """Strictly maps to DOMAIN_EDGE_TYPES constants."""
 
-    MODEL_OPERATION = (
-        "Training, evaluating, tuning, or predicting with machine learning models."
-    )
+    MODEL_OPERATION = "Training, evaluating, tuning, or predicting with machine learning models."
     DATA_IMPORT_EXTRACTION = """Importing or extracting data from external sources
  (e.g., files, databases, APIs)."""
     DATA_TRANSFORM = """Transforming, cleaning, or preprocessing data
@@ -59,34 +57,20 @@ class MultiEdge(BaseModel):
 
 
 class MultiLabelledEdge(BaseModel):
-    source: str = Field(
-        ..., description="Unique identifier for the source of the edge."
-    )
-    target: str = Field(
-        ..., description="Unique identifier for the target of the edge."
-    )
-    key: str = Field(
-        ..., description="Unique key for the edge between source and target."
-    )
-    code: str | None = Field(
-        None, description="The code that connects the source and target nodes."
-    )
+    source: str = Field(..., description="Unique identifier for the source of the edge.")
+    target: str = Field(..., description="Unique identifier for the target of the edge.")
+    key: str = Field(..., description="Unique key for the edge between source and target.")
+    code: str | None = Field(None, description="The code that connects the source and target nodes.")
     edge_type: str = Field(..., description="Type of the edge from the AST parser.")
     lineno: list[int] | None = Field(None, description="The line number mapping.")
-    domain_label: DomainLabel = Field(
-        ..., description="Domain-specific classification label for the edge."
-    )
-    reasoning: str | None = Field(
-        None, description="A concise explanation justifying the domain_label."
-    )
+    domain_label: DomainLabel = Field(..., description="Domain-specific classification label for the edge.")
+    reasoning: str | None = Field(None, description="A concise explanation justifying the domain_label.")
 
     # Pydantic V2 configuration standard
     model_config = ConfigDict(use_enum_values=True, populate_by_name=True)
 
     @classmethod
-    def from_edge(
-        cls, edge: MultiEdge, domain_label: DomainLabel, reasoning: str | None = None
-    ) -> "MultiLabelledEdge":
+    def from_edge(cls, edge: MultiEdge, domain_label: DomainLabel, reasoning: str | None = None) -> "MultiLabelledEdge":
         return cls(
             source=edge.source,
             target=edge.target,
@@ -113,9 +97,7 @@ class MultiGraphContext(BaseModel):
                 MultiNode(
                     node_id=str(node_name),
                     label=node_data.get("label", clean_label),
-                    node_type=REVERSE_NODE_TYPES.get(
-                        node_data.get("node_type"), "UNKNOWN"
-                    ),
+                    node_type=REVERSE_NODE_TYPES.get(node_data.get("node_type"), "UNKNOWN"),
                 )
             )
 
@@ -123,11 +105,7 @@ class MultiGraphContext(BaseModel):
         for src, tgt, key, edge_data in graph.edges(data=True, keys=True):
             lineno_start = edge_data.get("lineno")
             lineno_end = edge_data.get("end_lineno", lineno_start)
-            lineno_range = (
-                list(range(lineno_start, lineno_end + 1))
-                if lineno_start is not None
-                else None
-            )
+            lineno_range = list(range(lineno_start, lineno_end + 1)) if lineno_start is not None else None
 
             edges.append(
                 MultiEdge(
@@ -135,9 +113,7 @@ class MultiGraphContext(BaseModel):
                     target=str(tgt),
                     key=str(key),
                     code=str(edge_data.get("code", "")),
-                    edge_type=REVERSE_EDGE_TYPES.get(
-                        edge_data.get("edge_type"), "UNKNOWN"
-                    ),
+                    edge_type=REVERSE_EDGE_TYPES.get(edge_data.get("edge_type"), "UNKNOWN"),
                     lineno=lineno_range,
                 )
             )
@@ -156,3 +132,12 @@ class MultiSubgraphContext(MultiGraphContext):
 \n  nodes: [\n{nodes_str}\n  ],
 \n  edges: [\n{edges_str}\n  ]
 \n)"""
+
+
+class EdgeLabelPair(BaseModel):
+    edge_id: str = Field(..., description="The unique ID/key of the edge being labeled.")
+    label: MultiLabelledEdge
+
+
+class BatchLabelResponse(BaseModel):
+    labels: list[EdgeLabelPair]

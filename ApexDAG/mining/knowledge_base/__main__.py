@@ -12,6 +12,7 @@ try:
 except ImportError:
     pass
 
+from ApexDAG.llm.gemini_provider import GeminiProvider
 from ApexDAG.mining.knowledge_base.orchestrator import KBMinerOrchestrator
 from ApexDAG.mining.knowledge_base.profiler import CorpusProfiler
 from ApexDAG.mining.knowledge_base.synthesizer import BatchSynthesizer
@@ -74,7 +75,9 @@ def main() -> int:
 
     try:
         profiler = CorpusProfiler(corpus_path=args.corpus)
-        synthesizer = BatchSynthesizer()
+
+        gemini_provider = GeminiProvider(model_name="gemini-3.1-flash-lite-preview", api_key=os.getenv("GEMINI_API_KEY"))
+        synthesizer = BatchSynthesizer(gemini_provider)
 
         orchestrator = KBMinerOrchestrator(
             profiler=profiler,

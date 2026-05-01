@@ -38,9 +38,6 @@ class SubgraphExtractor:
         _dfs(target_id, 0)
 
         subgraph_view = graph.subgraph(visited_nodes)
-
-        # Leverage the factory method to build the base context,
-        # then cast to SubgraphContext
         base_context = MultiGraphContext.from_graph(subgraph_view)
 
         return MultiSubgraphContext(

@@ -1,204 +1,135 @@
 import concurrent.futures
-import json
 import logging
-import os
-import threading
 import time
 
 import networkx as nx
-from dotenv import load_dotenv
 
 from ApexDAG.label_notebooks.graph_service import SubgraphExtractor
 from ApexDAG.label_notebooks.message_template import (
     generate_system_prompt,
     generate_user_message,
 )
-from ApexDAG.label_notebooks.schema import MultiGraphContext, MultiLabelledEdge
+from ApexDAG.label_notebooks.schema import BatchLabelResponse, MultiLabelledEdge
+from ApexDAG.label_notebooks.token_policy import TokenBudgetPolicy
 from ApexDAG.label_notebooks.utils import Config
-from ApexDAG.util.logger import configure_apexdag_logger
+from ApexDAG.llm.llm_provider import StructuredLLMProvider
 
-configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
 
 class ApexGraphLabeler:
     """
     Concurrent, structured-output LLM labeling engine for MultiDiGraphs.
-    Includes a Thread-Safe Token Budget to prevent API financial ruin.
+    Delegates LLM execution to a Provider and budget tracking to a Policy.
     """
 
-    def __init__(self, config: Config, graph: nx.MultiDiGraph, raw_code: str) -> None:
-        load_dotenv()
+    def __init__(self, config: Config, graph: nx.MultiDiGraph, raw_code: str, provider: StructuredLLMProvider, token_budget: TokenBudgetPolicy) -> None:
         self.config = config
         self.G = graph
         self.code_lines = raw_code.splitlines()
-        self.llm_provider = getattr(config, "llm_provider", "google")
+        self.provider = provider
+        self.budget = token_budget
 
-        # Concurrency & Budget Safety Net
-        self.max_tokens = getattr(self.config, "max_tokens", float("inf"))
-        self.total_tokens_used = 0
-        self.token_lock = threading.Lock()
-        self.stop_event = threading.Event()
-
-        self.base_context = MultiGraphContext.from_graph(self.G)
-        self.client = self._initialize_client()
-
-        logger.info(
-            f"""Initialized ApexGraphLabeler ({self.llm_provider}).
-            Budget: {self.max_tokens} tokens."""
-        )
-
-    def _initialize_client(self) -> None:
-        if self.llm_provider == "google":
-            import google.generativeai as genai
-
-            api_key = os.environ.get("GEMINI_API_KEY")
-            if not api_key:
-                raise ValueError("GEMINI_API_KEY environment variable not set.")
-            genai.configure(api_key=api_key)
-            return genai.GenerativeModel(self.config.model_name)
-
-        elif self.llm_provider == "groq":
-            import instructor
-            from groq import Groq
-
-            api_key = os.environ.get("GROQ_API_KEY")
-            if not api_key:
-                raise ValueError("GROQ_API_KEY environment variable not set.")
-            return instructor.from_groq(
-                Groq(api_key=api_key), mode=instructor.Mode.TOOLS
-            )
-
-        raise ValueError(f"Unsupported LLM provider: '{self.llm_provider}'.")
-
-    def _create_structured_completion(
-        self, system_prompt: str, user_prompt: str
-    ) -> tuple[MultiLabelledEdge, int]:
-        """
-        Executes the API call, returning the strictly typed label and
-        the tokens consumed.
-        """
-        if self.llm_provider == "google":
-            import google.generativeai as genai
-
-            response = self.client.generate_content(
-                contents=[
-                    {"role": "user", "content": system_prompt + "\n\n" + user_prompt}
-                ],
-                generation_config=genai.GenerationConfig(
-                    response_mime_type="application/json",
-                    response_schema=MultiLabelledEdge,
-                    temperature=0.1,
-                ),
-            )
-            tokens = getattr(response.usage_metadata, "total_token_count", 0)
-            return MultiLabelledEdge(**json.loads(response.text)), tokens
-
-        elif self.llm_provider == "groq":
-            response = self.client.chat.completions.create(
-                model=self.config.model_name,
-                response_model=MultiLabelledEdge,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                temperature=0.1,
-            )
-            tokens = (len(system_prompt) + len(user_prompt)) // 4 + 50
-            return response, tokens
+        logger.info(f"Initialized ApexGraphLabeler. Budget: {self.budget.max_tokens} tokens.")
 
     def _get_code_context(self, subgraph_edges: list) -> str:
-        lines = set()
-        for edge in subgraph_edges:
-            if edge.lineno:
-                lines.update(edge.lineno)
+        """Extracts relevant code snippets for the LLM to analyze."""
+        lines = {line for edge in subgraph_edges if edge.lineno for line in edge.lineno}
 
-        if -1 in lines or not lines:
+        if not lines or -1 in lines:
             return "\n".join(self.code_lines)
 
-        expanded_lines = sorted(
-            {
-                line + offset
-                for line in lines
-                for offset in (-1, 0, 1)
-                if 0 <= (line + offset) < len(self.code_lines)
-            }
-        )
+        expanded_lines = sorted({line + offset for line in lines for offset in (-1, 0, 1) if 0 <= (line + offset) < len(self.code_lines)})
         return "\n".join(self.code_lines[i] for i in expanded_lines)
 
-    def _label_edge_worker(
-        self, src: str, tgt: str, key: str, edge_data: dict, max_depth: int
-    ) -> MultiLabelledEdge | None:
-        if self.stop_event.is_set():
+    def _label_edge_worker(self, src: str, tgt: str, key: str, edge_data: dict, max_depth: int) -> MultiLabelledEdge | None:
+        if self.budget.stop_event.is_set():
             return None
 
         for attempt in range(self.config.retry_attempts):
             try:
-                subgraph = SubgraphExtractor.extract(
-                    self.G, src, tgt, key, max_depth=max_depth
-                )
+                subgraph = SubgraphExtractor.extract(self.G, src, tgt, key, max_depth=max_depth)
                 code_context = self._get_code_context(subgraph.edges)
 
-                sys_prompt = generate_system_prompt()
-                usr_prompt = generate_user_message(
-                    source_id=src,
-                    target_id=tgt,
-                    edge_code=str(edge_data.get("code", "")),
-                    subgraph_context=str(subgraph),
-                    raw_code=code_context,
+                response = self.provider.generate(
+                    prompt=generate_user_message(
+                        source_id=src,
+                        target_id=tgt,
+                        edge_code=str(edge_data.get("code", "")),
+                        subgraph_context=str(subgraph),
+                        raw_code=code_context,
+                    ),
+                    system_instruction=generate_system_prompt(),
+                    response_schema=MultiLabelledEdge,
                 )
 
-                labeled_edge, tokens_used = self._create_structured_completion(
-                    sys_prompt, usr_prompt
-                )
-
-                with self.token_lock:
-                    self.total_tokens_used += tokens_used
-                    if self.total_tokens_used >= self.max_tokens:
-                        logger.warning(
-                            f"""
-BUDGET EXCEEDED! {self.total_tokens_used} tokens used. Halting pool."""
-                        )
-                        self.stop_event.set()
-
-                return labeled_edge
+                self.budget.record_usage(response.token_usage)
+                return response.data
 
             except Exception as e:
                 logger.warning(f"Attempt {attempt + 1} failed for {src}->{tgt}: {e}")
-                if "429" in str(e) or "quota" in str(e).lower():
-                    time.sleep(self.config.retry_delay * 2)
-                elif attempt < self.config.retry_attempts - 1:
-                    time.sleep(self.config.retry_delay)
+                # Exponential backoff on rate limits
+                delay = self.config.retry_delay * (2 if "429" in str(e) else 1)
+                if attempt < self.config.retry_attempts - 1:
+                    time.sleep(delay)
                 else:
-                    logger.error(f"Fatal error on {src}->{tgt}: {e}")
+                    logger.error(f"Fatal error labeling {src}->{tgt} after {attempt + 1} attempts.")
                     return None
-
         return None
 
-    def label_graph(self) -> nx.MultiDiGraph:
-        edges_to_process = list(self.G.edges(data=True, keys=True))
+    def _label_batch_worker(self, batch_tasks: list[tuple[str, str, str, dict]]) -> list[tuple[str, str, str, MultiLabelledEdge | None]]:
+        """Processes a chunk of edges in a single LLM call."""
+        if self.budget.stop_event.is_set():
+            return []
 
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=self.config.max_workers
-        ) as executor:
-            future_to_edge = {
-                executor.submit(
-                    self._label_edge_worker, u, v, key, data, self.config.max_depth
-                ): (u, v, key)
-                for u, v, key, data in edges_to_process
-            }
+        # Prepare combined context
+        batch_prompts = []
+        for src, tgt, key, data in batch_tasks:
+            subgraph = SubgraphExtractor.extract(self.G, src, tgt, key, max_depth=self.config.max_depth)
+            ctx = self._get_code_context(subgraph.edges)
+            # Minimal prompt per edge to save tokens in the combined block
+            batch_prompts.append(f"Edge ID: {key}\nCode: {data.get('code')}\nContext: {ctx}")
 
-            for future in concurrent.futures.as_completed(future_to_edge):
-                u, v, key = future_to_edge[future]
+        aggregated_prompt = "\n---\n".join(batch_prompts)
+        system_instr = generate_system_prompt() + "\nReturn a JSON array of labels corresponding to the Edge IDs provided."
 
-                labeled_edge = future.result()
-                if labeled_edge is None:
-                    self.G.edges[u, v, key]["domain_label"] = "MISSING"
-                    self.G.edges[u, v, key]["reasoning"] = (
-                        "Budget limit reached or LLM failure."
-                    )
-                else:
-                    self.G.edges[u, v, key]["domain_label"] = labeled_edge.domain_label
-                    self.G.edges[u, v, key]["reasoning"] = labeled_edge.reasoning
+        try:
+            response = self.provider.generate(prompt=aggregated_prompt, system_instruction=system_instr, response_schema=BatchLabelResponse)
+            self.budget.record_usage(response.token_usage)
 
-        return self.G, self.total_tokens_used
+            # Map results back to IDs
+            label_map = {item.edge_id: item.label for item in response.data.labels}
+            return [(u, v, k, label_map.get(k)) for u, v, k, d in batch_tasks]
+
+        except Exception as e:
+            logger.error(f"Batch inference failure: {e}")
+            return [(u, v, k, None) for u, v, k, d in batch_tasks]
+
+    def label_graph(self, batch_size: int = 1) -> tuple[nx.MultiDiGraph, int]:
+        """
+        Orchestrates labeling.
+        If batch_size > 1, uses the aggregated method. Otherwise, uses atomic.
+        """
+        edges = list(self.G.edges(data=True, keys=True))
+
+        if batch_size <= 1:
+            return self._run_atomic(edges)
+
+        # Batching Logic
+        chunks = [edges[i : i + batch_size] for i in range(0, len(edges), batch_size)]
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.config.max_workers) as executor:
+            futures = [executor.submit(self._label_batch_worker, chunk) for chunk in chunks]
+
+            for future in concurrent.futures.as_completed(futures):
+                results = future.result()
+                for u, v, key, labeled_edge in results:
+                    self._apply_label(u, v, key, labeled_edge)
+
+        return self.G, self.budget.total_used
+
+    def _apply_label(self, u: str, v: str, key: str, labeled_edge: MultiLabelledEdge | None) -> None:
+        if labeled_edge:
+            self.G.edges[u, v, key].update({"domain_label": labeled_edge.domain_label, "reasoning": labeled_edge.reasoning})
+        else:
+            self.G.edges[u, v, key].update({"domain_label": "MISSING", "reasoning": "Inference failure."})

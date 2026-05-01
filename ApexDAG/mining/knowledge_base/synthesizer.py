@@ -1,9 +1,8 @@
 import logging
-import os
 
 import pandas as pd
-from google import genai
 
+from ApexDAG.llm.llm_provider import StructuredLLMProvider
 from ApexDAG.util.logger import configure_apexdag_logger
 
 from .models import BatchKBProposal
@@ -13,20 +12,11 @@ logger = logging.getLogger(__name__)
 
 
 class BatchSynthesizer:
-    def __init__(self, api_key: str | None = None) -> None:
-        key = api_key or os.getenv("GEMINI_API_KEY")
-        if not key:
-            raise ValueError("GEMINI_API_KEY is required for the Synthesizer.")
+    def __init__(self, provider: StructuredLLMProvider) -> None:
+        self.provider = provider
 
-        self.client = genai.Client()
-        self.model = "gemini-3.1-flash-lite-preview"
-
-    def synthesize(self, missing_ops: list[tuple[str, int]], current_kb_df: pd.DataFrame) -> pd.DataFrame:
-        logger.info(f"Phase 2: Synthesizing KB entries for top {len(missing_ops)} missing APIs...")
-
-        ops_list = "\n".join([f"- {op} (Found {count} times)" for op, count in missing_ops])
-
-        prompt = f"""
+    def _build_prompt(self, ops_list: str) -> str:
+        return f"""
 You are an expert AI Engineer constructing a Knowledge Base for an AST-based data provenance tracker.
 Your task is to map Python ML API calls to their semantic inputs and outputs.
 
@@ -51,30 +41,14 @@ Currently, our system fails to annotate the following highly frequent operations
 Generate accurate KB entries for these operations. Do not hallucinate APIs.
 """
 
-        # Rely on Google's native structured JSON generation
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt,
-            config={
-                "response_mime_type": "application/json",
-                "response_schema": BatchKBProposal,
-            },
-        )
+    def synthesize(self, missing_ops: list[tuple[str, int]], current_kb_df: pd.DataFrame) -> pd.DataFrame:
+        logger.info(f"Phase 2: Synthesizing KB entries for top {len(missing_ops)} missing APIs...")
 
-        proposal_data = BatchKBProposal.model_validate_json(response.text)
+        ops_list = "\n".join([f"- {op} (Found {count} times)" for op, count in missing_ops])
+        prompt = self._build_prompt(ops_list)
+        response = self.provider.generate(prompt=prompt, response_schema=BatchKBProposal)
 
-        new_entries = [
-            {
-                "Library": entry.Library,
-                "Module": entry.Module,
-                "Caller": entry.Caller,
-                "API Name": entry.API_Name,
-                "Inputs": entry.Inputs,
-                "Outputs": entry.Outputs,
-            }
-            for entry in proposal_data.entries
-        ]
-
+        new_entries = [entry.model_dump() for entry in response.data.entries]
         new_df = pd.DataFrame(new_entries)
         logger.info(f"Synthesized {len(new_df)} new KB entries.")
         return pd.concat([current_kb_df, new_df], ignore_index=True)

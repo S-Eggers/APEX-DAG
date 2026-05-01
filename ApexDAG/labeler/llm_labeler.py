@@ -1,6 +1,16 @@
 import logging
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    pass
+
+
+from ApexDAG.label_notebooks.__main__ import get_provider
 from ApexDAG.label_notebooks.labeler import ApexGraphLabeler
+from ApexDAG.label_notebooks.token_policy import TokenBudgetPolicy
 from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.labeler.edge_labeler import EdgeLabeler
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
@@ -22,14 +32,14 @@ class LLMLabeler(EdgeLabeler):
             retry_delay=1,
             success_delay=0,
             sleep_interval=0,
-            max_workers=16,
+            max_workers=1,
         )
+        provider = get_provider(config)
+        global_budget = TokenBudgetPolicy(max_tokens=config.max_tokens)
 
-        labeler = ApexGraphLabeler(
-            config=config, graph=graph.get_graph(), raw_code=graph.get_code()
-        )
+        labeler = ApexGraphLabeler(config=config, graph=graph.get_graph(), raw_code=graph.get_code(), provider=provider, token_budget=global_budget)
 
-        labeled_graph, tokens_used = labeler.label_graph()
+        labeled_graph, tokens_used = labeler.label_graph(batch_size=25)
         logger.info(f"LLMLabeler complete. Total tokens consumed: {tokens_used}")
 
         attrs_to_set = {}
