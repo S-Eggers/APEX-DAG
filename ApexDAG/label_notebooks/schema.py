@@ -3,7 +3,7 @@ from enum import StrEnum
 from textwrap import indent
 
 import networkx as nx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_validator
 
 from ApexDAG.sca.constants import REVERSE_EDGE_TYPES, REVERSE_NODE_TYPES
 
@@ -56,31 +56,42 @@ class MultiEdge(BaseModel):
 """
 
 
+class DomainKey(StrEnum):
+    MODEL_OPERATION = "MODEL_OPERATION"
+    DATA_IMPORT_EXTRACTION = "DATA_IMPORT_EXTRACTION"
+    DATA_TRANSFORM = "DATA_TRANSFORM"
+    EDA = "EDA"
+    DATA_EXPORT = "DATA_EXPORT"
+    NOT_RELEVANT = "NOT_RELEVANT"
+
+
+# Mapping logic to keep truth in one place
+DOMAIN_MAP = {
+    DomainKey.MODEL_OPERATION: 0,
+    DomainKey.DATA_IMPORT_EXTRACTION: 1,
+    DomainKey.DATA_TRANSFORM: 2,
+    DomainKey.EDA: 3,
+    DomainKey.DATA_EXPORT: 4,
+    DomainKey.NOT_RELEVANT: 5,
+}
+
+
 class MultiLabelledEdge(BaseModel):
-    source: str = Field(..., description="Unique identifier for the source of the edge.")
-    target: str = Field(..., description="Unique identifier for the target of the edge.")
-    key: str = Field(..., description="Unique key for the edge between source and target.")
-    code: str | None = Field(None, description="The code that connects the source and target nodes.")
-    edge_type: str = Field(..., description="Type of the edge from the AST parser.")
-    lineno: list[int] | None = Field(None, description="The line number mapping.")
-    domain_label: DomainLabel = Field(..., description="Domain-specific classification label for the edge.")
-    reasoning: str | None = Field(None, description="A concise explanation justifying the domain_label.")
+    source: str
+    target: str
+    # ... other fields ...
+    domain_label: str  # The LLM will provide the Key (e.g., "DATA_TRANSFORM")
+    predicted_label: int = 0  # We will compute this
+    reasoning: str
 
-    # Pydantic V2 configuration standard
-    model_config = ConfigDict(use_enum_values=True, populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True)
 
+    @field_validator("predicted_label", mode="before")
     @classmethod
-    def from_edge(cls, edge: MultiEdge, domain_label: DomainLabel, reasoning: str | None = None) -> "MultiLabelledEdge":
-        return cls(
-            source=edge.source,
-            target=edge.target,
-            key=edge.key,
-            edge_type=edge.edge_type,
-            code=edge.code,
-            lineno=edge.lineno,
-            domain_label=domain_label,
-            reasoning=reasoning,
-        )
+    def map_label_to_id(cls, v: int, info: FieldValidationInfo) -> int:
+        # Dynamically map the string key from the LLM to your DOMAIN_EDGES integer
+        label_key = info.data.get("domain_label")
+        return DOMAIN_MAP.get(label_key, 5)  # Default to NOT_RELEVANT
 
 
 class MultiGraphContext(BaseModel):

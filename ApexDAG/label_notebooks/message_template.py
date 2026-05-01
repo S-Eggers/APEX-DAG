@@ -1,23 +1,24 @@
-from ApexDAG.label_notebooks.schema import DomainLabel
-
-
 def generate_system_prompt() -> str:
-    domain_labels_str = DomainLabel.get_prompt_description()
-    return f"""You are a principal machine learning engineer analyzing an
- Abstract Syntax Tree (AST) dataflow graph.
-Your task is to classify a specific computational edge using the provided
- domain taxonomy.
+    descriptions = {
+        "MODEL_OPERATION": "Training, evaluating, tuning, or predicting.",
+        "DATA_IMPORT_EXTRACTION": "Loading data from files/APIs.",
+        "DATA_TRANSFORM": "Cleaning, preprocessing, feature engineering.",
+        "EDA": "Plotting, stats, head(), tail().",
+        "DATA_EXPORT": "Saving files, exporting environment.",
+        "NOT_RELEVANT": "Comments, logging, environment setup.",
+    }
+    taxonomy_str = "\n".join([f"- {k}: {v}" for k, v in descriptions.items()])
 
-## Taxonomy
-{domain_labels_str}
+    return f"""You are a principal ML engineer. Classify the <EDGE_OF_INTEREST>.
+
+## Taxonomy (Valid Keys)
+{taxonomy_str}
 
 ## Instructions
-1. Analyze the surrounding <SUBGRAPH_CONTEXT> to understand the data lineage.
-2. Examine the specific <EDGE_OF_INTEREST> and the raw <CODE> it represents.
-3. Determine the correct `domain_label` based strictly on the Taxonomy.
-4. If an operation spans multiple categories, default to the one that mutates the data
-   state most significantly.
-5. Provide a concise, technical justification in the `reasoning` field."""
+- You MUST return one of the VALID KEYS above as the `domain_label`.
+- Do NOT return the description; return the uppercase KEY.
+- Example: "DATA_TRANSFORM"
+- Provide technical reasoning."""
 
 
 def generate_user_message(

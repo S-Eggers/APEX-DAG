@@ -9,7 +9,7 @@ class ApexDAGBaseHandler(APIHandler):
     Abstract base handler for all ApexDAG pipeline executions.
     """
 
-    def initialize(self, model=None, jupyter_server_app_config=None) -> None:
+    def initialize(self, model: dict | None = None, jupyter_server_app_config: dict | None = None) -> None:
         self.model = model
         self.jupyter_server_app_config = jupyter_server_app_config
         self.last_analysis_results = {}
@@ -19,7 +19,7 @@ class ApexDAGBaseHandler(APIHandler):
         """The JSON key used to return the graph data (e.g., 'dataflow', 'ast_graph')."""
         raise NotImplementedError("Subclasses must define the response key.")
 
-    def create_pipeline(self, input_data: dict):
+    def create_pipeline(self, input_data: dict) -> None:
         """Instantiate and return the specific PipelineFactory object."""
         raise NotImplementedError("Subclasses must implement create_pipeline.")
 
@@ -34,14 +34,10 @@ class ApexDAGBaseHandler(APIHandler):
             if isinstance(cells_payload, list) and len(cells_payload) > 0:
                 cells = cells_payload
             elif isinstance(code_payload, list):
-                self.log.warning(
-                    "Frontend sent cell array under the 'code' key. Coercing to 'cells'."
-                )
+                self.log.warning("Frontend sent cell array under the 'code' key. Coercing to 'cells'.")
                 cells = code_payload
             else:
-                self.log.warning(
-                    "Legacy string payload received. Applying fallback cell_id."
-                )
+                self.log.warning("Legacy string payload received. Applying fallback cell_id.")
                 cells = [{"cell_id": "legacy_fallback", "source": str(code_payload)}]
 
             pipeline = self.create_pipeline(input_data)
@@ -49,9 +45,7 @@ class ApexDAGBaseHandler(APIHandler):
             try:
                 analysis_results = pipeline.execute(cells)
             except SyntaxError as e:
-                self.log.error(
-                    f"SyntaxError in {self.__class__.__name__}: {e}", exc_info=True
-                )
+                self.log.error(f"SyntaxError in {self.__class__.__name__}: {e}", exc_info=True)
                 self.set_status(400)
                 self.finish(
                     json.dumps(
@@ -65,6 +59,7 @@ class ApexDAGBaseHandler(APIHandler):
                 return
 
             self.last_analysis_results = analysis_results
+            # self.log.info(f"Processed successfully: {analysis_results}")
             self.finish(
                 json.dumps(
                     {
@@ -76,9 +71,7 @@ class ApexDAGBaseHandler(APIHandler):
             )
 
         except Exception as e:
-            self.log.error(
-                f"Unexpected error in {self.__class__.__name__}: {e}", exc_info=True
-            )
+            self.log.error(f"Unexpected error in {self.__class__.__name__}: {e}", exc_info=True)
             self.set_status(500)
             self.finish(
                 json.dumps(
@@ -89,5 +82,5 @@ class ApexDAGBaseHandler(APIHandler):
                 )
             )
 
-    def data_received(self, chunk) -> None:
+    def data_received(self, chunk: bytes) -> None:
         pass

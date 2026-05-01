@@ -13,6 +13,10 @@ class GraphNode:
     node_type: int
     cell_id: str
     code: str = ""
+    lineno: int | None = None
+    col_offset: int | None = None
+    end_lineno: int | None = None
+    end_col_offset: int | None = None
 
     predicted_label: int | None = None
     domain_label: str | None = None
@@ -36,6 +40,10 @@ class GraphEdge:
     edge_type: int
     label: str = "edge"
     cell_id: str
+    lineno: int | None = None
+    col_offset: int | None = None
+    end_lineno: int | None = None
+    end_col_offset: int | None = None
 
     predicted_label: int | None = None
     domain_label: str | None = None
