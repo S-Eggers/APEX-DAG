@@ -26,7 +26,6 @@ from ApexDAG.sca.constants import (
 # Graph Utilities
 from ApexDAG.sca.graph_utils import (
     convert_multidigraph_to_digraph,
-    debug_graph,
     get_all_subgraphs,
     get_subgraph,
     load_graph,
