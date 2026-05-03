@@ -4,27 +4,23 @@ import logging
 import random
 import time
 from pathlib import Path
-from typing import TypedDict
 
 import nbformat
 from dotenv import load_dotenv
 from tqdm import tqdm
 
-from ApexDAG.label_notebooks.llm_policy import ExecutionPolicy
-from ApexDAG.label_notebooks.utils import load_config
 from ApexDAG.labeler.llm_labeler import LLMLabeler
 from ApexDAG.llm.gemini_provider import GeminiProvider
+from ApexDAG.llm.models import load_config
 from ApexDAG.pipeline.labeling_pipeline import LabelingPipeline
 from ApexDAG.pipeline.labeling_pipeline_factory import LabelingPipelineFactory
 from ApexDAG.util.logger import configure_apexdag_logger
 
+from .llm_policy import ExecutionPolicy
+from .models import NotebookCellData
+
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
-
-
-class NotebookCellData(TypedDict):
-    cell_id: str
-    source: str
 
 
 def extract_structured_code(ipynb_path: Path) -> list[NotebookCellData]:

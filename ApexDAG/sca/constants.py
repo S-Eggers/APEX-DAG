@@ -1,17 +1,4 @@
-from dataclasses import asdict, dataclass
-
-
-@dataclass
-class ElementMetadata:
-    name: str
-    category: str
-    label: str
-    color: str
-    border_style: str
-
-    def to_dict(self) -> dict[str, str]:
-        return asdict(self)
-
+from .models import ElementMetadata
 
 DEFAULT_NODE_COLOR: str = "#B0E0E6"
 DEFAULT_EDGE_COLOR: str = "#d3d3d3"

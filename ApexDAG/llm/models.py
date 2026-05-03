@@ -6,16 +6,16 @@ import yaml
 
 @dataclass
 class Config:
-    model_name: str
-    sleep_interval: int
-    max_depth: int
+    llm_provider: str = "google"
+    model_name: str = "gemini-3.1-flash-lite-preview"
+    sleep_interval: int = 0
+    max_depth: int = 5
     max_tokens: int = sys.maxsize
-    llm_provider: str = "groq"
     retry_attempts: int = 3
     retry_delay: int = 30
     success_delay: int = 10
-    max_workers: int = 10
-    max_rpm: int = 1
+    max_workers: int = 2
+    max_rpm: int = 12
 
 
 def load_config(config_path: str) -> Config:

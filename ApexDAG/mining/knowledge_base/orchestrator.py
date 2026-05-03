@@ -48,6 +48,7 @@ class KBMinerOrchestrator:
         if not top_missing:
             logger.info("No missing operations found! The KB is perfectly complete.")
             return False
+        logger.info(f"Top missing operations: ({[op.name for op in top_missing]})")
 
         current_df = self.current_kb.knowledge_base
         enhanced_df = self.synthesizer.synthesize(top_missing, current_df)
@@ -57,7 +58,6 @@ class KBMinerOrchestrator:
 
         signature_cols = ["Library", "Module", "Caller", "API Name"]
         clean_df = clean_df.drop_duplicates(subset=signature_cols, keep="first").sort_values(signature_cols)
-        # ---------------------------------------------------------
 
         enhanced_kb = KB(knowledge_base=clean_df)
         enhanced_coverage = self.auditor.evaluate(enhanced_kb)

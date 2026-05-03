@@ -3,9 +3,11 @@ import json
 import logging
 import os
 from collections import Counter
+from collections.abc import Sequence
 
 from tqdm import tqdm
 
+from ApexDAG.prompts.models import OperationMetric
 from ApexDAG.util.logger import configure_apexdag_logger
 from ApexDAG.vamsa.extraction import GenWIR
 from ApexDAG.vamsa.lineage import KB, AnnotationWIR
@@ -15,10 +17,8 @@ from .models import CachedNotebook
 configure_apexdag_logger()
 logger = logging.getLogger(__name__)
 
-# Expanded Denylist: Now blocks structural ML data types and common EDA noise
 NON_ML_OPERATIONS = frozenset(
     {
-        # Base Python
         "append",
         "extend",
         "insert",
@@ -31,22 +31,10 @@ NON_ML_OPERATIONS = frozenset(
         "reverse",
         "copy",
         "update",
-        "keys",
-        "values",
-        "items",
         "get",
         "setdefault",
         "fromkeys",
         "format",
-        "split",
-        "join",
-        "replace",
-        "lower",
-        "upper",
-        "strip",
-        "find",
-        "startswith",
-        "endswith",
         "len",
         "print",
         "range",
@@ -61,9 +49,6 @@ NON_ML_OPERATIONS = frozenset(
         "all",
         "isinstance",
         "type",
-        "open",
-        "read",
-        "write",
         "close",
         "list",
         "dict",
@@ -78,10 +63,6 @@ NON_ML_OPERATIONS = frozenset(
         "__main__",
         "next",
         "iter",
-        "map",
-        "filter",
-        "reversed",
-        "sorted",
         "dir",
         "getattr",
         "setattr",
@@ -95,25 +76,14 @@ NON_ML_OPERATIONS = frozenset(
         "time",
         "exit",
         "quit",
-        "DataFrame",
-        "Series",
-        "array",
-        "asarray",
-        "ndarray",
         "shape",
         "head",
         "tail",
         "info",
         "describe",
-        "astype",
         "isnull",
         "notnull",
         "isna",
-        "dropna",
-        "fillna",
-        "unique",
-        "nunique",
-        "value_counts",
     }
 )
 
@@ -206,5 +176,8 @@ class CorpusProfiler:
 
         logger.info(f"Identified {len(self._missing_operations_counter)} unique unannotated operations.")
 
-    def get_top_missing(self, limit: int = 50) -> list[tuple[str, int]]:
-        return self._missing_operations_counter.most_common(limit)
+    def get_top_missing(self, limit: int = 50) -> Sequence[OperationMetric]:
+        if not self._missing_operations_counter:
+            return []
+
+        return [OperationMetric(name=name, count=count) for name, count in self._missing_operations_counter.most_common(limit)]

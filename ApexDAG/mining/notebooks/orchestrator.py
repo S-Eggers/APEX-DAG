@@ -9,8 +9,10 @@ from tqdm import tqdm
 
 from ApexDAG.mining.notebooks.iterator import JetbrainsNotebookIterator
 from ApexDAG.mining.notebooks.policy import GraphSamplingPolicy
-from ApexDAG.mining.notebooks.validator import PipelineValidator, ValidationMetrics
+from ApexDAG.mining.notebooks.validator import PipelineValidator
 from ApexDAG.util.logger import configure_apexdag_logger
+
+from .models import ValidationMetrics
 
 warnings.filterwarnings("ignore", category=SyntaxWarning)
 warnings.filterwarnings("ignore", module="nbformat")

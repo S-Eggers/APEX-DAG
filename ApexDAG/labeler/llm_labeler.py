@@ -2,10 +2,11 @@ import logging
 
 from ApexDAG.label_notebooks.labeler import ApexGraphLabeler
 from ApexDAG.label_notebooks.llm_policy import ExecutionPolicy
-from ApexDAG.label_notebooks.utils import Config
 from ApexDAG.labeler.edge_labeler import EdgeLabeler
 from ApexDAG.llm.gemini_provider import GeminiProvider
 from ApexDAG.llm.llm_provider import StructuredLLMProvider
+from ApexDAG.llm.models import Config
+from ApexDAG.prompts.EdgeClassificationTemplate import EdgeClassificationTemplate
 from ApexDAG.sca.constants import DOMAIN_EDGE_TYPES
 from ApexDAG.sca.py_data_flow_graph import PythonDataFlowGraph
 from dotenv import load_dotenv
@@ -38,11 +39,11 @@ class LLMLabeler(EdgeLabeler):
                 max_tokens=float("inf"),
                 max_rpm=10,
                 max_depth=4,
+                sleep_interval=0,
                 llm_provider="google",
                 retry_attempts=2,
                 retry_delay=1,
                 success_delay=0,
-                sleep_interval=0,
                 max_workers=1,
             )
             provider = GeminiProvider(model_name=config.model_name)
@@ -51,8 +52,8 @@ class LLMLabeler(EdgeLabeler):
             logger.warning("Setting a new config. The token limits and max RPM are resetted.")
 
         logger.info(f"Starting LLM labeling for graph with {len(graph.get_graph().edges)} edges.")
-
-        labeler = ApexGraphLabeler(config=self.config, graph=graph.get_graph(), raw_code=graph.get_code(), provider=self.provider, policy=self.policy)
+        template = EdgeClassificationTemplate()
+        labeler = ApexGraphLabeler(config=self.config, graph=graph.get_graph(), raw_code=graph.get_code(), provider=self.provider, policy=self.policy, template=template)
 
         batch_size = getattr(self.config, "batch_size", 25)
         labeled_graph, tokens_used = labeler.label_graph(batch_size=batch_size)

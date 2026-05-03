@@ -1,6 +1,7 @@
 import re
 from enum import StrEnum
 from textwrap import indent
+from typing import TypedDict
 
 import networkx as nx
 from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_validator
@@ -8,7 +9,6 @@ from pydantic import BaseModel, ConfigDict, Field, FieldValidationInfo, field_va
 from ApexDAG.sca.constants import REVERSE_EDGE_TYPES, REVERSE_NODE_TYPES
 
 
-# 1. Strict Alignment with New Taxonomy
 class DomainLabel(StrEnum):
     """Strictly maps to DOMAIN_EDGE_TYPES constants."""
 
@@ -152,3 +152,8 @@ class EdgeLabelPair(BaseModel):
 
 class BatchLabelResponse(BaseModel):
     labels: list[EdgeLabelPair]
+
+
+class NotebookCellData(TypedDict):
+    cell_id: str
+    source: str

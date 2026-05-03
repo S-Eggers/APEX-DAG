@@ -16,6 +16,7 @@ from ApexDAG.llm.gemini_provider import GeminiProvider
 from ApexDAG.mining.knowledge_base.orchestrator import KBMinerOrchestrator
 from ApexDAG.mining.knowledge_base.profiler import CorpusProfiler
 from ApexDAG.mining.knowledge_base.synthesizer import BatchSynthesizer
+from ApexDAG.prompts.KBPropagationTemplate import KBPropagationTemplate
 from ApexDAG.util.logger import configure_apexdag_logger
 
 configure_apexdag_logger()
@@ -61,7 +62,6 @@ def parse_args(args: Sequence[str] | None = None) -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
 
-    # Validate environment boundary before executing heavy processing
     if not os.getenv("GEMINI_API_KEY"):
         logger.error(
             """GEMINI_API_KEY environment variable is not set.
@@ -77,7 +77,8 @@ def main() -> int:
         profiler = CorpusProfiler(corpus_path=args.corpus)
 
         gemini_provider = GeminiProvider(model_name="gemini-3.1-flash-lite-preview", api_key=os.getenv("GEMINI_API_KEY"))
-        synthesizer = BatchSynthesizer(gemini_provider)
+        kb_propagation_template = KBPropagationTemplate()
+        synthesizer = BatchSynthesizer(gemini_provider, kb_propagation_template)
 
         orchestrator = KBMinerOrchestrator(
             profiler=profiler,

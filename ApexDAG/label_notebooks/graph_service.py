@@ -1,6 +1,6 @@
 import networkx as nx
 
-from ApexDAG.label_notebooks.schema import MultiGraphContext, MultiSubgraphContext
+from ApexDAG.label_notebooks.models import MultiGraphContext, MultiSubgraphContext
 
 
 class SubgraphExtractor:

@@ -6,13 +6,13 @@ import networkx as nx
 
 from ApexDAG.label_notebooks.graph_service import SubgraphExtractor
 from ApexDAG.label_notebooks.llm_policy import ExecutionPolicy
-from ApexDAG.label_notebooks.message_template import (
-    generate_system_prompt,
-    generate_user_message,
-)
-from ApexDAG.label_notebooks.schema import BatchLabelResponse, MultiLabelledEdge
-from ApexDAG.label_notebooks.utils import Config
+from ApexDAG.label_notebooks.models import BatchLabelResponse, MultiLabelledEdge
 from ApexDAG.llm.llm_provider import StructuredLLMProvider
+from ApexDAG.llm.models import Config
+from ApexDAG.prompts.EdgeClassificationTemplate import EdgeClassificationTemplate
+from ApexDAG.util.logger import configure_apexdag_logger
+
+configure_apexdag_logger()
 
 logger = logging.getLogger(__name__)
 
@@ -23,12 +23,13 @@ class ApexGraphLabeler:
     Delegates LLM execution to a Provider and budget tracking to a Policy.
     """
 
-    def __init__(self, config: Config, graph: nx.MultiDiGraph, raw_code: str, provider: StructuredLLMProvider, policy: ExecutionPolicy) -> None:
+    def __init__(self, config: Config, graph: nx.MultiDiGraph, raw_code: str, provider: StructuredLLMProvider, policy: ExecutionPolicy, template: EdgeClassificationTemplate) -> None:
         self.config = config
         self.G = graph
         self.code_lines = raw_code.splitlines()
         self.provider = provider
         self.policy = policy
+        self.template = template
 
         logger.info(f"Initialized ApexGraphLabeler. Budget: {self.policy.max_tokens} tokens.")
 
@@ -53,14 +54,14 @@ class ApexGraphLabeler:
                 code_context = self._get_code_context(subgraph.edges)
 
                 response = self.provider.generate(
-                    prompt=generate_user_message(
+                    prompt=self.template.render_user_message(
                         source_id=src,
                         target_id=tgt,
                         edge_code=str(edge_data.get("code", "")),
                         subgraph_context=str(subgraph),
                         raw_code=code_context,
                     ),
-                    system_instruction=generate_system_prompt(),
+                    system_instruction=self.template.render_system_message(),
                     response_schema=MultiLabelledEdge,
                 )
 
@@ -92,7 +93,7 @@ class ApexGraphLabeler:
             batch_prompts.append(f"Edge ID: {key}\nCode: {data.get('code')}\nContext: {ctx}")
 
         aggregated_prompt = "\n---\n".join(batch_prompts)
-        system_instr = generate_system_prompt() + "\nReturn a JSON array of labels corresponding to the Edge IDs provided."
+        system_instr = self.template.render_system_prompt() + "\nReturn a JSON array of labels corresponding to the Edge IDs provided."
 
         try:
             response = self.provider.generate(prompt=aggregated_prompt, system_instruction=system_instr, response_schema=BatchLabelResponse)
@@ -133,4 +134,4 @@ class ApexGraphLabeler:
         if labeled_edge:
             self.G.edges[u, v, key].update({"domain_label": labeled_edge.domain_label, "reasoning": labeled_edge.reasoning})
         else:
-            self.G.edges[u, v, key].update({"domain_label": "MISSING", "reasoning": "Inference failure."})
+            self.G.edges[u, v, key].update({"domain_label": "NOT_RELEVANT", "reasoning": "Inference failure."})
