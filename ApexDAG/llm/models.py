@@ -16,6 +16,7 @@ class Config:
     success_delay: int = 10
     max_workers: int = 2
     max_rpm: int = 12
+    batch_size: int = 5
 
 
 def load_config(config_path: str) -> Config:

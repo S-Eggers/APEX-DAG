@@ -19,7 +19,7 @@ class EdgeClassificationTemplate:
         4. Focus on the semantic intent: Is this data movement, model math, or just noise?
     """).strip()
 
-    def render_system_prompt(self) -> str:
+    def render_system_message(self) -> str:
         """Dynamically generates the prompt using the Enum source of truth."""
         taxonomy = DomainLabel.get_prompt_description()
 
