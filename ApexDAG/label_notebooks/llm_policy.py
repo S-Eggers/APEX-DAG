@@ -46,3 +46,7 @@ class ExecutionPolicy:
             if self._used_tokens >= self.max_tokens:
                 logger.critical("TOKEN BUDGET EXHAUSTED. Setting stop event.")
                 self.stop_event.set()
+
+    @property
+    def total_used(self) -> int:
+        return self._used_tokens
