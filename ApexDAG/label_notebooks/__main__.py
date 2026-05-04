@@ -22,7 +22,7 @@ def main() -> None:
     load_dotenv()
 
     parser = argparse.ArgumentParser(description="ApexDAG Batch Labeling Engine")
-    parser.add_argument("--config", type=str, default="ApexDAG/label_notebooks/config.yaml")
+    parser.add_argument("--config", type=str, default="./ApexDAG/llm/config/gemini-3.1-flash-lite.yaml")
     parser.add_argument("--input_dir", type=str, default="./data/jetbrains_dataset/notebooks")
     parser.add_argument("--output_dir", type=str, default="./data/jetbrains_dataset/annotations")
     args = parser.parse_args()
@@ -33,7 +33,6 @@ def main() -> None:
     policy = ExecutionPolicy(max_tokens=config.max_tokens, max_rpm=config.max_rpm)
 
     request_payload = {"llmClassification": getattr(config, "use_llm", True), "useRefiner": getattr(config, "use_refiner", True), "replaceDataflowInUDFs": getattr(config, "replace_dataflow", False)}
-
     pipeline = LabelingPipelineFactory.create(request_payload, model={})
     if isinstance(pipeline.labeler, LLMLabeler):
         pipeline.labeler.configure(config, resilient_provider, policy)
