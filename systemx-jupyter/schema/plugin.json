@@ -1,0 +1,242 @@
+{
+  "jupyter.lab.shortcuts": [
+    {
+      "command": "systemx:open-ast",
+      "keys": ["Accel Alt A"],
+      "selector": "body"
+    },
+    {
+      "command": "systemx:open-dataflow",
+      "keys": ["Accel Alt D"],
+      "selector": "body"
+    },
+    {
+      "command": "systemx:open-lineage",
+      "keys": ["Accel Alt L"],
+      "selector": "body"
+    },
+    {
+      "command": "systemx:open-vamsa",
+      "keys": ["Accel Alt V"],
+      "selector": "body"
+    },
+    {
+      "command": "systemx:open-labeling",
+      "keys": ["Accel Alt M"],
+      "selector": "body"
+    },
+    {
+      "command": "systemx:open-environment",
+      "keys": ["Accel Alt E"],
+      "selector": "body"
+    },
+    {
+      "command": "systemx:open-settings",
+      "keys": ["Accel Alt S"],
+      "selector": "body"
+    }
+  ],
+  "title": "Settings (SystemX)",
+  "description": "Configuration for the SystemX JupyterLab extension.",
+  "type": "object",
+  "properties": {
+    "extraction": {
+      "type": "object",
+      "title": "1. Data Extraction",
+      "default": {
+        "rawDatasetPath": "raw_dataset",
+        "greedyNotebookExtraction": true,
+        "defaultFetchMode": "unannotated",
+        "defaultFlagType": "needs_review"
+      },
+      "properties": {
+        "greedyNotebookExtraction": {
+          "type": "boolean",
+          "title": "Exhaustive Context Capture",
+          "description": "When enabled, the engine treats the notebook as a sequential script (top-to-bottom)."
+        },
+        "rawDatasetPath": {
+          "type": "string",
+          "title": "Labeling Dataset",
+          "description": "The workspace-relative dataset directory used by the 'Next' notebook iterator. Datasets under ./data (any folder containing a notebooks/ subdirectory) are auto-discovered and offered as a dropdown; you can still type a custom path."
+        },
+        "defaultFetchMode": {
+          "type": "string",
+          "title": "Default Labeling Mode",
+          "description": "The default mode when fetching the next notebook (unannotated, annotated, or flagged).",
+          "enum": ["unannotated", "annotated", "flagged"]
+        },
+        "defaultFlagType": {
+          "type": "string",
+          "title": "Default Target Flag",
+          "description": "If the default mode is 'flagged', which flag type should the engine target by default?",
+          "enum": ["bug_in_dataflow", "needs_review", "not_relevant"]
+        }
+      },
+      "additionalProperties": false
+    },
+    "processing": {
+      "type": "object",
+      "title": "2. Graph Processing",
+      "default": {
+        "replaceDataflowInUDFs": false,
+        "highlightRelevantSubgraphs": false,
+        "useGraphRefiner": true,
+        "usePredictionForAnnotation": false,
+        "explainFeatureImportance": false,
+        "detectDsl": false
+      },
+      "properties": {
+        "replaceDataflowInUDFs": {
+          "type": "boolean",
+          "title": "UDF Scope Inlining",
+          "description": "Attempts to inline internal dataflow of UDFs."
+        },
+        "detectDsl": {
+          "type": "boolean",
+          "title": "DSL Operator Interception",
+          "description": "Rewrites operator-overloading DSLs (Apache Beam pipelines, Airflow task dependencies, pipe libraries) into dataflow before graph construction."
+        },
+        "highlightRelevantSubgraphs": {
+          "type": "boolean",
+          "title": "Deterministic Lineage Pruning",
+          "description": "Aggressively removes topological paths that do not contribute to an Export."
+        },
+        "useGraphRefiner": {
+          "type": "boolean",
+          "title": "Post-Inference Heuristic Refiner",
+          "description": "Applies a deterministic rule-engine after neural classification."
+        },
+        "usePredictionForAnnotation": {
+          "type": "boolean",
+          "title": "Pre-labeled Annotations",
+          "description": "Use SystemX model for initial prediction when using the Annotations module."
+        },
+        "explainFeatureImportance": {
+          "type": "boolean",
+          "title": "Feature Importance Explanations",
+          "description": "Compute per-node feature importance during labeling and show it in the node sidebar. Slower; supported by the HGT and XGBoost backends."
+        }
+      },
+      "additionalProperties": false
+    },
+    "ml": {
+      "type": "object",
+      "title": "3. Machine Learning",
+      "default": {
+        "nnBackend": "hgt",
+        "featurePreset": "standard",
+        "modelVariant": "",
+        "execOrderBackend": "heuristic"
+      },
+      "properties": {
+        "modelVariant": {
+          "type": "string",
+          "title": "Model Variant",
+          "description": "Optional specific model checkpoint (manifest key) to use for the Lineage and Annotate views — chiefly a fine-tuned variant created by the Retrain button (e.g. xgboost_standard_ft20260709_153000). When set, it overrides the Model + Feature Set selection above. Leave blank to use the base model chosen above. The SystemX settings panel offers a dropdown of available variants.",
+          "default": ""
+        },
+        "nnBackend": {
+          "type": "string",
+          "title": "Lineage & Labeling Model",
+          "description": "Model family used for COMPUTE_HUB classification in the Lineage and Annotate views. HGT / MLP / XGBoost each require a checkpoint discovered from manifest.json in v2_checkpoints_dir (see jupyter_server_config.py). The learned models are combined with the Feature Set below.",
+          "enum": ["hgt", "mlp", "xgboost", "vamsa_static"],
+          "enumDescriptions": [
+            "Heterogeneous Graph Transformer + FastText embeddings",
+            "Multi-layer perceptron over node features (no graph attention)",
+            "XGBoost gradient-boosted trees over node features",
+            "Vamsa KB static lookup (no neural model; ignores Feature Set)"
+          ]
+        },
+        "featurePreset": {
+          "type": "string",
+          "title": "Feature Set",
+          "description": "Feature preset the selected model was trained with. Selects which checkpoint (manifest key <model>_<preset>) is used. NOTE: this setting has no effect when the Model is 'vamsa_static' (it is a static KB lookup with no learned features).",
+          "enum": ["standard", "all", "emb_only", "api_lib", "struct_only"],
+          "enumDescriptions": [
+            "Code + API + library embeddings and all structural features (default)",
+            "STANDARD plus graph-centrality features",
+            "Code embedding only (~300-d)",
+            "API-name + library embeddings only (~600-d)",
+            "Structural features only, no text (~5-d)"
+          ]
+        },
+        "execOrderBackend": {
+          "type": "string",
+          "title": "Execution Order Predictor",
+          "description": "Predictor used by the Execution State view. The heuristic needs no checkpoint; the learned predictors refine ambiguous bindings and tie-breaking and require an exec_order_* checkpoint in manifest.json (they fall back to the heuristic when not loaded).",
+          "enum": ["heuristic", "exec_order_mlp", "exec_order_xgboost"],
+          "enumDescriptions": [
+            "Dependency-graph topological sort with document-order tie-breaking (no model needed)",
+            "Pairwise cell-precedence MLP refining ambiguity resolution and tie-breaking",
+            "Pairwise cell-precedence XGBoost refining ambiguity resolution and tie-breaking"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "ui": {
+      "type": "object",
+      "title": "4. UI & Rendering",
+      "default": {
+        "debounceDelay": 1000,
+        "applyGlobalTheme": true
+      },
+      "properties": {
+        "debounceDelay": {
+          "type": "number",
+          "title": "ML Analysis Throttle (ms)",
+          "description": "Applies ONLY to the ML pipelines (Lineage, Annotate, Execution State). After you stop typing in a cell, the extension waits this long before running them, and runs at most one at a time (a new run starts only once you've stopped typing and nothing is already running — edits are never queued). Non-ML views (AST, Dataflow, Vamsa, Environment) always recompute immediately with no throttle. Use -1 to disable ML auto-recompute (they then update only when you run a cell).",
+          "minimum": -1
+        },
+        "applyGlobalTheme": {
+          "type": "boolean",
+          "title": "Apply SystemX Global Theme",
+          "description": "Restyle the whole JupyterLab UI — code cells, sidebar, toolbars, status bar and colors — to match the SystemX design. Turn off to keep JupyterLab's default appearance (the SystemX panels themselves are unaffected). Takes effect immediately."
+        }
+      },
+      "additionalProperties": false
+    },
+    "executionTrace": {
+      "type": "object",
+      "title": "5. Execution Trace",
+      "default": {
+        "enabled": true,
+        "autosave": "debounced",
+        "autosaveDelay": 5000,
+        "storagePath": "systemx_traces"
+      },
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "title": "Record Execution Order",
+          "description": "Observe every cell execution and keep an ordered, kernel-session-segmented trace per notebook. Purely observational — nothing is written into the notebook file."
+        },
+        "autosave": {
+          "type": "string",
+          "title": "Trace Autosave",
+          "enum": ["off", "debounced", "session-end"],
+          "enumDescriptions": [
+            "Never save automatically (manual Save button only).",
+            "Save shortly after each burst of executions (see delay below).",
+            "Save when a kernel session ends (restart, kernel change, or closing the notebook)."
+          ],
+          "description": "When to persist the recorded trace as a sidecar JSON on the server."
+        },
+        "autosaveDelay": {
+          "type": "number",
+          "title": "Autosave Delay (ms)",
+          "description": "Trailing debounce for the 'debounced' autosave mode: the trace is saved this long after the last recorded execution.",
+          "minimum": 500
+        },
+        "storagePath": {
+          "type": "string",
+          "title": "Trace Storage Path",
+          "description": "Workspace-relative directory for trace sidecars (saved under '<path>/traces/'). Recorded traces double as gold ordering supervision for the learned execution-order predictors."
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

@@ -1,0 +1,17 @@
+{
+  "hgt_standard": "hgt_api24_fullcleaned.pt",
+  "hgt_all": "hgt_all_cvbest_fold0.pt",
+  "hgt_api_lib": "hgt_api_lib_cvbest_fold1.pt",
+  "hgt_emb_only": "hgt_emb_only_cvbest_fold4.pt",
+  "hgt_struct_only": "hgt_struct_only_cvbest_fold2.pt",
+  "mlp_standard": "mlp_api24_fullcleaned.pt",
+  "mlp_all": "mlp_all_cvbest_fold1.pt",
+  "mlp_api_lib": "mlp_api_lib_cvbest_fold1.pt",
+  "mlp_emb_only": "mlp_emb_only_cvbest_fold1.pt",
+  "mlp_struct_only": "mlp_struct_only_cvbest_fold1.pt",
+  "xgboost_standard": "xgboost_api24_fullcleaned.json",
+  "xgboost_all": "xgboost_all_cvbest_fold1.json",
+  "xgboost_api_lib": "xgboost_api_lib_cvbest_fold1.json",
+  "xgboost_emb_only": "xgboost_emb_only_cvbest_fold4.json",
+  "xgboost_struct_only": "xgboost_struct_only_cvbest_fold1.json"
+}

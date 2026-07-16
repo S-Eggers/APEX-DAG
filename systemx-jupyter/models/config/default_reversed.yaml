@@ -1,0 +1,31 @@
+checkpoint_path: "/home/nzukowska/data/systemx_results/jetbrains_dfg_100k_new_labeled/execution_graphs"
+encoded_checkpoint_path: "data/raw/pytorch-embedded-finetune-reversed"
+pretrained_model_path: "checkpoints/model_epoch_pretrained_REVERSED_10.pt"
+train_split: 0.75
+test_split: 0.125
+val_split: 0.125
+
+mode: 'REVERSED'
+subsample: True
+
+seed: 42
+device: "cuda:0"
+load_encoded_old_if_exist: True
+
+dim_embed: 300
+hidden_dim: 128
+num_heads: 4
+number_gat_blocks: 3
+dropout: 0.5
+residual: True
+node_classes: 100
+edge_classes: 5
+
+batch_size: 32
+learning_rate: 0.00005
+min_nodes: 3
+min_edges: 2
+weight_decay: 0.00001
+num_epochs: 2000
+patience: 30
+subsample_thereshold: 0.90

@@ -1,0 +1,9 @@
+llm_provider: "google"
+model_name: "gemini-3.0-flash"
+max_tokens: 5000000
+max_rpm: 15
+max_output_tokens: 32
+thinking_budget: 0
+max_workers: 2
+retry_attempts: 3
+retry_delay: 30

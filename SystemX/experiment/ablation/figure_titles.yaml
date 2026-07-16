@@ -1,0 +1,38 @@
+fig1_main_f1:
+  title: Lineage Graph Extraction by Model
+
+fig2_per_class_f1:
+  title: Held-out Per-Class F1
+
+fig3_ablations:
+  title: Feature-Set Ablation
+
+fig4_scalability:
+  title: End-to-End Time versus Notebook Complexity
+
+fig5_dataset_f1:
+  title: Lineage Graph Extraction by Dataset
+
+fig6_generalization:
+  title: Cross-Dataset Generalization for {model}
+  subtitle: Diagonal cells are in-domain scores and $\Delta$ is the transfer gap versus the source dataset.
+
+fig7_balancing:
+  title: Class-Imbalance Ablation by Balancing Strategy per Model (asterisk marks the default)
+
+fig_tuple_f1:
+  title: Lineage-Tuple Extraction F1 by Method
+
+fig_tuple_refiner:
+  title: Refinement-Rule Ablation on Lineage Tuples (HGT)
+
+fig_leakage_prevalence:
+  title: Static Leakage Prevalence and Detector Reliability
+
+fig_vamsa_kb_coverage:
+  title: Vamsa KB Coverage of the Library Long Tail
+  subtitle: Raw static-labeler recall by library novelty, the published KB covers only mainstream shared libraries.
+
+fig_vamsa_generalization:
+  title: Learned-KB Cross-Dataset Transfer
+  subtitle: KB learned from each corpus's gold annotations, raw static-labeler F1, no refinement.

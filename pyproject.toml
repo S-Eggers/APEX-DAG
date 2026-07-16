@@ -1,0 +1,75 @@
+[project]
+name = "systemx"
+version = "0.4.0"
+description = "DAG processing and AI pipeline"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "astpretty>=3.0.0",
+    "fasttext>=0.9.3",
+    "google-genai>=0.1.0",
+    "groq>=1.2.0",
+    "ijson>=3.2.3",
+    "instructor>=1.0.0",
+    "ipykernel>=6.29.0",
+    "jupyter>=1.0.0",
+    "jupyterlab>=4.5.6",
+    "nbformat>=5.10.0",
+    "networkx>=3.3",
+    "numpy>=1.26.4,<2.0.0",
+    "openai>=1.0",
+    "pandas>=2.2.0",
+    "pip>=26.1.2",
+    "polars>=1.42.1",
+    "pydantic>=2.10.0",
+    "python-dotenv>=1.0.0",
+    "scikit-learn>=1.5.0",
+    "tensorboard>=2.20.0",
+    "torch>=2.11.0",
+    "torch-geometric>=2.7.0",
+    "torchaudio>=2.11.0",
+    "torchvision>=0.26.0",
+    "tqdm>=4.66.0",
+    "transformers>=5.6.2",
+    "xgboost>=3.3.0",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.6.0",
+    "ruff>=0.15.12",
+]
+
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["SystemX", "SystemX.*"]
+
+[tool.ruff]
+src = ["SystemX", "systemx-jupyter"]
+line-length = 200
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "N", "SIM", "RUF", "ANN"]
+ignore = ["N999", "N806", "UP046"]
+
+[tool.ruff.lint.per-file-ignores]
+# Analysis/plotting scripts: allow typographic unicode (en-dash, minus) in figure
+# labels/comments, and the immediate-call closure pattern in the CV aggregator.
+"SystemX/experiment/**/*.py" = ["E402", "ANN", "RUF001", "RUF002", "RUF003", "B023"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+torchvision = { index = "pytorch-cpu" }
+torchaudio = { index = "pytorch-cpu" }

@@ -1,0 +1,10 @@
+model_name: "llama-3.3-70b-versatile"
+max_tokens: 100000
+max_rpm: 10
+max_depth: 2
+llm_provider: "groq"
+retry_attempts: 3
+retry_delay: 60
+success_delay: 0
+sleep_interval: 0
+max_workers: 2

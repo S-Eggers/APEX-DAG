@@ -1,0 +1,9 @@
+llm_provider: "google"
+model_name: "gemini-2.5-pro"
+max_tokens: 20000000
+max_rpm: 500
+max_output_tokens: 8192
+thinking_budget: 512
+max_workers: 4
+retry_attempts: 3
+retry_delay: 30

@@ -1,0 +1,429 @@
+import logging
+import re
+from collections.abc import Iterator
+
+import networkx as nx
+from networkx import Graph, MultiDiGraph
+
+from SystemX.sca.constants import DOMAIN_EDGE_TYPES, EDGE_TYPES, NODE_TYPES
+from SystemX.sca.models import GraphEdge, GraphNode
+
+logger = logging.getLogger(__name__)
+
+type NxAttrValue = str | int | float | bool | list | dict | None
+type StateValue = str | dict | list | MultiDiGraph | None
+
+class State:
+    def __init__(self, name: str, parent_context: str | None = None) -> None:
+        self.edge_for_current_target: dict[str, NxAttrValue] = {}
+        self.variable_versions: dict[str, list[str]] = {}
+        self.imported_names: dict[str, NxAttrValue] = {}
+        self.import_from_modules: dict[str, NxAttrValue] = {}
+        self.classes: dict[str, NxAttrValue] = {}
+        self.functions: dict[str, NxAttrValue] = {}
+        self.current_target: str | None = None
+        self.current_variable: str | None = None
+        self.current_class: str | None = None
+        self.last_variable: str | None = None
+        self.payload: dict[str, NxAttrValue] | None = None
+        self.context: str = name
+        self.parent_context: str | None = parent_context
+        self._G: MultiDiGraph = MultiDiGraph()
+
+    def __getitem__(self, name: str) -> StateValue:
+        match name:
+            case "current_variable":
+                return self.current_variable
+            case "current_target":
+                return self.current_target
+            case "current_class":
+                return self.current_class
+            case "last_variable":
+                return self.last_variable
+            case "payload":
+                return self.payload
+            case "context":
+                return self.context
+            case "parent_context":
+                return self.parent_context
+            case "edge_for_current_target":
+                return self.edge_for_current_target
+            case "variable_versions":
+                return self.variable_versions
+            case "imported_names":
+                return self.imported_names
+            case "import_from_modules":
+                return self.import_from_modules
+            case "classes":
+                return self.classes
+            case "functions":
+                return self.functions
+            case "_G":
+                return self._G
+            case _:
+                raise ValueError(f"Attribute {name} not a valid attribute")
+
+    def __setitem__(self, name: str, value: StateValue) -> None:
+        match name:
+            case "current_variable":
+                self.current_variable = value  # type: ignore[assignment]
+            case "current_target":
+                self.current_target = value  # type: ignore[assignment]
+            case "current_class":
+                self.current_class = value  # type: ignore[assignment]
+            case "last_variable":
+                self.last_variable = value  # type: ignore[assignment]
+            case "payload":
+                self.payload = value  # type: ignore[assignment]
+            case "context":
+                self.context = value  # type: ignore[assignment]
+            case "parent_context":
+                self.parent_context = value  # type: ignore[assignment]
+            case "edge_for_current_target":
+                self.edge_for_current_target = value  # type: ignore[assignment]
+            case "variable_versions":
+                self.variable_versions = value  # type: ignore[assignment]
+            case "imported_names":
+                self.imported_names = value  # type: ignore[assignment]
+            case "import_from_modules":
+                self.import_from_modules = value  # type: ignore[assignment]
+            case "classes":
+                self.classes = value  # type: ignore[assignment]
+            case "functions":
+                self.functions = value  # type: ignore[assignment]
+            case "_G":
+                self._G = value  # type: ignore[assignment]
+            case _:
+                raise ValueError(f"Attribute {name} not a valid attribute")
+
+    def set_current_variable(self, value: str) -> None:
+        self.current_variable = value
+
+    def set_current_target(self, value: str) -> None:
+        self.current_target = value
+
+    def set_last_variable(self, value: str) -> None:
+        self.last_variable = value
+
+    def merge(self, branches: list[tuple], cell_id: str = "unknown_cell", hub_node: str | None = None) -> None:
+        """Merges divergent states from branches or loops back into the main state."""
+        new_variable_versions = {key: value[:] for key, value in self.variable_versions.items()}
+
+        for state, var_edge, edge_type in branches:
+            for key, value in state["variable_versions"].items():
+                if key in self.variable_versions:
+                    last_base_var = self.variable_versions[key][-1]
+                    first_child_var = value[0]
+
+                    if hub_node:
+                        if not self.has_edge(last_base_var, hub_node):
+                            self.add_edge(source=last_base_var, target=hub_node, label="initial_state", edge_type=EDGE_TYPES["INPUT"], cell_id=cell_id)
+                    else:
+                        self.add_edge(source=last_base_var, target=first_child_var, label=var_edge, edge_type=edge_type, cell_id=cell_id)
+
+                    new_variable_versions[key] += value
+                else:
+                    new_variable_versions[key] = value
+
+            self._G = nx.compose(self._G, state["_G"])
+
+        self.variable_versions = new_variable_versions
+
+    def copy_graph(self) -> Graph:
+        return self._G.copy()
+
+    def set_graph(self, graph: MultiDiGraph) -> None:
+        self._G = graph
+
+    def get_graph(self) -> MultiDiGraph:
+        return self._G
+
+    def get_node(self, node_identifier: str) -> dict[str, NxAttrValue]:
+        return self._G.nodes[node_identifier]
+
+    def remove_node(self, node_identifier: str) -> None:
+        self._G.remove_node(node_identifier)
+
+    def node_iterator(self) -> Iterator[str]:
+        yield from self._G.nodes
+
+    def adjacent_node_iterator(self, node_identifier: str) -> Iterator[str]:
+        yield from self._G[node_identifier]
+
+    def add_node(
+        self,
+        node_name: str,
+        node_type: int,
+        code: str = "",
+        cell_id: str = "unknown_cell",
+        label: str | None = None,
+    ) -> None:
+        if not self._G.has_node(node_name):
+            if not label:
+                if node_name.startswith("literal_"):
+                    label = "literal"
+                elif node_name.startswith("iterable_"):
+                    label = "iterable"
+                elif node_name.startswith("chain_"):
+                    label = "chain"
+                elif node_name.startswith("loop_"):
+                    label = "loop"
+                elif node_name.startswith("branch_"):
+                    label = "branch"
+                else:
+                    label = re.sub(r"_[a-zA-Z0-9\-]{3,8}_\d+(?:_\d+)?$", "", node_name)
+
+            node_model = GraphNode(
+                id=node_name,
+                label=label,
+                node_type=node_type,
+                cell_id=cell_id,
+                code=code,
+            )
+            self._G.add_node(node_name, **node_model.to_networkx_attrs())
+        else:
+            if code and not self._G.nodes[node_name].get("code"):
+                self._G.nodes[node_name]["code"] = code
+            if cell_id != "unknown_cell" and self._G.nodes[node_name].get("cell_id") in [None, "unknown_cell"]:
+                self._G.nodes[node_name]["cell_id"] = cell_id
+
+    def node_degree(self, node_identifier: str) -> dict[str, int]:
+        return {
+            "in": self._G.out_degree(node_identifier),
+            "out": self._G.in_degree(node_identifier),
+        }
+
+    def predecessor_node_iterator(self, node_identifier: str) -> Iterator[str]:
+        yield from self._G.predecessors(node_identifier)
+
+    def successor_node_iterator(self, node_identifier: str) -> Iterator[str]:
+        yield from self._G.successors(node_identifier)
+
+    def has_edge(self, source: str, target: str, key: str | None = None) -> bool:
+        if key:
+            return self._G.has_edge(source, target, key=key)
+        else:
+            return self._G.has_edge(source, target)
+
+    def get_edge_iterator(self, source: str, target: str) -> Iterator[tuple[str, dict[str, NxAttrValue]]]:
+        edges = self._G.get_edge_data(source, target)
+        yield from edges.items()
+
+    def set_edge_data(self, source: str, target: str, edge_key: str, **kwargs: NxAttrValue) -> None:
+        for key, value in kwargs.items():
+            self._G[source][target][edge_key][key] = value
+
+    def remove_edge(self, node_x: str, node_y: str, key: str) -> None:
+        self._G.remove_edge(node_x, node_y, key)
+
+    def get_edge_data(self, source: str, target: str, edge_key: str, key: str) -> NxAttrValue:
+        return self._G[source][target][edge_key][key]
+
+    def add_edge(
+        self,
+        source: str,
+        target: str,
+        label: str,
+        edge_type: int,
+        raw_code: str = "",
+        lineno: int = -1,
+        col_offset: int = -1,
+        end_lineno: int = -1,
+        end_col_offset: int = -1,
+        cell_id: str = "unknown_cell",
+    ) -> None:
+        if source and target and source != target and len(label) > 0:
+            key = f"{source}_{target}_{label}"
+
+            if self.has_edge(source, target, key=key):
+                edge_count = int(self.get_edge_data(source, target, key, "count") or 0)
+                self.set_edge_data(source, target, key, count=edge_count + 1)
+            else:
+                edge_model = GraphEdge(
+                    source=source,
+                    target=target,
+                    edge_type=edge_type,
+                    cell_id=cell_id,
+                    label=label,
+                )
+
+                position_and_meta = {
+                    "lineno": lineno,
+                    "col_offset": col_offset,
+                    "end_lineno": end_lineno,
+                    "end_col_offset": end_col_offset,
+                    "count": 1,
+                    "raw_code": raw_code,
+                }
+
+                attrs = edge_model.to_networkx_attrs()
+                attrs.update(position_and_meta)
+
+                self._G.add_edge(source, target, key=key, **attrs)
+        else:
+            logger.debug("Ignoring edge %s -> %s with code %s", source, target, raw_code)
+
+    def _filter_irrelevant_dataflow(self) -> set[str]:
+        nodes_to_remove = set()
+        for node in self.node_iterator():
+            if self._G.out_degree(node) == 0 and self._G.in_degree(node) == 1 and self._G.nodes[next(iter(self._G.predecessors(node)))]["node_type"] == NODE_TYPES["IMPORT"]:
+                nodes_to_remove.add(node)
+        return nodes_to_remove
+
+    def _filter_unlabeled_components(self) -> set[str]:
+        nodes_to_remove = set()
+        for component in nx.weakly_connected_components(self._G):
+            has_special_edge = False
+            for node in component:
+                for _, _, data in self._G.edges(node, data=True):
+                    if data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]:
+                        has_special_edge = True
+                        break
+                if has_special_edge:
+                    break
+
+            if not has_special_edge:
+                nodes_to_remove.update(component)
+        return nodes_to_remove
+
+    def _rewire_eda_nodes(self) -> tuple[set[str], list[tuple[str, str, dict[str, NxAttrValue]]]]:
+        nodes_to_remove_eda = {v for _, v, data in self._G.edges(data=True) if data.get("predicted_label") == DOMAIN_EDGE_TYPES["EDA"]}
+
+        if not nodes_to_remove_eda:
+            return set(), []
+
+        edges_to_add = []
+
+        boundary_predecessors = {p for h in nodes_to_remove_eda for p in self._G.predecessors(h) if p not in nodes_to_remove_eda}
+
+        for pred in boundary_predecessors:
+            search_q = [s for s in self._G.successors(pred) if s in nodes_to_remove_eda]
+            visited_in_eda = set(search_q)
+
+            processed_external_succs = set()
+
+            while search_q:
+                curr = search_q.pop(0)
+                for succ in self._G.successors(curr):
+                    if succ in nodes_to_remove_eda:
+                        if succ not in visited_in_eda:
+                            visited_in_eda.add(succ)
+                            search_q.append(succ)
+                    elif succ not in processed_external_succs:
+                        processed_external_succs.add(succ)
+                        if self._G.has_edge(curr, succ):
+                            for _, data in self._G.get_edge_data(curr, succ).items():
+                                edges_to_add.append((pred, succ, data.copy()))
+
+        return nodes_to_remove_eda, edges_to_add
+
+    def _update_node_types(self) -> None:
+        q = []
+        for _, v, data in self._G.edges(data=True):
+            if (data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_IMPORT_EXTRACTION"]) and self._G.nodes[v].get("node_type") != NODE_TYPES["DATASET"]:
+                self._G.nodes[v]["node_type"] = NODE_TYPES["DATASET"]
+                q.append(v)
+
+        visited = set(q)
+        while q:
+            curr = q.pop(0)
+            for succ in self._G.successors(curr):
+                if succ not in visited:
+                    is_dataset_transform = False
+                    for _, edge_data in self._G.get_edge_data(curr, succ).items():
+                        if edge_data.get("predicted_label") == DOMAIN_EDGE_TYPES["DATA_TRANSFORM"]:
+                            is_dataset_transform = True
+                            break
+
+                    if is_dataset_transform:
+                        self._G.nodes[succ]["node_type"] = NODE_TYPES["DATASET"]
+                        visited.add(succ)
+                        q.append(succ)
+
+    def filter_relevant(self, lineage_mode: bool = False) -> None:
+        nodes_to_remove = self._filter_irrelevant_dataflow()
+
+        if lineage_mode:
+            nodes_to_remove.update(self._filter_unlabeled_components())
+
+            nodes_to_remove_eda, edges_to_add = self._rewire_eda_nodes()
+
+            if nodes_to_remove_eda:
+                for u, v, data in edges_to_add:
+                    self._G.add_edge(u, v, **data)
+                nodes_to_remove.update(nodes_to_remove_eda)
+
+            self._update_node_types()
+
+        self._G.remove_nodes_from(nodes_to_remove)
+
+    def optimize(self) -> None:
+        edges_to_remove = []
+        nodes_to_remove = []
+        edges_to_add = []
+
+        for node_x in self.node_iterator():
+            node_degrees = self.node_degree(node_x)
+            if node_degrees["in"] == 0 and node_degrees["out"] == 0:
+                logger.debug("Removing node %s as it has no edges", node_x)
+                nodes_to_remove.append(node_x)
+
+            node_data_x = self.get_node(node_x)
+            node_type_x = node_data_x.get("node_type")
+
+            if node_type_x == NODE_TYPES["IF"]:
+                should_optimize = True
+                temp_new_edges = []
+
+                for next_node in self.successor_node_iterator(node_x):
+                    for prev_node in self.predecessor_node_iterator(node_x):
+                        for _, attributes in self.get_edge_iterator(node_x, next_node):
+                            if attributes["edge_type"] in [
+                                EDGE_TYPES["LOOP"],
+                                EDGE_TYPES["BRANCH"],
+                            ]:
+                                should_optimize = False
+
+                            temp_new_edges.append(
+                                {
+                                    "source": prev_node,
+                                    "target": next_node,
+                                    "label": attributes.get("label") or attributes.get("code", "reassign"),
+                                    "edge_type": attributes["edge_type"],
+                                    "raw_code": attributes.get("raw_code") or attributes.get("code", ""),
+                                    "cell_id": attributes.get(
+                                        "cell_id",
+                                        node_data_x.get("cell_id", "unknown_cell"),
+                                    ),
+                                }
+                            )
+
+                if should_optimize:
+                    nodes_to_remove.append(node_x)
+                    edges_to_add += temp_new_edges
+                continue
+
+            for node_y in self.adjacent_node_iterator(node_x):
+                edges_between_nodes = list(self.get_edge_iterator(node_x, node_y))
+                if len(edges_between_nodes) > 1:
+                    for key, edge_data in edges_between_nodes:
+                        edge_label = str(edge_data.get("label", ""))
+                        if (edge_label in node_x.lower() or edge_label.replace(" ", "_") in node_x.lower()) and edge_data["edge_type"] == EDGE_TYPES["INPUT"]:
+                            logger.debug("Removing redundant input edge: %s", edge_label)
+                            edges_to_remove.append((node_x, node_y, key))
+
+        for node in nodes_to_remove:
+            self.remove_node(node)
+
+        for node_x, node_y, key in edges_to_remove:
+            self.remove_edge(node_x, node_y, key)
+
+        for edge_payload in edges_to_add:
+            self.add_edge(
+                source=str(edge_payload["source"]),
+                target=str(edge_payload["target"]),
+                label=str(edge_payload["label"]),
+                edge_type=int(edge_payload["edge_type"]),  # type: ignore[arg-type]
+                raw_code=str(edge_payload["raw_code"]),
+                cell_id=str(edge_payload["cell_id"]),
+            )

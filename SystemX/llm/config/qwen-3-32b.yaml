@@ -1,0 +1,10 @@
+model_name: "qwen/qwen3-32b"
+max_tokens: 500000
+max_rpm: 15
+max_depth: 2
+llm_provider: "groq"
+retry_attempts: 3
+retry_delay: 60
+success_delay: 0
+sleep_interval: 0
+max_workers: 2

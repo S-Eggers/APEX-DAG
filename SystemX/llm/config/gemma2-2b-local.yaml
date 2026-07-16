@@ -1,0 +1,8 @@
+llm_provider: "mlx"
+model_name: "mlx-community/gemma-2-2b-it-4bit"
+max_output_tokens: 32
+thinking_budget: 0
+max_rpm: 100000
+max_workers: 1
+retry_attempts: 2
+retry_delay: 5

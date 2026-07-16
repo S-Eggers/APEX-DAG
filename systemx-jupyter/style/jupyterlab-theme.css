@@ -1,0 +1,203 @@
+.systemx-theme .jp-Notebook .jp-CodeCell .jp-InputArea-editor {
+  border-radius: 8px;
+  border: 1px solid var(--jp-border-color2);
+
+  overflow: hidden;
+}
+
+.systemx-theme .jp-Notebook .jp-CodeCell .jp-InputArea-editor .cm-content {
+  padding-block: 6px;
+  padding-inline: 4px;
+}
+
+.systemx-theme .jp-Notebook .jp-CodeCell .jp-Cell-inputWrapper {
+  margin-block: 3px;
+}
+
+
+body.systemx-theme[data-jp-theme-light='false'] {
+  --jp-layout-color0: #0d1117;
+  --jp-layout-color1: #161b22;
+  --jp-layout-color2: #21262d;
+  --jp-layout-color3: #2d333b;
+  --jp-layout-color4: #373e47;
+
+  --jp-border-color0: #30363d;
+  --jp-border-color1: #262c34;
+  --jp-border-color2: #21262d;
+  --jp-border-color3: #1a1f27;
+
+  --jp-toolbar-background: #161b22;
+  --jp-toolbar-border-color: #21262d;
+
+  --jp-cell-editor-background: #161b22;
+  --jp-cell-editor-active-background: #1c2128;
+  --jp-cell-editor-border-color: #21262d;
+}
+
+
+body.systemx-theme[data-jp-theme-light='true'] {
+  --jp-layout-color0: #fff;
+  --jp-layout-color1: #f9fbfe;
+  --jp-layout-color2: #eef2f8;
+  --jp-layout-color3: #e2e8f1;
+  --jp-layout-color4: #7a8699;
+
+  --jp-border-color0: #ccd4e2;
+  --jp-border-color1: #dbe1ec;
+  --jp-border-color2: #e6ebf3;
+  --jp-border-color3: #eef1f7;
+
+  --jp-toolbar-background: #eef2f8;
+  --jp-toolbar-border-color: #e2e8f1;
+
+  --jp-cell-editor-background: #fbfcff;
+  --jp-cell-editor-active-background: #f4f7fc;
+  --jp-cell-editor-border-color: #e2e8f1;
+}
+
+body.systemx-theme[data-jp-theme-light='false']
+  .jp-Notebook
+  .jp-CodeCell
+  .jp-InputArea-editor {
+  border-color: #21262d;
+}
+
+body.systemx-theme[data-jp-theme-light='false']
+  .jp-Notebook
+  .jp-CodeCell
+  .jp-InputArea-editor
+  .cm-editor,
+body.systemx-theme[data-jp-theme-light='false']
+  .jp-Notebook
+  .jp-CodeCell
+  .jp-InputArea-editor
+  .cm-gutters {
+  background-color: #161b22;
+}
+
+body.systemx-theme[data-jp-theme-light='false']
+  .jp-Notebook
+  .jp-CodeCell.jp-mod-active
+  .jp-InputArea-editor
+  .cm-editor {
+  background-color: #1c2128;
+}
+
+
+.systemx-theme .jp-SideBar .lm-TabBar-tab {
+  border-radius: 6px;
+  margin: 2px 3px;
+  transition:
+    background-color 120ms ease,
+    color 120ms ease;
+}
+
+.systemx-theme .jp-SideBar .lm-TabBar-tab:hover,
+.systemx-theme .jp-SideBar .lm-TabBar-tab.lm-mod-current {
+  background-color: var(--jp-layout-color2);
+}
+
+.systemx-theme .jp-DirListing-content {
+  padding: 4px 6px;
+}
+
+.systemx-theme .jp-DirListing-item {
+  border-radius: 6px;
+  margin: 1px 0;
+  transition: background-color 120ms ease;
+}
+
+.systemx-theme .jp-DirListing-item:hover {
+  background-color: var(--jp-layout-color2);
+}
+
+
+.systemx-theme .jp-FileBrowser-toolbar.jp-Toolbar {
+  padding: 4px 0;
+  border-bottom: 1px solid var(--jp-border-color2);
+}
+
+.systemx-theme .jp-FileBrowser-toolbar.jp-Toolbar::part(positioning-region) {
+  flex-wrap: nowrap;
+}
+
+.systemx-theme .jp-FileBrowser-filterBox .jp-InputGroup,
+.systemx-theme .jp-FileBrowser-filterBox input {
+  border-radius: 6px;
+}
+
+body.systemx-theme[data-jp-theme-light='false'] .jp-SideBar {
+  background-color: #0d1117;
+}
+
+body.systemx-theme[data-jp-theme-light='false'] #jp-left-stack,
+body.systemx-theme[data-jp-theme-light='false'] .jp-FileBrowser,
+body.systemx-theme[data-jp-theme-light='false'] .jp-FileBrowser-Panel {
+  background-color: #161b22;
+}
+
+body.systemx-theme[data-jp-theme-light='false']
+  .jp-FileBrowser-toolbar.jp-Toolbar {
+  background-color: #161b22;
+  border-bottom-color: #21262d;
+}
+
+body.systemx-theme[data-jp-theme-light='false'] .jp-DirListing-item:hover {
+  background-color: #21262d;
+}
+
+body.systemx-theme[data-jp-theme-light='false']
+  .jp-DirListing-item.jp-mod-selected {
+  background-color: rgb(99 102 241 / 22%);
+  color: var(--jp-ui-font-color0);
+}
+
+body.systemx-theme[data-jp-theme-light='true'] .jp-SideBar {
+  background-color: #eef2f8;
+}
+
+body.systemx-theme[data-jp-theme-light='true'] #jp-left-stack,
+body.systemx-theme[data-jp-theme-light='true'] .jp-FileBrowser,
+body.systemx-theme[data-jp-theme-light='true'] .jp-FileBrowser-Panel {
+  background-color: #f9fbfe;
+}
+
+body.systemx-theme[data-jp-theme-light='true']
+  .jp-FileBrowser-toolbar.jp-Toolbar {
+  background-color: #eef2f8;
+  border-bottom-color: #e2e8f1;
+}
+
+body.systemx-theme[data-jp-theme-light='true'] .jp-DirListing-item:hover {
+  background-color: #eef2f8;
+}
+
+body.systemx-theme[data-jp-theme-light='true']
+  .jp-DirListing-item.jp-mod-selected {
+  background-color: rgb(99 102 241 / 14%);
+  color: var(--jp-ui-font-color1);
+}
+
+
+body.systemx-theme .jp-StatusBar-Widget {
+  background-color: #e6eaf7;
+  background-image: linear-gradient(
+    90deg,
+    rgb(57 92 137 / 30%) 0%,
+    rgb(79 86 205 / 44%) 55%,
+    rgb(99 102 241 / 58%) 100%
+  );
+  border-top: 1px solid rgb(99 102 241 / 60%);
+}
+
+body.systemx-theme[data-jp-theme-light='false'] .jp-StatusBar-Widget {
+  background-color: #0d1117;
+  background-image: linear-gradient(
+    90deg,
+    rgb(57 92 137 / 32%) 0%,
+    rgb(79 86 205 / 42%) 55%,
+    rgb(99 102 241 / 52%) 100%
+  );
+  border-top: 1px solid rgb(99 102 241 / 45%);
+}
