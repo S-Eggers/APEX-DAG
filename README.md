@@ -1,4 +1,4 @@
-# SystemX: <ins>A</ins>utomating <ins>P</ins>ipeline <ins>EX</ins>traction with <ins>D</ins>ataflow, Static Code <ins>A</ins>nalysis, and <ins>G</ins>raph Attention Networks
+# SystemX
 
 <p align="center">
   <img src="docs/systemx_system_overview_components.svg" alt="SystemX system overview" width="100%" />
